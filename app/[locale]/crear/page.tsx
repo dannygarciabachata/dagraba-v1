@@ -78,24 +78,62 @@ export default function Crear() {
         }, 1500);
     };
 
+    const pollTaskStatus = async (taskId: string, provider: string) => {
+        try {
+            const res = await fetch(`/api/ai/status?taskId=${taskId}&provider=${provider}`);
+            const data = await res.json();
+
+            if (data.success && data.data) {
+                const status = data.data.status;
+                if (status === 'SUCCESS' || status === 'PARTIAL') {
+                    // Update the track with real data
+                    if (data.data.tracks && data.data.tracks.length > 0) {
+                        const generatedTrack = data.data.tracks[0];
+                        setTracks(prev => prev.map(t =>
+                            t.id === taskId ? {
+                                ...t,
+                                duration: generatedTrack.duration ? `${Math.floor(generatedTrack.duration / 60)}:${Math.floor(generatedTrack.duration % 60).toString().padStart(2, '0')}` : 'Ready',
+                                image: generatedTrack.imageUrl || '/logo_circular.png',
+                                url: generatedTrack.audioUrl || generatedTrack.streamAudioUrl || '',
+                                tags: generatedTrack.tags ? generatedTrack.tags.split(',') : t.tags
+                            } : t
+                        ));
+
+                        // Stop polling if complete
+                        if (status === 'SUCCESS') return;
+                    }
+                } else if (status === 'ERROR') {
+                    console.error('Task failed:', data.data.error);
+                    setTracks(prev => prev.map(t =>
+                        t.id === taskId ? { ...t, duration: 'Error', tags: ['Error'] } : t
+                    ));
+                    return;
+                }
+            }
+
+            // Poll again in 10 seconds if still pending/partial
+            setTimeout(() => pollTaskStatus(taskId, provider), 10000);
+
+        } catch (error) {
+            console.error('Error polling status:', error);
+        }
+    };
+
     const handleGenerate = async () => {
         if (!prompt) return;
         setIsGenerating(true);
 
         try {
-            // Map the UI state to the official Kie.ai parameters
+            // Updated payload mapping to generic MusicGenerationRequest
             const payload = {
+                provider: 'kie', // Hardcoded to KIE for now per logic, but allows dynamic switch later
                 prompt: isInstrumental ? prompt : (lyrics || prompt),
-                tags: isInstrumental ? undefined : prompt, // If lyrics, push the style to tags
                 title: title || undefined,
                 instrumental: isInstrumental,
-                customMode: true, // Force custom mode since we have pro controls
-                model: 'V5',      // Default to the newest model
-                styleWeight: promptIntensity / 100, // Convert 0-100 to 0-1
-                audioWeight: lyricsIntensity / 100, // Misnomer in UI, but mapping to audio/weirdness
-                weirdnessConstraint: lyricsIntensity / 100,
-                style: selectedTool, // Using the tool selection as a base style for now
-                callBackUrl: 'https://webhook.site/placeholder' // Required by API
+                customMode: true,
+                model: 'V4_5',
+                style: selectedTool + (promptIntensity > 50 ? ', intense' : ''),
+                callbackUrl: `${window.location.origin}/api/ai/webhook` // Standardized generic webhook pattern
             };
 
             const response = await fetch('/api/ai/generate', {
@@ -106,21 +144,21 @@ export default function Crear() {
 
             const data = await response.json();
 
-            if (data.code === 200 && data.data?.taskId) {
-                // To DO: Implement real Webhook polling for the task ID here.
-                // For local simulation, we add it to the feed as "Processing"
+            if (data.success && data.taskId) {
+                const taskId = data.taskId;
 
+                // Add "Processing" track to UI
                 const newTrack = {
-                    id: data.data.taskId, // KIE Task ID
+                    id: taskId,
                     title: title || 'Nueva Creación IA',
                     style: selectedTool,
-                    duration: 'Processing...',
-                    image: '/logo_circular.png', // Temporary Loading Image
+                    duration: 'Procesando...',
+                    image: '/logo_circular.png',
                     tags: ['IA', isInstrumental ? 'Instrumental' : 'Vocal', 'Procesando'],
                     lyrics: isInstrumental ? 'Instrumental Track' : prompt,
                     views: '0',
                     likes: 0,
-                    url: '' // Will be filled via Webhook
+                    url: ''
                 };
 
                 setTracks([newTrack, ...tracks]);
@@ -128,12 +166,16 @@ export default function Crear() {
                 setPrompt("");
                 setTitle("");
 
-                console.log("KIE Generation Queued:", data.data.taskId);
+                console.log(`[KIE] Generation Queued: ${taskId}. Polling for status...`);
+
+                // Start polling
+                pollTaskStatus(taskId, 'kie');
+
             } else {
-                console.error("KIE generation failed:", data);
-                alert("Error generando música: " + (data.msg || "Desconocido"));
+                console.error("AI generation failed:", data);
+                alert("Error generando música: " + (data.error || "Desconocido"));
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error("Error calling generation API:", error);
             alert("Error de red conectando con la IA");
         } finally {

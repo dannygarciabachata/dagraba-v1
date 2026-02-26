@@ -1,13 +1,18 @@
 import { NextResponse } from 'next/server';
 import { KieService } from '@/lib/ai/services/kie-service';
 import { MusicGptService } from '@/lib/ai/services/musicgpt-service';
-import { BaseMusicService, MusicGenerationRequest } from '@/lib/ai/types';
+import { BaseMusicService } from '@/lib/ai/types';
 
-export async function POST(req: Request) {
+export async function GET(request: Request) {
+    const { searchParams } = new URL(request.url);
+    const taskId = searchParams.get('taskId');
+    const provider = searchParams.get('provider') || 'kie';
+
+    if (!taskId) {
+        return NextResponse.json({ success: false, error: 'taskId is required' }, { status: 400 });
+    }
+
     try {
-        const body = await req.json();
-        const { provider = 'kie', ...requestParams } = body;
-
         let service: BaseMusicService;
 
         switch (provider.toLowerCase()) {
@@ -20,12 +25,12 @@ export async function POST(req: Request) {
                 break;
         }
 
-        const taskId = await service.generateMusic(requestParams as MusicGenerationRequest);
+        const statusResponse = await service.getTaskStatus(taskId);
 
-        return NextResponse.json({ success: true, taskId }, { status: 200 });
+        return NextResponse.json({ success: true, data: statusResponse }, { status: 200 });
 
     } catch (error: any) {
-        console.error(`[AI Generation API Error]:`, error);
+        console.error(`[AI Status API Error] Provider: ${provider}, Task: ${taskId}:`, error);
         return NextResponse.json({
             success: false,
             error: error.message || 'Internal Server Error'

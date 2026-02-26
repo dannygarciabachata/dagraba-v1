@@ -7,15 +7,22 @@ export function SystemConfig() {
     const [maintenanceMode, setMaintenanceMode] = useState(false);
     const [selectedRegion, setSelectedRegion] = useState('us-east-1');
     const [apiKey, setApiKey] = useState('');
+    const [musicGptKey, setMusicGptKey] = useState('');
     const [isLoading, setIsLoading] = useState(true);
 
     React.useEffect(() => {
         const fetchApiKey = async () => {
             try {
-                const res = await fetch('/api/admin/settings?key=KIE_API_KEY');
-                const data = await res.json();
-                if (data.success && data.setting) {
-                    setApiKey(data.setting.value);
+                const resKie = await fetch('/api/admin/settings?key=KIE_API_KEY');
+                const dataKie = await resKie.json();
+                if (dataKie.success && dataKie.setting) {
+                    setApiKey(dataKie.setting.value);
+                }
+
+                const resMusicGpt = await fetch('/api/admin/settings?key=MUSICGPT_API_KEY');
+                const dataMusicGpt = await resMusicGpt.json();
+                if (dataMusicGpt.success && dataMusicGpt.setting) {
+                    setMusicGptKey(dataMusicGpt.setting.value);
                 }
             } catch (error) {
                 console.error('Failed to fetch API Key', error);
@@ -26,21 +33,21 @@ export function SystemConfig() {
         fetchApiKey();
     }, []);
 
-    const handleSaveKey = async () => {
+    const handleSaveKey = async (keyName: string, keyValue: string) => {
         try {
             const res = await fetch('/api/admin/settings', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ key: 'KIE_API_KEY', value: apiKey, category: 'ai_engine' })
+                body: JSON.stringify({ key: keyName, value: keyValue, category: 'ai_engine' })
             });
             const data = await res.json();
             if (data.success) {
-                alert('API Key KIE_API_KEY actualizada correctamente.');
+                alert(`API Key ${keyName} actualizada correctamente.`);
             } else {
-                alert('Hubo un error al guardar la API Key.');
+                alert(`Hubo un error al guardar la API Key ${keyName}.`);
             }
         } catch (error) {
-            console.error('Error saving key:', error);
+            console.error(`Error saving key ${keyName}:`, error);
             alert('Error de conexión.');
         }
     };
@@ -117,7 +124,30 @@ export function SystemConfig() {
                                 className="flex-1 bg-[#111] border border-[#333] rounded-md px-4 py-2 text-sm text-white font-mono outline-none focus:border-[#00F0FF] transition-colors"
                             />
                             <button
-                                onClick={handleSaveKey}
+                                onClick={() => handleSaveKey('KIE_API_KEY', apiKey)}
+                                disabled={isLoading}
+                                className="bg-[#222] hover:bg-[#333] text-white border border-[#444] px-4 py-2 rounded text-xs font-bold tracking-widest transition-colors disabled:opacity-50"
+                            >
+                                {isLoading ? '...' : 'SAVE'}
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="flex flex-col gap-2">
+                        <label className="text-xs font-bold text-[#888] tracking-widest flex items-center gap-2">
+                            <HardDrive size={14} /> MUSICGPT API KEY
+                        </label>
+                        <div className="flex gap-2">
+                            <input
+                                type="text"
+                                value={musicGptKey}
+                                onChange={(e) => setMusicGptKey(e.target.value)}
+                                placeholder={isLoading ? "Cargando..." : "sk_..."}
+                                disabled={isLoading}
+                                className="flex-1 bg-[#111] border border-[#333] rounded-md px-4 py-2 text-sm text-white font-mono outline-none focus:border-[#00F0FF] transition-colors"
+                            />
+                            <button
+                                onClick={() => handleSaveKey('MUSICGPT_API_KEY', musicGptKey)}
                                 disabled={isLoading}
                                 className="bg-[#222] hover:bg-[#333] text-white border border-[#444] px-4 py-2 rounded text-xs font-bold tracking-widest transition-colors disabled:opacity-50"
                             >
