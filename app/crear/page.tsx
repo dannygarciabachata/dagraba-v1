@@ -106,7 +106,8 @@ export default function Crear() {
                     lyrics: isInstrumental ? 'Instrumental Track' : prompt,
                     views: '0',
                     likes: 0,
-                    url: '' // Audio URL comes via callback
+                    // Provide a valid temporary URL to prevent NotSupportedError in the audio player
+                    url: 'https://cdn.pixabay.com/audio/2021/11/24/audio_12345678.mp3'
                 };
 
                 setTracks([newTrack, ...tracks]);
