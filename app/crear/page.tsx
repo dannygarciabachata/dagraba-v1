@@ -6,7 +6,8 @@ import {
     Play, Pause, Disc3, ArrowRight, Activity,
     Music, Heart, Eye, Share2, MessageSquare,
     Plus, Sparkles, Send, Mic2, Wand2, ChevronDown,
-    Settings2, FileAudio, Type, Music4, Zap, RefreshCw, Scissors, ArrowUpRight
+    Settings2, FileAudio, Type, Music4, Zap, RefreshCw, Scissors, ArrowUpRight,
+    MoreVertical, Globe, Trash2, Layers
 } from 'lucide-react';
 import { useDAWStore } from '@/store/useDAWStore';
 import { Slider } from '@/components/ui/Slider';
@@ -45,6 +46,9 @@ export default function Crear() {
     const [isGenerating, setIsGenerating] = useState(false);
     const [tracks, setTracks] = useState<any[]>(MOCK_TRACKS);
     const [activeTrack, setActiveTrack] = useState<any>(MOCK_TRACKS[0]);
+
+    // Track Menu State
+    const [openMenuId, setOpenMenuId] = useState<string | null>(null);
 
     // Advanced UI State
     const [prompt, setPrompt] = useState("");
@@ -352,7 +356,7 @@ export default function Crear() {
                                         <span className="text-[10px] text-orange-500 font-mono tracking-tighter">{track.duration}</span>
                                     </div>
                                     <p className="text-sm text-[#666] mb-3 truncate italic">{track.style}</p>
-                                    <div className="flex items-center gap-4">
+                                    <div className="flex items-center gap-4 mt-2">
                                         <div className="flex items-center gap-1.5 text-[10px] text-[#444] font-bold">
                                             <Eye size={12} /> {track.views}
                                         </div>
@@ -362,13 +366,46 @@ export default function Crear() {
                                     </div>
                                 </div>
 
-                                <div className="flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <button className="p-2 text-[#666] hover:text-white transition-colors">
-                                        <Share2 size={18} />
+                                <div className="relative z-10 flex flex-col gap-2">
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setOpenMenuId(openMenuId === track.id ? null : track.id);
+                                        }}
+                                        className="p-2 text-[#666] hover:text-white transition-colors rounded-full hover:bg-white/5"
+                                    >
+                                        <MoreVertical size={20} />
                                     </button>
-                                    <button className="p-2 text-[#666] hover:text-white transition-colors">
-                                        <Plus size={20} />
-                                    </button>
+
+                                    {openMenuId === track.id && (
+                                        <div className="absolute right-10 top-0 w-48 bg-[#151515] border border-[#222] rounded-xl shadow-2xl overflow-hidden py-1 z-50">
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); setOpenMenuId(null); /* handle publish */ }}
+                                                className="w-full text-left px-4 py-3 text-xs font-bold text-silver-light hover:text-white hover:bg-orange-600 flex items-center gap-3 transition-colors"
+                                            >
+                                                <Globe size={14} /> Publicar
+                                            </button>
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); setOpenMenuId(null); /* handle share */ }}
+                                                className="w-full text-left px-4 py-3 text-xs font-bold text-silver-light hover:text-white hover:bg-orange-600 flex items-center gap-3 transition-colors"
+                                            >
+                                                <Share2 size={14} /> Compartir
+                                            </button>
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); setOpenMenuId(null); /* handle stems */ }}
+                                                className="w-full text-left px-4 py-3 text-xs font-bold text-silver-light hover:text-white hover:bg-orange-600 flex items-center gap-3 transition-colors"
+                                            >
+                                                <Layers size={14} /> Separar Stems
+                                            </button>
+                                            <div className="h-px bg-[#222] my-1 w-[90%] mx-auto" />
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); setOpenMenuId(null); setTracks(tracks.filter(t => t.id !== track.id)); }}
+                                                className="w-full text-left px-4 py-3 text-xs font-bold text-red-500 hover:text-red-400 hover:bg-red-500/10 flex items-center gap-3 transition-colors"
+                                            >
+                                                <Trash2 size={14} /> Borrar
+                                            </button>
+                                        </div>
+                                    )}
                                 </div>
 
                                 {activeTrack?.id === track.id && (
