@@ -16,8 +16,8 @@ const LIVE_RADIO = [
     { title: 'Mythic Realms', handle: '@graceholloway', listeners: '394', color: 'from-indigo-500/20 to-violet-500/20' },
     { title: 'Afro Sunset Lounge', handle: '@ohayes', listeners: '4.6K', color: 'from-orange-500/20 to-yellow-500/20' },
     { title: 'Techno Mainstage', handle: '@jordanmiles', listeners: '162', color: 'from-rose-500/20 to-red-500/20' },
-    { title: 'Miami 1985', handle: '@musicgpt', listeners: '5.4K', color: 'from-pink-500/20 to-purple-500/20' },
-    { title: 'Elegant Jazz', handle: '@musicgpt', listeners: '9', color: 'from-amber-500/20 to-yellow-500/20' },
+    { title: 'Miami 1985', handle: '@dagraba', listeners: '5.4K', color: 'from-pink-500/20 to-purple-500/20' },
+    { title: 'Elegant Jazz', handle: '@dagraba', listeners: '9', color: 'from-amber-500/20 to-yellow-500/20' },
 ];
 
 const TRENDING_CATEGORIES = [

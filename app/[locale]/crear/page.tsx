@@ -496,18 +496,27 @@ export default function Crear() {
 
                         {/* Actions */}
                         <div className="p-8 flex flex-col gap-8">
-                            <div className="flex gap-4">
-                                <button className="flex-1 py-3 bg-white text-black font-bold tracking-widest text-xs rounded-xl hover:bg-silver-light transition-all flex items-center justify-center gap-2">
-                                    <Share2 size={14} /> PUBLICAR
-                                </button>
+                            <div className="flex flex-col gap-4">
+                                <div className="flex gap-4">
+                                    <button className="flex-1 py-3 bg-white text-black font-bold tracking-widest text-xs rounded-xl hover:bg-silver-light transition-all flex items-center justify-center gap-2">
+                                        <Share2 size={14} /> PUBLICAR
+                                    </button>
+                                    <button
+                                        onClick={() => router.push('/studio')}
+                                        className="flex-1 py-3 bg-[#111] border border-[#222] text-white font-bold tracking-widest text-xs rounded-xl hover:bg-[#222] transition-all flex items-center justify-center gap-2"
+                                    >
+                                        <Send size={14} /> ENVIAR AL STUDIO
+                                    </button>
+                                    <button className="w-12 h-12 bg-[#111] border border-[#222] rounded-xl flex items-center justify-center text-red-500 hover:bg-red-500/10 transition-all shrink-0">
+                                        <Heart size={20} />
+                                    </button>
+                                </div>
                                 <button
-                                    onClick={() => router.push('/studio')}
-                                    className="flex-1 py-3 bg-[#111] border border-[#222] text-white font-bold tracking-widest text-xs rounded-xl hover:bg-[#222] transition-all flex items-center justify-center gap-2"
+                                    onClick={() => router.push(`/${window.location.pathname.split('/')[1] || 'en'}/covers?trackId=${activeTrack.id}`)}
+                                    className="w-full py-4 bg-gradient-to-r from-blue-600 via-indigo-500 to-purple-600 text-white font-black tracking-widest text-sm rounded-xl hover:scale-[1.02] transition-all flex items-center justify-center gap-3 shadow-[0_0_20px_rgba(79,70,229,0.3)] border border-white/10 relative overflow-hidden group"
                                 >
-                                    <Send size={14} /> ENVIAR AL STUDIO
-                                </button>
-                                <button className="w-12 h-12 bg-[#111] border border-[#222] rounded-xl flex items-center justify-center text-red-500 hover:bg-red-500/10 transition-all">
-                                    <Heart size={20} />
+                                    <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out" />
+                                    <Sparkles size={18} className="animate-pulse" /> DISEÑAR PORTADA EN CANVA
                                 </button>
                             </div>
 

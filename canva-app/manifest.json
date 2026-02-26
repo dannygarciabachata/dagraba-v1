@@ -1,0 +1,24 @@
+{
+    "sdk_version": "2",
+    "type": "content_edit",
+    "name": "DA GRABA Cover Designer",
+    "description": "Design professional covers for your tracks.",
+    "icons": [
+        {
+            "src": "/logo.jpg",
+            "sizes": "128x128",
+            "type": "image/jpeg"
+        }
+    ],
+    "developer": {
+        "name": "Danny Garcia",
+        "url": "https://dagraba.studio"
+    },
+    "auth": {
+        "type": "oauth2"
+    },
+    "capabilities": [
+        "design_content",
+        "asset_upload"
+    ]
+}

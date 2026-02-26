@@ -1,0 +1,26 @@
+{
+    "name": "dagraba-canva-app",
+    "version": "1.0.0",
+    "private": true,
+    "scripts": {
+        "dev": "vite --port 8080",
+        "build": "vite build",
+        "preview": "vite preview"
+    },
+    "dependencies": {
+        "@canva/app-ui-kit": "latest",
+        "@canva/asset": "latest",
+        "@canva/design": "latest",
+        "@canva/user": "latest",
+        "@canva/platform": "latest",
+        "react": "^19.0.0",
+        "react-dom": "^19.0.0"
+    },
+    "devDependencies": {
+        "@vitejs/plugin-react": "latest",
+        "typescript": "^5.0.0",
+        "vite": "latest",
+        "@types/react": "^19.0.0",
+        "@types/react-dom": "^19.0.0"
+    }
+}

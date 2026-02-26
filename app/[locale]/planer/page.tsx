@@ -66,7 +66,7 @@ export default function Planer() {
     return (
         <div className="flex flex-col h-full w-full items-center bg-[#0D0D0F] relative overflow-y-auto custom-scrollbar overflow-x-hidden pointer-events-auto">
 
-            {/* HERO SECTION (MusicGPT Style Landing) */}
+            {/* HERO SECTION (DA GRABA Style Landing) */}
             <div className="w-full max-w-6xl flex flex-col items-center gap-12 pt-20 pb-16 z-10 px-6">
 
                 {/* Headlines & Badges */}
@@ -129,7 +129,7 @@ export default function Planer() {
                         <div className="bg-orange-500 w-12 h-12 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform shadow-lg shadow-orange-500/30">
                             <Sparkles className="text-white" />
                         </div>
-                        <h3 className="text-white font-bold text-lg mb-2 flex items-center gap-2 relative z-10">MusicGPT V6 Pro <span className="bg-orange-500 text-white text-[10px] px-2 py-0.5 rounded font-black uppercase tracking-wider">NEW</span></h3>
+                        <h3 className="text-white font-bold text-lg mb-2 flex items-center gap-2 relative z-10">DA GRABA V6 Pro <span className="bg-orange-500 text-white text-[10px] px-2 py-0.5 rounded font-black uppercase tracking-wider">NEW</span></h3>
                         <p className="text-orange-100/70 text-sm leading-relaxed relative z-10">All this is powered by our proprietary AI audio technology. Awarded as the world's best.</p>
                     </div>
                 </div>
@@ -158,7 +158,7 @@ export default function Planer() {
 
                     {/* App Teasers */}
                     <div className="mt-12 flex flex-col items-center gap-4 bg-[#111] border border-[#222] rounded-3xl p-8 w-full max-w-2xl text-center">
-                        <h3 className="text-xl font-bold text-white tracking-widest">Create and stream music with MusicGPT App</h3>
+                        <h3 className="text-xl font-bold text-white tracking-widest">Create and stream music with DA GRABA App</h3>
                         <div className="flex items-center justify-center gap-4 mt-2">
                             <div className="flex items-center gap-2 bg-[#1A1A1A] border border-[#333] rounded-xl px-4 py-3">
                                 <span className="text-xl">🍏</span>
@@ -187,26 +187,7 @@ export default function Planer() {
                     </div>
                 </div>
 
-                {/* API Pitch */}
-                <div className="w-full mt-12 mb-16 bg-[#111] border border-[#222] rounded-3xl p-12 flex flex-col items-center text-center relative overflow-hidden group">
-                    <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-orange-500 via-yellow-500 to-orange-500 group-hover:h-2 transition-all duration-300" />
-                    <div className="bg-[#222] text-[#888] px-3 py-1 rounded-md text-xs font-bold font-mono mb-6 border border-[#333]">
-                        &lt;/&gt; For developers
-                    </div>
-                    <h2 className="text-3xl md:text-5xl font-bold tracking-tighter text-white mb-4">
-                        The Most Integratable AI Music Platform
-                    </h2>
-                    <p className="text-[#888] text-lg mb-8 max-w-2xl">
-                        Available to power any of your projects and ventures.
-                    </p>
-                    <div className="flex flex-wrap gap-4 items-center justify-center">
-                        {['API', 'n8n', 'zapier', 'make'].map(tool => (
-                            <div key={tool} className="px-6 py-3 bg-black border border-[#333] hover:border-orange-500/50 rounded-xl text-white font-black tracking-wider shadow-lg cursor-pointer transition-colors">
-                                {tool}
-                            </div>
-                        ))}
-                    </div>
-                </div>
+
             </div>
 
             <div className="w-full h-px bg-gradient-to-r from-transparent via-[#333] to-transparent my-12" />

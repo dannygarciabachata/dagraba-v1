@@ -28,7 +28,7 @@ Componentes críticos que emulan hardware real:
 -   **`TransportBar.tsx`**: Centraliza el control de tiempo, tempo y navegación entre los universos de edición y mezcla.
 
 ### 3. El Generador Inteligente (`/crear`)
-Inspirado en Suno AI y MusicGPT:
+Inspirado en Suno AI y DA GRABA:
 -   Proporciona un layout de dos paneles para visualización de tracks y detalles de la canción (Cover art, Letras).
 -   Conexión directa con modelos de generación IA para pasar de una idea a stems en el Studio.
 
@@ -52,7 +52,8 @@ Inspirado en Suno AI y MusicGPT:
 3.  **Fase 3**: Rediseño de `/crear` a un estilo Suno moderno.
 4.  **Fase 4**: Refinamiento "Logic Pro" del Piano Roll y Mixer.
 5.  **Fase 5**: Transformación a **Consola Completa**. Los faders ganaron analísis espectral independiente y slots de FX digitales. La navegación se unificó en el Transport Bar para alternar entre MIX y EDIT.
-6.  **Fase 6 (Actual)**: **Localización & Integración del Player**. Se implementó `next-intl` para soportar 7 idiomas (EN, ES, PT, FR, DE, IT, JA). Se integró un player persistente (`GlobalFooterPlayer`) y un sistema de gestión de playlists (`AddToPlaylistModal`) con persistencia en base de datos (Prisma). El sistema ahora permite el cambio dinámico de idioma desde el Sidebar.
+6.  **Fase 6**: **Localización & Integración del Player**. Se implementó `next-intl` para soportar 7 idiomas (EN, ES, PT, FR, DE, IT, JA). Se integró un player persistente (`GlobalFooterPlayer`) y un sistema de gestión de playlists (`AddToPlaylistModal`) con persistencia en base de datos (Prisma). El sistema ahora permite el cambio dinámico de idioma desde el Sidebar.
+7.  **Fase 7 (Actual)**: **Rebranding & Integración Canva**. Se renombró el proyecto completamente a "DA GRABA". Se eliminaron las ofertas de API públicas del sistema para enfocarse en la aplicación central. Se integró la API de **Canva Connect** (`/covers`) y se creó la estructura inicial para una aplicación nativa de Canva (`canva-app/`), permitiendo diseñar portadas para las canciones generadas. La configuración de `next-intl` se actualizó para soportar routing asíncrono en Next.js 15.
 
 ---
 

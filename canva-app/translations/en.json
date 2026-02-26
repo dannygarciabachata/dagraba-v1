@@ -1,0 +1,42 @@
+{
+    "app_name": {
+        "message": "DA GRABA Cover Designer",
+        "description": "The name of the Canva App"
+    },
+    "app_description": {
+        "message": "Design professional covers for your DA GRABA tracks directly within Canva.",
+        "description": "Description of the app in the Canva Apps marketplace"
+    },
+    "search_tracks": {
+        "message": "Search your songs...",
+        "description": "Placeholder for the song search input"
+    },
+    "select_track": {
+        "message": "Select a song to design for",
+        "description": "Label for the track selection list"
+    },
+    "apply_to_track": {
+        "message": "Save to DA GRABA",
+        "description": "Button text to save the design back to the DA GRABA platform"
+    },
+    "sync_loading": {
+        "message": "Syncing with DA GRABA...",
+        "description": "Loading message when saving data"
+    },
+    "sync_success": {
+        "message": "Cover saved successfully!",
+        "description": "Success message after saving"
+    },
+    "sync_error": {
+        "message": "Error saving cover. Please try again.",
+        "description": "Error message if saving fails"
+    },
+    "connect_account": {
+        "message": "Connect your DA GRABA account",
+        "description": "Button to start the OAuth flow"
+    },
+    "logout": {
+        "message": "Disconnect",
+        "description": "Link to sign out from the app"
+    }
+}
