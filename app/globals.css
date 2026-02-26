@@ -1,26 +1,68 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-carbon: #080808;
+  --color-primary: #FF6B00;
+  --color-cyan-glow: #00F0FF;
+  --color-silver: #A0A0A0;
+  --color-silver-dark: #404040;
+  --color-silver-light: #E0E0E0;
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+:root {
+  --background: #050505;
+  --foreground: #F0F0F0;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  /* Fullscreen immersive app */
+}
+
+/* Glassmorphism utilities */
+.glass-panel {
+  @apply bg-[#0D1117]/60 backdrop-blur-xl border border-white/10 shadow-[0_8px_32px_#000000cc];
+}
+
+.luxury-gradient {
+  @apply bg-gradient-to-br from-carbon to-neutral-900;
+}
+
+/* 3D Perspective Utilities */
+.perspective-container {
+  perspective: 1200px;
+}
+
+.console-desk {
+  transform: rotateX(25deg);
+  transform-style: preserve-3d;
+  box-shadow: 0 -20px 50px rgba(0, 0, 0, 0.9);
+}
+
+/* Glowing Elements */
+.glow-cyan {
+  box-shadow: 0 0 20px rgba(0, 240, 255, 0.4), inset 0 0 10px rgba(0, 240, 255, 0.2);
+  border-color: rgba(0, 240, 255, 0.5);
+}
+
+.glow-cyan-active {
+  box-shadow: 0 0 40px rgba(0, 240, 255, 0.8), inset 0 0 20px rgba(0, 240, 255, 0.6);
+  border-color: rgba(0, 240, 255, 1);
+}
+
+.glow-red {
+  box-shadow: 0 0 30px rgba(255, 50, 50, 0.6);
+}
+
+.glow-green {
+  box-shadow: 0 0 30px rgba(50, 255, 100, 0.6);
 }

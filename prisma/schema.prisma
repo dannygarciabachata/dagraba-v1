@@ -1,0 +1,95 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ROOKIE
+  CAPITAL
+  LEYENDA
+  ADMIN
+}
+
+enum Status {
+  ACTIVE
+  SUSPENDED
+}
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  DIRECT
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String?
+  email     String   @unique
+  role      Role     @default(ROOKIE)
+  status    Status   @default(ACTIVE)
+  projects        Project[]
+  tickets         SupportTicket[]
+  instrumentModels InstrumentModel[]
+  createdAt       DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Project {
+  id          String   @id @default(cuid())
+  name        String
+  duration    Int      @default(0) // Duration in seconds
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model SupportTicket {
+  id          String       @id @default(cuid())
+  subject     String
+  message     String
+  status      TicketStatus @default(OPEN)
+  priority    Priority     @default(LOW)
+  userId      String
+  user        User         @relation(fields: [userId], references: [id])
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+
+model InstrumentModel {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  tags        String[]
+  weightsUrl  String?  // Storage URL for the trained model
+  baseModel   String   @default("stabilityai/stable-audio-open-1.0")
+  samples     InstrumentSample[]
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model InstrumentSample {
+  id                String   @id @default(cuid())
+  name              String
+  audioUrl          String
+  midiUrl           String?
+  prompt            String
+  metadata          Json?    // Combined metadata from Spotify/Last.fm
+  instrumentModelId String
+  instrumentModel   InstrumentModel @relation(fields: [instrumentModelId], references: [id])
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}

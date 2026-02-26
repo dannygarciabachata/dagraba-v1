@@ -1,36 +1,69 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# DA GRABA STUDIO V1 🎧
+**Immersive Audio Engineering Console & AI Production Hub**
 
-## Getting Started
+## Overview
+DA GRABA STUDIO V1 is a premium, professional-grade digital audio workstation (DAW) and AI-powered music production platform. Designed for high-end audio engineering, it combines a sleek "Logic Pro X" inspired aesthetic with powerful AI features like vocal cloning, automated mixing, and generative track creation.
 
-First, run the development server:
+---
 
+## Core Features
+
+### 🎚️ Full Digital Console (Mixing Desk)
+- **32-Channel Mixer**: Professional 32-channel layout with bank switching (CH 1-16 / 17-32).
+- **Per-Track Digital Strip**:
+  - **Live Spectrum Analyzer**: Real-time frequency monitoring on every channel (active only during playback).
+  - **Advanced VU Metering**: Hardware-style LED meters for precise clipping detection.
+  - **FX Slots**: Dedicated digital buttons for EQ, Compression, Delay, and Reverb.
+- **Full Console Mode**: A dedicated "MIX" workspace that hide the timeline for an immersive mixing experience.
+
+### 🎹 Workspace & Editing
+- **Professional Piano Roll**: Logic Pro X-inspired MIDI editor with velocity-colored notes, toolbar, and snap-to-grid.
+- **Interactive Audio Timeline**: Multi-track visualization with high-precision playhead.
+- **Studio Monitors**: Visual monitors that animate in real-time based on audio amplitude.
+
+### 🤖 AI Engineering & Creation
+- **Ingeniero John (AI Engineer)**: An integrated AI assistant for project management, lyric suggestions, and automated tasks.
+- **Modal Engine Integration**: Direct connection to Modal's cloud for heavyweight AI tasks (Voice Cloning, Training).
+- **Crear (Suno-Style)**: A generative interface for creating full tracks from simple prompts, including vertical track listing and detailed song views.
+
+### ☁️ Cloud & Admin
+- **Cloud Status Panel**: Integrated sidebar status for "Modal Engine" connectivity.
+- **Financial Vault**: Revenue tracking and financial metrics for admins.
+- **Asset Manager**: Centralized management for WAVs, MIDIs, and trained AI models.
+
+---
+
+## Technical Stack
+- **Frontend**: Next.js 14 (App Router), TypeScript, Tailwind CSS v4, Framer Motion (Animations).
+- **State Management**: Zustand (Global DAW Store).
+- **Audio Engine**: Web Audio API with custom `AnalyserNode` bridges and real-time visualization.
+- **Database**: PostgreSQL with Prisma ORM (Neon.tech / Supabase).
+- **AI Backend**: OpenAI GPT-4o, Modal.com (Python), ElevenLabs (TTS).
+
+---
+
+## Directory Structure
+- `/app`: Next.js pages and API routes.
+- `/components`: Modular UI and DAW-specific components.
+  - `/daw`: Piano Roll, Fader, Mixer, Timeline, TransportBar.
+  - `/ui`: Global layout components (Sidebar, Buttons, Cards).
+- `/store`: Zustand state definitions (`useDAWStore.ts`).
+- `/lib`: Utility functions, constants, and API clients.
+- `/prisma`: Database schema and migrations.
+
+---
+
+## Development
 ```bash
+# Clone the repository
+git clone [repo-url]
+
+# Install dependencies
+npm install
+
+# Run the development server
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Documentation & Memory
+Detailed walkthroughs and implementation plans are maintained in the `.gemini/antigravity/brain` directory for persistent context and development history.
