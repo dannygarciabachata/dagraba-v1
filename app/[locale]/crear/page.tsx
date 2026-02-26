@@ -106,32 +106,36 @@ export default function Crear() {
 
             const data = await response.json();
 
-            if (data.code === 200) {
-                // Polling/Callback usually needed here, but we simulate immediate 
-                // addition to the top of the track list for UX purposes
+            if (data.code === 200 && data.data?.taskId) {
+                // To DO: Implement real Webhook polling for the task ID here.
+                // For local simulation, we add it to the feed as "Processing"
+
                 const newTrack = {
-                    id: `kie-${Date.now()}`,
+                    id: data.data.taskId, // KIE Task ID
                     title: title || 'Nueva Creación IA',
                     style: selectedTool,
-                    duration: '...',
-                    image: '/covers/trap_melodic.png',
-                    tags: ['IA', isInstrumental ? 'Instrumental' : 'Vocal'],
+                    duration: 'Processing...',
+                    image: '/logo_circular.png', // Temporary Loading Image
+                    tags: ['IA', isInstrumental ? 'Instrumental' : 'Vocal', 'Procesando'],
                     lyrics: isInstrumental ? 'Instrumental Track' : prompt,
                     views: '0',
                     likes: 0,
-                    // Provide a valid temporary URL to prevent NotSupportedError in the audio player
-                    url: 'https://cdn.pixabay.com/audio/2021/11/24/audio_12345678.mp3'
+                    url: '' // Will be filled via Webhook
                 };
 
                 setTracks([newTrack, ...tracks]);
                 setActiveTrack(newTrack);
                 setPrompt("");
                 setTitle("");
+
+                console.log("KIE Generation Queued:", data.data.taskId);
             } else {
-                console.error("Generation failed:", data);
+                console.error("KIE generation failed:", data);
+                alert("Error generando música: " + (data.msg || "Desconocido"));
             }
         } catch (error) {
             console.error("Error calling generation API:", error);
+            alert("Error de red conectando con la IA");
         } finally {
             setIsGenerating(false);
         }
@@ -502,10 +506,16 @@ export default function Crear() {
                                         <Share2 size={14} /> PUBLICAR
                                     </button>
                                     <button
-                                        onClick={() => router.push('/studio')}
-                                        className="flex-1 py-3 bg-[#111] border border-[#222] text-white font-bold tracking-widest text-xs rounded-xl hover:bg-[#222] transition-all flex items-center justify-center gap-2"
+                                        onClick={() => {
+                                            const { addTrack, tracks } = useDAWStore.getState();
+                                            if (!tracks.find(t => t.id === activeTrack.id)) {
+                                                addTrack(activeTrack.title, '#FF6B00');
+                                            }
+                                            router.push('/studio');
+                                        }}
+                                        className="flex-1 py-3 bg-[#111] border border-[#222] text-white font-bold tracking-widest text-xs rounded-xl hover:bg-[#222] text-orange-500 hover:text-orange-400 border-orange-500/30 transition-all flex items-center justify-center gap-2"
                                     >
-                                        <Send size={14} /> ENVIAR AL STUDIO
+                                        <Send size={14} /> AL CONSOLA
                                     </button>
                                     <button className="w-12 h-12 bg-[#111] border border-[#222] rounded-xl flex items-center justify-center text-red-500 hover:bg-red-500/10 transition-all shrink-0">
                                         <Heart size={20} />
