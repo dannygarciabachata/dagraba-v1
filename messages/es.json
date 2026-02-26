@@ -1,0 +1,57 @@
+{
+    "Explorer": {
+        "title": "Explorador",
+        "unlimitedStreaming": "Streaming Ilimitado",
+        "freeDownloads": "Descargas Gratuitas",
+        "noCopyright": "Sin Problemas de Copyright",
+        "royaltyFree": "Libre de Regalías",
+        "radioTitle": "Escucha con MusicGPT Radio",
+        "trending": "Tendencias",
+        "updatedToday": "Actualizado hoy",
+        "beats": "Instrumentales",
+        "filmTv": "Cine, Juegos y TV",
+        "sfx": "Efectos de Sonido",
+        "live": "EN VIVO",
+        "listeners": "Escuchando",
+        "likes": "Me gusta"
+    },
+    "Player": {
+        "untitled": "Sin título",
+        "aiGenerated": "Generado por IA"
+    },
+    "Playlist": {
+        "addToPlaylist": "Agregar a la lista",
+        "selectPlaylist": "Selecciona una lista para \"{track}\"",
+        "noPlaylists": "No se encontraron listas",
+        "createNew": "Crear nueva lista",
+        "namePlaceholder": "Nombre de la lista",
+        "create": "Crear",
+        "creating": "Creando...",
+        "cancel": "Cancelar",
+        "added": "¡Agregado a la lista!",
+        "error": "Error al agregar a la lista"
+    },
+    "Common": {
+        "play": "Reproducir",
+        "pause": "Pausa"
+    },
+    "Navigation": {
+        "dashboard": "Tablero",
+        "explorer": "Explorador",
+        "planer": "Planificador",
+        "crear": "Crear",
+        "studio": "Estudio",
+        "mastering": "Masterización",
+        "profile": "Perfil",
+        "settings": "Ajustes"
+    },
+    "Languages": {
+        "en": "English",
+        "es": "Español",
+        "pt": "Português",
+        "fr": "Français",
+        "de": "Deutsch",
+        "it": "Italiano",
+        "ja": "日本語"
+    }
+}

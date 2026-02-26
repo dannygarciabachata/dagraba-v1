@@ -51,7 +51,8 @@ Inspirado en Suno AI y MusicGPT:
 2.  **Fase 2**: Integración de Modal.com para el "Cerebro" en la nube.
 3.  **Fase 3**: Rediseño de `/crear` a un estilo Suno moderno.
 4.  **Fase 4**: Refinamiento "Logic Pro" del Piano Roll y Mixer.
-5.  **Fase 5 (Actual)**: Transformación a **Consola Completa**. Los faders ganaron analísis espectral independiente y slots de FX digitales. La navegación se unificó en el Transport Bar para alternar entre MIX y EDIT.
+5.  **Fase 5**: Transformación a **Consola Completa**. Los faders ganaron analísis espectral independiente y slots de FX digitales. La navegación se unificó en el Transport Bar para alternar entre MIX y EDIT.
+6.  **Fase 6 (Actual)**: **Localización & Integración del Player**. Se implementó `next-intl` para soportar 7 idiomas (EN, ES, PT, FR, DE, IT, JA). Se integró un player persistente (`GlobalFooterPlayer`) y un sistema de gestión de playlists (`AddToPlaylistModal`) con persistencia en base de datos (Prisma). El sistema ahora permite el cambio dinámico de idioma desde el Sidebar.
 
 ---
 
@@ -59,6 +60,7 @@ Inspirado en Suno AI y MusicGPT:
 -   **Efectos Activos**: Implementar la lógica real para los botones EQ/COMP que abran interfaces de procesamiento.
 -   **Clonación en Tiempo Real**: Optimizar el pipeline de ElevenLabs para menor latencia.
 -   **Stem Separation Directa**: Botón en la consola para separar tracks de audio subidos por el usuario.
+-   **Dashboard Localized**: Continuar con la localización de las páginas de Dashboard y Studio.
 
 ---
 **Documento creado para Danny Garcia - DA GRABA STUDIO V1 - Febrero 2026**

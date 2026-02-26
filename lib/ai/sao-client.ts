@@ -1,6 +1,4 @@
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import prisma from '../prisma';
 
 // Note: These will need to be added to .env.local
 const SPOTIFY_CLIENT_ID = process.env.SPOTIFY_CLIENT_ID;

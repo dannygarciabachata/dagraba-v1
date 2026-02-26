@@ -3,8 +3,10 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { useDAWStore } from '@/store/useDAWStore';
 import { Play, Pause, SkipBack, SkipForward, Volume2, Music, X, Maximize2 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 export function GlobalFooterPlayer() {
+    const t = useTranslations('Player');
     const { currentPreviewTrack, setPreviewTrack } = useDAWStore();
     const audioRef = useRef<HTMLAudioElement | null>(null);
     const [isPlaying, setIsPlaying] = useState(false);
@@ -70,8 +72,8 @@ export function GlobalFooterPlayer() {
                     )}
                 </div>
                 <div className="flex flex-col min-w-0">
-                    <span className="text-white font-bold text-sm truncate">{currentPreviewTrack.title || 'Untitled'}</span>
-                    <span className="text-white/50 text-[10px] uppercase tracking-widest truncate">{currentPreviewTrack.style || 'AI Generated'}</span>
+                    <span className="text-white font-bold text-sm truncate">{currentPreviewTrack.title || t('untitled')}</span>
+                    <span className="text-white/50 text-[10px] uppercase tracking-widest truncate">{currentPreviewTrack.style || t('aiGenerated')}</span>
                 </div>
             </div>
 

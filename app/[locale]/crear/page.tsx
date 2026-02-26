@@ -7,7 +7,7 @@ import {
     Music, Heart, Eye, Share2, MessageSquare,
     Plus, Sparkles, Send, Mic2, Wand2, ChevronDown,
     Settings2, FileAudio, Type, Music4, Zap, RefreshCw, Scissors, ArrowUpRight,
-    MoreVertical, Globe, Trash2, Layers
+    MoreVertical, Globe, Trash2, Layers, Bot, Loader2
 } from 'lucide-react';
 import { useDAWStore } from '@/store/useDAWStore';
 import { Slider } from '@/components/ui/Slider';
@@ -60,11 +60,23 @@ export default function Crear() {
     const [prompt, setPrompt] = useState("");
     const [title, setTitle] = useState("");
     const [isInstrumental, setIsInstrumental] = useState(false);
+    const [lyrics, setLyrics] = useState("");
+    const [isGeneratingLyrics, setIsGeneratingLyrics] = useState(false);
     const [showProControls, setShowProControls] = useState(false);
     const [promptIntensity, setPromptIntensity] = useState(85);
     const [lyricsIntensity, setLyricsIntensity] = useState(85);
     const [selectedTool, setSelectedTool] = useState('Create Anything');
     const [showToolsMenu, setShowToolsMenu] = useState(false);
+
+    const generateAILyrics = () => {
+        if (!prompt) return;
+        setIsGeneratingLyrics(true);
+        // Simulate an AI response for lyrics generation based on the prompt
+        setTimeout(() => {
+            setLyrics(`[Verse 1]\nEscuchando este beat, siento la energía\nTodo lo que escribo se vuelve melancolía\nBasado en lo que pediste: ${prompt}\n\n[Chorus]\nEsta es la IA escribiendo por ti\nCambiamos el juego, ya estamos aquí...`);
+            setIsGeneratingLyrics(false);
+        }, 1500);
+    };
 
     const handleGenerate = async () => {
         if (!prompt) return;
@@ -73,7 +85,8 @@ export default function Crear() {
         try {
             // Map the UI state to the official Kie.ai parameters
             const payload = {
-                prompt: prompt,
+                prompt: isInstrumental ? prompt : (lyrics || prompt),
+                tags: isInstrumental ? undefined : prompt, // If lyrics, push the style to tags
                 title: title || undefined,
                 instrumental: isInstrumental,
                 customMode: true, // Force custom mode since we have pro controls
@@ -234,20 +247,44 @@ export default function Crear() {
                     {/* Toggles */}
                     <div className="flex gap-2">
                         <button
-                            onClick={() => setIsInstrumental(!isInstrumental)}
-                            className={`flex-1 py-2 flex flex-col items-center justify-center gap-1 rounded-xl border transition-all ${isInstrumental ? 'bg-orange-600/10 border-orange-500/50 text-orange-500' : 'bg-[#111] border-[#222] text-[#666] hover:bg-[#1A1A1A]'}`}
+                            onClick={() => setIsInstrumental(true)}
+                            className={`flex-1 py-2 flex flex-col items-center justify-center gap-1 rounded-xl border transition-all ${isInstrumental ? 'bg-orange-600/10 border-orange-500/50 text-orange-500 shadow-[0_0_10px_rgba(255,107,0,0.2)]' : 'bg-[#111] border-[#222] text-[#666] hover:bg-[#1A1A1A]'}`}
                         >
                             <Music size={16} />
                             <span className="text-[10px] font-bold tracking-widest uppercase">Instrumental</span>
                         </button>
                         <button
                             onClick={() => setIsInstrumental(false)}
-                            className={`flex-1 py-2 flex flex-col items-center justify-center gap-1 rounded-xl border transition-all ${!isInstrumental ? 'bg-orange-600/10 border-orange-500/50 text-orange-500' : 'bg-[#111] border-[#222] text-[#666] hover:bg-[#1A1A1A]'}`}
+                            className={`flex-1 py-2 flex flex-col items-center justify-center gap-1 rounded-xl border transition-all ${!isInstrumental ? 'bg-orange-600/10 border-orange-500/50 text-orange-500 shadow-[0_0_10px_rgba(255,107,0,0.2)]' : 'bg-[#111] border-[#222] text-[#666] hover:bg-[#1A1A1A]'}`}
                         >
                             <Type size={16} />
                             <span className="text-[10px] font-bold tracking-widest uppercase">Lyrics</span>
                         </button>
                     </div>
+
+                    {/* AI Lyrics Box (Only visible when Words/Lyrics mode is active) */}
+                    {!isInstrumental && (
+                        <div className="flex flex-col gap-2 mt-2 animate-in fade-in slide-in-from-top-2 duration-300 relative">
+                            <div className="flex items-center justify-between mb-1">
+                                <span className="text-xs font-bold text-[#888] uppercase tracking-wider">Letras</span>
+                                <button
+                                    onClick={generateAILyrics}
+                                    disabled={isGeneratingLyrics || !prompt.trim()}
+                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-orange-500/20 to-yellow-500/10 hover:from-orange-500/30 hover:to-yellow-500/20 border border-orange-500/30 text-orange-400 rounded-lg text-[10px] font-bold tracking-widest uppercase transition-all disabled:opacity-50 relative overflow-hidden group"
+                                >
+                                    <div className="absolute inset-0 w-full h-full bg-orange-400/20 blur-md opacity-0 group-hover:opacity-100 transition-opacity" />
+                                    {isGeneratingLyrics ? <Loader2 size={12} className="animate-spin" /> : <Bot size={12} />}
+                                    AI Co-writer
+                                </button>
+                            </div>
+                            <textarea
+                                value={lyrics}
+                                onChange={(e) => setLyrics(e.target.value)}
+                                placeholder="Escribe tus letras aquí, o usa nuestro AI Co-writer para generarlas basadas en tu prompt..."
+                                className="w-full h-40 bg-[#111] border border-[#222] rounded-xl p-4 text-sm text-silver-light focus:border-orange-500/50 outline-none resize-none transition-all placeholder:text-[#444] custom-scrollbar"
+                            />
+                        </div>
+                    )}
 
                     {/* Pro Controls Toggle */}
                     <button
