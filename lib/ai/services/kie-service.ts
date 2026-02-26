@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma';
-import { BaseMusicService, MusicGenerationRequest, TaskStatusResponse, VideoGenerationRequest } from '../types';
+import { BaseMusicService, MusicGenerationRequest, TaskStatusResponse, VideoGenerationRequest, AudioEditRequest, ReplaceSectionRequest } from '../types';
 
 interface KieTaskStatusResponse {
     code: number;
@@ -264,5 +264,158 @@ export class KieService implements BaseMusicService {
             taskId,
             error: data.data?.failMsg || `Market task failed with status: ${kieState}`
         };
+    }
+
+    async addInstrumental(request: AudioEditRequest): Promise<string> {
+        const apiKey = await this.getApiKey();
+
+        const payload = {
+            uploadUrl: request.uploadUrl,
+            title: request.title,
+            tags: request.tags,
+            negativeTags: request.negativeTags,
+            model: request.model || 'V4_5PLUS',
+            vocalGender: request.vocalGender,
+            styleWeight: request.styleWeight,
+            weirdnessConstraint: request.weirdnessConstraint,
+            audioWeight: request.audioWeight,
+            callBackUrl: request.callBackUrl || `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/ai/webhook`
+        };
+
+        const response = await fetch(`${this.baseUrl}/generate/add-instrumental`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${apiKey}`
+            },
+            body: JSON.stringify(payload)
+        });
+
+        const data = await response.json();
+
+        if (!response.ok || data.code !== 200) {
+            throw new Error(`KIE Add Instrumental failed: ${data.msg || 'Unknown error'}`);
+        }
+
+        return data.data.taskId;
+    }
+
+    async addVocals(request: AudioEditRequest): Promise<string> {
+        const apiKey = await this.getApiKey();
+
+        const payload = {
+            uploadUrl: request.uploadUrl,
+            prompt: request.prompt,
+            title: request.title,
+            style: request.style,
+            negativeTags: request.negativeTags,
+            model: request.model || 'V4_5PLUS',
+            vocalGender: request.vocalGender,
+            styleWeight: request.styleWeight,
+            weirdnessConstraint: request.weirdnessConstraint,
+            audioWeight: request.audioWeight,
+            callBackUrl: request.callBackUrl || `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/ai/webhook`
+        };
+
+        const response = await fetch(`${this.baseUrl}/generate/add-vocals`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${apiKey}`
+            },
+            body: JSON.stringify(payload)
+        });
+
+        const data = await response.json();
+
+        if (!response.ok || data.code !== 200) {
+            throw new Error(`KIE Add Vocals failed: ${data.msg || 'Unknown error'}`);
+        }
+
+        return data.data.taskId;
+    }
+
+    async replaceSection(request: ReplaceSectionRequest): Promise<string> {
+        const apiKey = await this.getApiKey();
+
+        const payload = {
+            taskId: request.taskId,
+            audioId: request.audioId,
+            prompt: request.prompt,
+            tags: request.tags,
+            title: request.title,
+            infillStartS: request.infillStartS,
+            infillEndS: request.infillEndS,
+            negativeTags: request.negativeTags,
+            fullLyrics: request.fullLyrics,
+            callBackUrl: request.callBackUrl || `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/ai/webhook`
+        };
+
+        const response = await fetch(`${this.baseUrl}/generate/replace-section`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${apiKey}`
+            },
+            body: JSON.stringify(payload)
+        });
+
+        const data = await response.json();
+
+        if (!response.ok || data.code !== 200) {
+            throw new Error(`KIE Replace Section failed: ${data.msg || 'Unknown error'}`);
+        }
+
+        return data.data.taskId;
+    }
+
+    async uploadAndExtend(request: AudioEditRequest & { continueAt: number, defaultParamFlag: boolean }): Promise<string> {
+        const apiKey = await this.getApiKey();
+
+        const payload: any = {
+            uploadUrl: request.uploadUrl,
+            defaultParamFlag: request.defaultParamFlag,
+            instrumental: request.instrumental || false,
+            continueAt: request.continueAt,
+            model: request.model || 'V4_5PLUS',
+            callBackUrl: request.callBackUrl || `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/ai/webhook`
+        };
+
+        if (request.defaultParamFlag) {
+            if (payload.instrumental) {
+                payload.style = request.style;
+                payload.title = request.title;
+            } else {
+                payload.style = request.style;
+                payload.title = request.title;
+                payload.prompt = request.prompt;
+            }
+        } else {
+            payload.prompt = request.prompt; // Used as lyrics
+        }
+        
+        // Optional
+        if (request.negativeTags) payload.negativeTags = request.negativeTags;
+        if (request.vocalGender) payload.vocalGender = request.vocalGender;
+        if (request.styleWeight) payload.styleWeight = request.styleWeight;
+        if (request.weirdnessConstraint) payload.weirdnessConstraint = request.weirdnessConstraint;
+        if (request.audioWeight) payload.audioWeight = request.audioWeight;
+
+        const response = await fetch(`${this.baseUrl}/generate/upload-extend`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${apiKey}`
+            },
+            body: JSON.stringify(payload)
+        });
+
+        const data = await response.json();
+
+        if (!response.ok || data.code !== 200) {
+            throw new Error(`KIE Upload and Extend failed: ${data.msg || 'Unknown error'}`);
+        }
+
+        return data.data.taskId;
     }
 }

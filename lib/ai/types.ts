@@ -29,6 +29,35 @@ export interface VideoGenerationRequest {
     domainName?: string;
 }
 
+export interface AudioEditRequest {
+    uploadUrl: string;
+    title?: string;
+    tags?: string;
+    negativeTags?: string;
+    prompt?: string;
+    style?: string;
+    model?: string;
+    vocalGender?: 'm' | 'f';
+    styleWeight?: number;
+    weirdnessConstraint?: number;
+    audioWeight?: number;
+    instrumental?: boolean;
+    callBackUrl?: string;
+}
+
+export interface ReplaceSectionRequest {
+    taskId: string;
+    audioId: string;
+    prompt: string;
+    tags: string;
+    title: string;
+    infillStartS: number;
+    infillEndS: number;
+    negativeTags?: string;
+    fullLyrics?: string;
+    callBackUrl?: string;
+}
+
 export interface TaskStatusResponse {
     status: 'PENDING' | 'SUCCESS' | 'ERROR' | 'PARTIAL';
     taskId: string;
@@ -70,4 +99,24 @@ export interface BaseMusicService {
      * @returns The new taskId
      */
     extendMusic?(audioId: string, request: Partial<MusicGenerationRequest>): Promise<string>;
+
+    /**
+     * Add instrumental backing to an uploaded vocal track
+     */
+    addInstrumental?(request: AudioEditRequest): Promise<string>;
+
+    /**
+     * Add vocals to an uploaded instrumental track
+     */
+    addVocals?(request: AudioEditRequest): Promise<string>;
+
+    /**
+     * Replace a specific time segment within existing music
+     */
+    replaceSection?(request: ReplaceSectionRequest): Promise<string>;
+
+    /**
+     * Extend audio tracks while preserving the original style
+     */
+    uploadAndExtend?(request: AudioEditRequest & { continueAt: number, defaultParamFlag: boolean }): Promise<string>;
 }
