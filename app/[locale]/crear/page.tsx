@@ -56,6 +56,14 @@ export default function Crear() {
     // Track Menu State
     const [openMenuId, setOpenMenuId] = useState<string | null>(null);
 
+    // Edit Modal State
+    const [editModalOpen, setEditModalOpen] = useState(false);
+    const [editMode, setEditMode] = useState<'extend' | 'vocals' | 'instrumental' | 'video' | null>(null);
+    const [editTrack, setEditTrack] = useState<any>(null);
+    const [editPrompt, setEditPrompt] = useState("");
+    const [editContinueAt, setEditContinueAt] = useState<string>("0");
+    const [isEditing, setIsEditing] = useState(false);
+
     // Advanced UI State
     const [prompt, setPrompt] = useState("");
     const [title, setTitle] = useState("");
@@ -78,9 +86,81 @@ export default function Crear() {
         }, 1500);
     };
 
-    const pollTaskStatus = async (taskId: string, provider: string) => {
+    const handleEditAction = async () => {
+        if (!editTrack || !editMode) return;
+        if ((editMode === 'extend' || editMode === 'vocals') && !editPrompt.trim()) {
+            alert("Prompt is required for this action");
+            return;
+        }
+
+        setIsEditing(true);
+
         try {
-            const res = await fetch(`/api/ai/status?taskId=${taskId}&provider=${provider}`);
+            const isVideo = editMode === 'video';
+            const endpoint = isVideo ? '/api/ai/generate/video' : '/api/ai/edit';
+            
+            const payload: any = {
+                action: editMode,
+            };
+
+            if (isVideo) {
+                payload.taskId = editTrack.id;
+                payload.audioId = editTrack.id; // Usually the same or extracted
+                payload.callbackUrl = `${window.location.origin}/api/ai/webhook`;
+            } else {
+                payload.uploadUrl = editTrack.url;
+                payload.title = `${editTrack.title} (${editMode})`;
+                payload.prompt = editPrompt;
+                if (editMode === 'extend') {
+                    payload.continueAt = parseInt(editContinueAt) || Math.floor(parseInt(editTrack.duration.split(':')[0]) * 60 + parseInt(editTrack.duration.split(':')[1]) || 0);
+                    payload.defaultParamFlag = true;
+                }
+            }
+
+            const response = await fetch(endpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            const data = await response.json();
+
+            if (data.success && data.taskId) {
+                const newTaskId = data.taskId;
+
+                // Add placeholder track for tracking status
+                setTracks([{
+                    id: newTaskId,
+                    title: payload.title || `Video for ${editTrack.title}`,
+                    style: editMode,
+                    duration: 'Procesando...',
+                    image: editTrack.image,
+                    tags: ['IA', editMode, 'Procesando'],
+                    lyrics: editPrompt || editTrack.lyrics,
+                    views: '0',
+                    likes: 0,
+                    url: ''
+                }, ...tracks]);
+
+                setEditModalOpen(false);
+                setEditPrompt("");
+                setEditContinueAt("0");
+
+                pollTaskStatus(newTaskId, 'kie', isVideo ? 'video' : 'music');
+            } else {
+                alert("Error iniciando la edición: " + (data.error || "Desconocido"));
+            }
+        } catch (error) {
+            console.error("Error editing:", error);
+            alert("Error de red");
+        } finally {
+            setIsEditing(false);
+        }
+    };
+
+    const pollTaskStatus = async (taskId: string, provider: string, type: string = 'music') => {
+        try {
+            const res = await fetch(`/api/ai/status?taskId=${taskId}&provider=${provider}&type=${type}`);
             const data = await res.json();
 
             if (data.success && data.data) {
@@ -112,7 +192,7 @@ export default function Crear() {
             }
 
             // Poll again in 10 seconds if still pending/partial
-            setTimeout(() => pollTaskStatus(taskId, provider), 10000);
+            setTimeout(() => pollTaskStatus(taskId, provider, type), 10000);
 
         } catch (error) {
             console.error('Error polling status:', error);
@@ -169,7 +249,7 @@ export default function Crear() {
                 console.log(`[KIE] Generation Queued: ${taskId}. Polling for status...`);
 
                 // Start polling
-                pollTaskStatus(taskId, 'kie');
+                pollTaskStatus(taskId, 'kie', 'music');
 
             } else {
                 console.error("AI generation failed:", data);
@@ -501,6 +581,32 @@ export default function Crear() {
                                                 <Layers size={14} /> Separar Stems
                                             </button>
                                             <div className="h-px bg-[#222] my-1 w-[90%] mx-auto" />
+                                            {/* Advanced Edit Options */}
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); setOpenMenuId(null); setEditMode('extend'); setEditTrack(track); setEditModalOpen(true); }}
+                                                className="w-full text-left px-4 py-3 text-xs font-bold text-silver-light hover:text-white hover:bg-orange-600 flex items-center gap-3 transition-colors"
+                                            >
+                                                <ArrowUpRight size={14} /> Extender Pista
+                                            </button>
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); setOpenMenuId(null); setEditMode('vocals'); setEditTrack(track); setEditModalOpen(true); }}
+                                                className="w-full text-left px-4 py-3 text-xs font-bold text-silver-light hover:text-white hover:bg-orange-600 flex items-center gap-3 transition-colors"
+                                            >
+                                                <Type size={14} /> Añadir Voces
+                                            </button>
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); setOpenMenuId(null); setEditMode('instrumental'); setEditTrack(track); setEditModalOpen(true); }}
+                                                className="w-full text-left px-4 py-3 text-xs font-bold text-silver-light hover:text-white hover:bg-orange-600 flex items-center gap-3 transition-colors"
+                                            >
+                                                <Music size={14} /> Añadir Instrumental
+                                            </button>
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); setOpenMenuId(null); setEditMode('video'); setEditTrack(track); setEditModalOpen(true); }}
+                                                className="w-full text-left px-4 py-3 text-xs font-bold text-silver-light hover:text-white hover:bg-orange-600 flex items-center gap-3 transition-colors"
+                                            >
+                                                <Activity size={14} /> Generar Video (MP4)
+                                            </button>
+                                            <div className="h-px bg-[#222] my-1 w-[90%] mx-auto" />
                                             <button
                                                 onClick={(e) => { e.stopPropagation(); setOpenMenuId(null); setTracks(tracks.filter(t => t.id !== track.id)); }}
                                                 className="w-full text-left px-4 py-3 text-xs font-bold text-red-500 hover:text-red-400 hover:bg-red-500/10 flex items-center gap-3 transition-colors"
@@ -595,6 +701,71 @@ export default function Crear() {
                     </div>
                 )}
             </aside>
+            {/* Edit Modal (Extend, Vocals, Instrumental, Video) */}
+            {editModalOpen && editTrack && (
+                <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+                    <div className="bg-[#111] border border-[#333] rounded-2xl w-full max-w-md p-6 shadow-2xl animate-in zoom-in-95 duration-200">
+                        <div className="flex justify-between items-center mb-6">
+                            <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                                {editMode === 'extend' && <><ArrowUpRight size={20} className="text-orange-500"/> Extender Pista</>}
+                                {editMode === 'vocals' && <><Type size={20} className="text-orange-500"/> Añadir Voces</>}
+                                {editMode === 'instrumental' && <><Music size={20} className="text-orange-500"/> Añadir Instrumental</>}
+                                {editMode === 'video' && <><Activity size={20} className="text-orange-500"/> Generar Video MP4</>}
+                            </h3>
+                            <button onClick={() => setEditModalOpen(false)} className="p-2 text-[#666] hover:text-white bg-[#222] rounded-full">
+                                <Plus size={20} className="rotate-45" />
+                            </button>
+                        </div>
+                        
+                        <div className="flex items-center gap-4 mb-6 p-4 bg-[#1A1A1A] rounded-xl border border-[#333]">
+                            <img src={editTrack.image} alt="cover" className="w-12 h-12 rounded-lg object-cover" />
+                            <div>
+                                <p className="text-sm font-bold text-white truncate max-w-[250px]">{editTrack.title}</p>
+                                <p className="text-xs text-[#888]">{editMode === 'video' ? 'Crear visualizador para este track' : 'Pista base para edición'}</p>
+                            </div>
+                        </div>
+
+                        {editMode !== 'video' && (
+                            <div className="space-y-4 mb-6">
+                                {editMode === 'extend' && (
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-bold text-[#888] uppercase tracking-wider">Continuar en (segundos)</label>
+                                        <input
+                                            type="number"
+                                            value={editContinueAt}
+                                            onChange={(e) => setEditContinueAt(e.target.value)}
+                                            className="w-full bg-[#0A0A0C] border border-[#333] rounded-xl p-3 text-sm text-white focus:border-orange-500 outline-none"
+                                            placeholder="Ej: 120"
+                                        />
+                                        <p className="text-[10px] text-[#666]">Deja en 0 para extender desde el final de la pista ({editTrack.duration}).</p>
+                                    </div>
+                                )}
+                                
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-[#888] uppercase tracking-wider">
+                                        {editMode === 'vocals' ? 'Letras o estilo vocal' : (editMode === 'extend' ? 'Cómo continuar' : 'Estilo Instrumental')}
+                                    </label>
+                                    <textarea
+                                        value={editPrompt}
+                                        onChange={(e) => setEditPrompt(e.target.value)}
+                                        placeholder={editMode === 'vocals' ? "Escribe las letras aquí..." : "Describe el estilo musical..."}
+                                        className="w-full h-24 bg-[#0A0A0C] border border-[#333] rounded-xl p-3 text-sm text-white focus:border-orange-500 outline-none resize-none custom-scrollbar"
+                                    />
+                                </div>
+                            </div>
+                        )}
+
+                        <button
+                            onClick={handleEditAction}
+                            disabled={isEditing || (editMode !== 'video' && !editPrompt.trim())}
+                            className="w-full py-4 bg-orange-600 hover:bg-orange-500 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl font-bold tracking-widest text-white flex items-center justify-center gap-2 transition-all shadow-[0_0_20px_rgba(255,107,0,0.3)]"
+                        >
+                            {isEditing ? <Activity size={18} className="animate-spin" /> : <Sparkles size={18} />}
+                            {isEditing ? 'PROCESANDO...' : 'INICIAR PROCESO'}
+                        </button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
