@@ -5,9 +5,11 @@ import { useState, useEffect } from 'react';
 import {
     Play, Pause, Disc3, ArrowRight, Activity,
     Music, Heart, Eye, Share2, MessageSquare,
-    Plus, Sparkles, Send, Mic2, Wand2
+    Plus, Sparkles, Send, Mic2, Wand2, ChevronDown,
+    Settings2, FileAudio, Type, Music4, Zap, RefreshCw, Scissors, ArrowUpRight
 } from 'lucide-react';
 import { useDAWStore } from '@/store/useDAWStore';
+import { Slider } from '@/components/ui/Slider';
 
 // Mock data for the generated tracks
 const MOCK_TRACKS = [
@@ -43,16 +45,72 @@ export default function Crear() {
     const [isGenerating, setIsGenerating] = useState(false);
     const [tracks, setTracks] = useState<any[]>(MOCK_TRACKS);
     const [activeTrack, setActiveTrack] = useState<any>(MOCK_TRACKS[0]);
+
+    // Advanced UI State
     const [prompt, setPrompt] = useState("");
+    const [title, setTitle] = useState("");
+    const [isInstrumental, setIsInstrumental] = useState(false);
+    const [showProControls, setShowProControls] = useState(false);
+    const [promptIntensity, setPromptIntensity] = useState(85);
+    const [lyricsIntensity, setLyricsIntensity] = useState(85);
+    const [selectedTool, setSelectedTool] = useState('Create Anything');
+    const [showToolsMenu, setShowToolsMenu] = useState(false);
 
     const handleGenerate = async () => {
         if (!prompt) return;
         setIsGenerating(true);
-        // Simulate generation
-        setTimeout(() => {
+
+        try {
+            // Map the UI state to the official Kie.ai parameters
+            const payload = {
+                prompt: prompt,
+                title: title || undefined,
+                instrumental: isInstrumental,
+                customMode: true, // Force custom mode since we have pro controls
+                model: 'V5',      // Default to the newest model
+                styleWeight: promptIntensity / 100, // Convert 0-100 to 0-1
+                audioWeight: lyricsIntensity / 100, // Misnomer in UI, but mapping to audio/weirdness
+                weirdnessConstraint: lyricsIntensity / 100,
+                style: selectedTool, // Using the tool selection as a base style for now
+                callBackUrl: 'https://webhook.site/placeholder' // Required by API
+            };
+
+            const response = await fetch('/api/ai/generate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            const data = await response.json();
+
+            if (data.code === 200) {
+                // Polling/Callback usually needed here, but we simulate immediate 
+                // addition to the top of the track list for UX purposes
+                const newTrack = {
+                    id: `kie-${Date.now()}`,
+                    title: title || 'Nueva Creación IA',
+                    style: selectedTool,
+                    duration: '...',
+                    image: '/covers/trap_melodic.png',
+                    tags: ['IA', isInstrumental ? 'Instrumental' : 'Vocal'],
+                    lyrics: isInstrumental ? 'Instrumental Track' : prompt,
+                    views: '0',
+                    likes: 0,
+                    url: '' // Audio URL comes via callback
+                };
+
+                setTracks([newTrack, ...tracks]);
+                setActiveTrack(newTrack);
+                setPrompt("");
+                setTitle("");
+            } else {
+                console.error("Generation failed:", data);
+            }
+        } catch (error) {
+            console.error("Error calling generation API:", error);
+        } finally {
             setIsGenerating(false);
-            setPrompt("");
-        }, 3000);
+        }
     };
 
     const handleSelectTrack = (track: any) => {
@@ -81,19 +139,135 @@ export default function Crear() {
                 </div>
 
                 <div className="flex flex-col gap-4">
+                    {/* Tools Dropdown */}
+                    <div className="relative">
+                        <button
+                            onClick={() => setShowToolsMenu(!showToolsMenu)}
+                            className="w-full flex items-center justify-between p-3 bg-[#111] border border-[#222] rounded-xl text-sm font-bold text-white hover:bg-[#1A1A1A] transition-all"
+                        >
+                            <div className="flex items-center gap-2">
+                                <Sparkles size={16} className="text-orange-500" />
+                                {selectedTool}
+                            </div>
+                            <ChevronDown size={16} className={`text-[#666] transition-transform ${showToolsMenu ? 'rotate-180' : ''}`} />
+                        </button>
+
+                        {showToolsMenu && (
+                            <div className="absolute top-full left-0 right-0 mt-2 bg-[#111] border border-[#222] rounded-xl shadow-2xl z-50 overflow-hidden flex flex-col">
+                                {[
+                                    { name: 'Create Anything', desc: 'A simple text prompt to create it all', icon: <Wand2 size={14} /> },
+                                    { name: 'Sound generator', desc: 'Create sound effects and samples', icon: <Music4 size={14} />, tag: 'Plus' },
+                                    { name: 'Text to Speech', desc: 'Speak text in any voice', icon: <Mic2 size={14} />, tag: 'Pro' },
+                                    { name: 'Remix', desc: 'Remix a song with custom style or lyrics', icon: <RefreshCw size={14} />, tag: 'Pro' },
+                                    { name: 'Replace', desc: 'Replace a part of a song', icon: <Scissors size={14} />, tag: 'Pro' },
+                                    { name: 'Extend', desc: 'Continue a track beyond the original', icon: <ArrowUpRight size={14} />, tag: 'Pro' },
+                                    { name: 'Add Vocals', desc: 'Add vocals to existing instrumental', icon: <Type size={14} />, tag: 'Pro' },
+                                    { name: 'Add Instrumental', desc: 'Add instrumental to existing vocals', icon: <Music size={14} />, tag: 'Pro' }
+                                ].map(tool => (
+                                    <button
+                                        key={tool.name}
+                                        onClick={() => { setSelectedTool(tool.name); setShowToolsMenu(false); }}
+                                        className="flex items-start gap-3 p-3 hover:bg-[#1A1A1A] transition-all text-left"
+                                    >
+                                        <div className="mt-0.5 text-[#888]">{tool.icon}</div>
+                                        <div className="flex-1">
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-sm font-bold text-white">{tool.name}</span>
+                                                {tool.tag && <span className="text-[9px] px-1.5 py-0.5 bg-orange-600/20 text-orange-500 rounded font-black tracking-widest uppercase">{tool.tag}</span>}
+                                            </div>
+                                            <span className="text-xs text-[#666]">{tool.desc}</span>
+                                        </div>
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Title Input */}
+                    <input
+                        type="text"
+                        value={title}
+                        onChange={(e) => setTitle(e.target.value)}
+                        placeholder="Song Title (optional)"
+                        className="w-full bg-[#111] border border-[#222] rounded-xl p-3 text-sm text-silver-light focus:border-orange-500/50 outline-none transition-all placeholder:text-[#444]"
+                    />
+
+                    {/* Main Prompt */}
                     <div className="relative">
                         <textarea
                             value={prompt}
                             onChange={(e) => setPrompt(e.target.value)}
-                            placeholder="Describe tu canción (ej: Trap melódico con bajos profundos y voz atmosférica)..."
-                            className="w-full h-40 bg-[#111] border border-[#222] rounded-xl p-4 text-sm text-silver-light focus:border-orange-500/50 outline-none resize-none transition-all placeholder:text-[#444]"
+                            placeholder="Cover song of Jingle Bells with Drake's voice..."
+                            className="w-full h-32 bg-[#111] border border-[#222] rounded-xl p-4 text-sm text-silver-light focus:border-orange-500/50 outline-none resize-none transition-all placeholder:text-[#444]"
                         />
-                        <div className="absolute bottom-3 right-3 flex gap-2">
-                            <button className="p-2 bg-[#222] hover:bg-[#333] rounded-md text-[#666] hover:text-[#888] transition-all">
-                                <Mic2 size={16} />
+                        <div className="absolute bottom-3 left-3 flex gap-2">
+                            <button className="flex items-center gap-1.5 px-3 py-1.5 bg-[#222] hover:bg-[#333] rounded-lg text-xs font-bold text-[#888] hover:text-white transition-all">
+                                <FileAudio size={14} /> Attach file
                             </button>
                         </div>
                     </div>
+
+                    {/* Toggles */}
+                    <div className="flex gap-2">
+                        <button
+                            onClick={() => setIsInstrumental(!isInstrumental)}
+                            className={`flex-1 py-2 flex flex-col items-center justify-center gap-1 rounded-xl border transition-all ${isInstrumental ? 'bg-orange-600/10 border-orange-500/50 text-orange-500' : 'bg-[#111] border-[#222] text-[#666] hover:bg-[#1A1A1A]'}`}
+                        >
+                            <Music size={16} />
+                            <span className="text-[10px] font-bold tracking-widest uppercase">Instrumental</span>
+                        </button>
+                        <button
+                            onClick={() => setIsInstrumental(false)}
+                            className={`flex-1 py-2 flex flex-col items-center justify-center gap-1 rounded-xl border transition-all ${!isInstrumental ? 'bg-orange-600/10 border-orange-500/50 text-orange-500' : 'bg-[#111] border-[#222] text-[#666] hover:bg-[#1A1A1A]'}`}
+                        >
+                            <Type size={16} />
+                            <span className="text-[10px] font-bold tracking-widest uppercase">Lyrics</span>
+                        </button>
+                    </div>
+
+                    {/* Pro Controls Toggle */}
+                    <button
+                        onClick={() => setShowProControls(!showProControls)}
+                        className="flex items-center justify-between p-3 bg-[#111] border border-[#222] rounded-xl text-sm font-bold text-[#888] hover:text-white transition-all"
+                    >
+                        <div className="flex items-center gap-2">
+                            <Settings2 size={16} />
+                            Pro controls
+                        </div>
+                        <ChevronDown size={16} className={`transition-transform ${showProControls ? 'rotate-180' : ''}`} />
+                    </button>
+
+                    {/* Pro Controls Panel */}
+                    {showProControls && (
+                        <div className="bg-[#111] border border-[#222] rounded-xl p-4 flex flex-col gap-4">
+                            <div className="flex flex-col gap-2">
+                                <div className="flex items-center justify-between text-xs font-bold text-[#888]">
+                                    <span className="flex items-center gap-1">Prompt intensity <span className="w-3 h-3 rounded-full bg-[#222] text-[#666] flex items-center justify-center text-[8px]">i</span></span>
+                                    <span className="text-white">{promptIntensity}</span>
+                                </div>
+                                <Slider
+                                    value={promptIntensity}
+                                    onChange={(e) => setPromptIntensity(Number(e.target.value))}
+                                    min={0} max={100}
+                                    className="w-full"
+                                />
+                            </div>
+                            {!isInstrumental && (
+                                <div className="flex flex-col gap-2">
+                                    <div className="flex items-center justify-between text-xs font-bold text-[#888]">
+                                        <span className="flex items-center gap-1">Lyrics intensity <span className="w-3 h-3 rounded-full bg-[#222] text-[#666] flex items-center justify-center text-[8px]">i</span></span>
+                                        <span className="text-white">{lyricsIntensity}</span>
+                                    </div>
+                                    <Slider
+                                        value={lyricsIntensity}
+                                        onChange={(e) => setLyricsIntensity(Number(e.target.value))}
+                                        min={0} max={100}
+                                        className="w-full"
+                                    />
+                                </div>
+                            )}
+                        </div>
+                    )}
 
                     <button
                         onClick={handleGenerate}
@@ -104,8 +278,8 @@ export default function Crear() {
                             <Activity size={20} className="animate-spin" />
                         ) : (
                             <>
-                                <Sparkles size={18} />
-                                GENERAR
+                                <Send size={18} />
+                                SUBMIT
                             </>
                         )}
                     </button>
@@ -156,8 +330,8 @@ export default function Crear() {
                                 key={track.id}
                                 onClick={() => handleSelectTrack(track)}
                                 className={`group relative bg-[#0A0A0C] border transition-all duration-300 rounded-2xl p-5 flex items-center gap-6 cursor-pointer overflow-hidden ${activeTrack?.id === track.id
-                                        ? 'border-orange-500/40 bg-orange-500/5 shadow-[0_10px_40px_rgba(255,107,0,0.05)]'
-                                        : 'border-white/5 hover:border-white/10'
+                                    ? 'border-orange-500/40 bg-orange-500/5 shadow-[0_10px_40px_rgba(255,107,0,0.05)]'
+                                    : 'border-white/5 hover:border-white/10'
                                     }`}
                             >
                                 <div className="w-24 h-24 shrink-0 rounded-xl overflow-hidden relative shadow-2xl">
