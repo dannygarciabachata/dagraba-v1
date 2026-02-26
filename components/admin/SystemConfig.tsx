@@ -6,7 +6,44 @@ import { Settings, Globe, Power, HardDrive, AlertTriangle } from 'lucide-react';
 export function SystemConfig() {
     const [maintenanceMode, setMaintenanceMode] = useState(false);
     const [selectedRegion, setSelectedRegion] = useState('us-east-1');
-    const [apiKey, setApiKey] = useState('sk_live_v1_...hidden...');
+    const [apiKey, setApiKey] = useState('');
+    const [isLoading, setIsLoading] = useState(true);
+
+    React.useEffect(() => {
+        const fetchApiKey = async () => {
+            try {
+                const res = await fetch('/api/admin/settings?key=KIE_API_KEY');
+                const data = await res.json();
+                if (data.success && data.setting) {
+                    setApiKey(data.setting.value);
+                }
+            } catch (error) {
+                console.error('Failed to fetch API Key', error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        fetchApiKey();
+    }, []);
+
+    const handleSaveKey = async () => {
+        try {
+            const res = await fetch('/api/admin/settings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ key: 'KIE_API_KEY', value: apiKey, category: 'ai_engine' })
+            });
+            const data = await res.json();
+            if (data.success) {
+                alert('API Key KIE_API_KEY actualizada correctamente.');
+            } else {
+                alert('Hubo un error al guardar la API Key.');
+            }
+        } catch (error) {
+            console.error('Error saving key:', error);
+            alert('Error de conexión.');
+        }
+    };
 
     return (
         <section id="config" className="bg-[#0A0A0C]/80 backdrop-blur-md border border-[#333] rounded-xl p-6 shadow-[0_10px_40px_rgba(0,0,0,0.5)] flex flex-col gap-6 mt-8 mb-20">
@@ -75,10 +112,16 @@ export function SystemConfig() {
                                 type="text"
                                 value={apiKey}
                                 onChange={(e) => setApiKey(e.target.value)}
+                                placeholder={isLoading ? "Cargando..." : "sk_..."}
+                                disabled={isLoading}
                                 className="flex-1 bg-[#111] border border-[#333] rounded-md px-4 py-2 text-sm text-white font-mono outline-none focus:border-[#00F0FF] transition-colors"
                             />
-                            <button className="bg-[#222] hover:bg-[#333] text-white border border-[#444] px-4 py-2 rounded text-xs font-bold tracking-widest transition-colors">
-                                SAVE
+                            <button
+                                onClick={handleSaveKey}
+                                disabled={isLoading}
+                                className="bg-[#222] hover:bg-[#333] text-white border border-[#444] px-4 py-2 rounded text-xs font-bold tracking-widest transition-colors disabled:opacity-50"
+                            >
+                                {isLoading ? '...' : 'SAVE'}
                             </button>
                         </div>
                     </div>

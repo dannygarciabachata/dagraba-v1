@@ -1,3 +1,5 @@
+import { prisma } from '@/lib/prisma';
+
 /**
  * Kie.ai / Suno API Client
  * Aligned with official documentation for Generate Music v1
@@ -33,10 +35,21 @@ export const kieClient = {
      * Official Suno V4/V5 music generation via Kie.ai
      */
     generate: async (request: KieGenerationRequest): Promise<KieGenerationResponse> => {
-        const apiKey = process.env.KIE_API_KEY;
+        // Try getting the dynamic override key from the database first
+        let apiKey = process.env.KIE_API_KEY;
+        try {
+            const dbSetting = await prisma.systemSetting.findUnique({
+                where: { key: 'KIE_API_KEY' }
+            });
+            if (dbSetting?.value) {
+                apiKey = dbSetting.value;
+            }
+        } catch (dbError) {
+            console.error('Failed to parse DB for API KEY. Falling back to env vars', dbError);
+        }
 
         if (!apiKey) {
-            console.error('KIE_API_KEY missing from environment');
+            console.error('KIE_API_KEY missing from environment and database');
             return { code: 401, msg: 'Authentication credentials are missing' };
         }
 

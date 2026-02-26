@@ -32,6 +32,15 @@ enum Priority {
   DIRECT
 }
 
+// Global System Configuration Settings
+model SystemSetting {
+  key       String   @id @unique
+  value     String
+  category  String   @default("system") // e.g., "api_keys", "feature_flags"
+  updatedAt DateTime @updatedAt
+}
+
+
 model User {
   id        String   @id @default(cuid())
   name      String?
