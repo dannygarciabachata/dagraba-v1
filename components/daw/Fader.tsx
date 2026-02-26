@@ -102,7 +102,7 @@ export function Fader({ id }: FaderProps) {
                         value={fader.value}
                         onChange={(e) => setFaderValue(id, parseInt(e.target.value))}
                         className="h-full w-full cursor-grab active:cursor-grabbing transition-all duration-700 ease-in-out opacity-0 z-20"
-                        style={{ WebkitAppearance: 'slider-vertical' } as React.CSSProperties}
+                        style={{ writingMode: 'vertical-lr', direction: 'rtl' } as React.CSSProperties}
                     />
 
                     {/* Simulated 3D Fader Cap (Brushed Metal) */}

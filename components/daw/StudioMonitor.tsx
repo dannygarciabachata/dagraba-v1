@@ -30,7 +30,7 @@ export function StudioMonitor({ className = '' }: { className?: string }) {
             >
 
                 {/* Wood Grain Texture Overlay */}
-                <div className="absolute inset-0 bg-[url('/noise.png')] mix-blend-overlay opacity-10 pointer-events-none rounded-md" />
+                <div className="absolute inset-0 bg-transparent mix-blend-overlay opacity-10 pointer-events-none rounded-md" />
 
                 {/* Top Tweeter */}
                 <div className="w-24 h-24 rounded-full bg-[#2A2A2D] border-2 border-[#111] shadow-[inset_0_5px_15px_rgba(0,0,0,0.8)] flex items-center justify-center relative z-10">

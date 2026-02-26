@@ -92,7 +92,7 @@ export default function Studio() {
                             </div>
 
                             <div className="w-full bg-[#111] border-t-2 border-black relative overflow-x-auto custom-scrollbar shadow-[0_-20px_60px_rgba(0,0,0,0.8)]">
-                                <div className="absolute inset-0 bg-[url('/noise.png')] opacity-10 mix-blend-overlay pointer-events-none" />
+                                <div className="absolute inset-0 bg-transparent opacity-10 mix-blend-overlay pointer-events-none" />
 
                                 <div className="min-w-fit mx-auto flex justify-center py-10 px-12 relative z-10 bg-gradient-to-b from-[#151517] to-[#0A0A0C]">
                                     <div className="flex gap-1 w-full justify-center">
