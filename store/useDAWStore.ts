@@ -1,5 +1,18 @@
 import { create } from 'zustand';
 
+export interface DAWTrack {
+    id: string;
+    name: string;
+    color: string;
+}
+
+export interface FXInsert {
+    id: string;
+    pluginId: 'gate' | 'eq' | 'leveler' | 'compressor' | 'multiband' | 'limiter';
+    bypass: boolean;
+    settings: any;
+}
+
 export interface FaderState {
     id: string; // 'vocal', 'beat', 'bass', 'fx', 'ch-...'
     label: string;
@@ -7,12 +20,7 @@ export interface FaderState {
     isMuted: boolean;
     pan: number;
     isSoloed: boolean;
-}
-
-export interface DAWTrack {
-    id: string;
-    name: string;
-    color: string;
+    inserts: FXInsert[];
 }
 
 export type BottomPanelState = 'mixer' | 'piano_roll' | 'closed';
@@ -55,6 +63,17 @@ interface DAWStore {
     setIsPlaying: (playing: boolean) => void;
     setMasterLevel: (level: number) => void;
     setPreviewTrack: (track: any | null) => void;
+
+    // FX Insert Management
+    addInsert: (trackId: string, pluginId: FXInsert['pluginId']) => void;
+    removeInsert: (trackId: string, insertId: string) => void;
+    updateInsertSettings: (trackId: string, insertId: string, settings: any) => void;
+    toggleInsertBypass: (trackId: string, insertId: string) => void;
+
+    // Plugin Window Management
+    openPluginIds: string[]; // List of insert IDs currently open
+    openPlugin: (insertId: string) => void;
+    closePlugin: (insertId: string) => void;
 }
 
 // Generate 32 default faders
@@ -65,6 +84,7 @@ const defaultFaders: FaderState[] = Array.from({ length: 32 }, (_, i) => ({
     isMuted: false,
     pan: 0,
     isSoloed: false,
+    inserts: [],
 }));
 
 // Set explicit labels for the first 4 for backwards compatibility with the Auto-mix Modal logic
@@ -95,7 +115,8 @@ export const useDAWStore = create<DAWStore>((set) => ({
             value: 75,
             isMuted: false,
             pan: 0,
-            isSoloed: false
+            isSoloed: false,
+            inserts: []
         }));
         return { tracks, faders: newFaders };
     }),
@@ -112,7 +133,8 @@ export const useDAWStore = create<DAWStore>((set) => ({
             value: 75,
             isMuted: false,
             pan: 0,
-            isSoloed: false
+            isSoloed: false,
+            inserts: []
         };
 
         return {
@@ -162,4 +184,56 @@ export const useDAWStore = create<DAWStore>((set) => ({
     setMasterLevel: (level) => set({ masterLevel: level }),
     setPreviewTrack: (track) => set({ currentPreviewTrack: track }),
     setFullMixer: (status) => set({ isFullMixer: status }),
+
+    // FX Insert Management
+    addInsert: (trackId, pluginId) => set((state) => {
+        const defaultSettings: any = {
+            gate: { gateThreshold: 10, gateAttack: 5, gateRelease: 100 },
+            eq: { eqHighpass: 30, eqTilt: 0, eqSideGain: 20, eqSideFreq: 4000 },
+            leveler: { levelerTarget: -14, levelerBrake: -60, levelerMaxPlus: 6, levelerMaxMinus: 12 },
+            compressor: { compStrength: 30, compAttack: 20, compRelease: 200, compMakeup: 0 },
+            multiband: { mbStrengthLow: 20, mbStrengthHigh: 40, mbCrossoverLow: 200, mbCrossoverHigh: 5000 },
+            limiter: { limStrength: 50, limAttack: 2, limRelease: 100, limCeiling: -0.1 }
+        };
+
+        const newInsert: FXInsert = {
+            id: `fx-${pluginId}-${Date.now()}`,
+            pluginId,
+            bypass: false,
+            settings: defaultSettings[pluginId] || {}
+        };
+
+        return {
+            faders: state.faders.map(f => f.id === trackId 
+                ? { ...f, inserts: [...f.inserts, newInsert].slice(0, 4) } // Limit to 4 slots
+                : f)
+        };
+    }),
+
+    removeInsert: (trackId, insertId) => set((state) => ({
+        faders: state.faders.map(f => f.id === trackId 
+            ? { ...f, inserts: f.inserts.filter(i => i.id !== insertId) } 
+            : f)
+    })),
+
+    updateInsertSettings: (trackId, insertId, newSettings) => set((state) => ({
+        faders: state.faders.map(f => f.id === trackId 
+            ? { ...f, inserts: f.inserts.map(i => i.id === insertId ? { ...i, settings: { ...i.settings, ...newSettings } } : i) } 
+            : f)
+    })),
+
+    toggleInsertBypass: (trackId, insertId) => set((state) => ({
+        faders: state.faders.map(f => f.id === trackId 
+            ? { ...f, inserts: f.inserts.map(i => i.id === insertId ? { ...i, bypass: !i.bypass } : i) } 
+            : f)
+    })),
+
+    // Plugin Window Management
+    openPluginIds: [],
+    openPlugin: (insertId) => set((state) => ({
+        openPluginIds: state.openPluginIds.includes(insertId) ? state.openPluginIds : [...state.openPluginIds, insertId]
+    })),
+    closePlugin: (insertId) => set((state) => ({
+        openPluginIds: state.openPluginIds.filter(id => id !== insertId)
+    })),
 }));

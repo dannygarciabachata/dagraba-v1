@@ -5,6 +5,10 @@ import { Slider } from '@/components/ui/Slider';
 import { VUMeter } from '@/components/daw/VUMeter';
 import { SpectrumAnalyzer } from '@/components/daw/SpectrumAnalyzer';
 import { cn } from '@/lib/utils';
+import { PluginPicker } from './PluginPicker';
+import { Power } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { audioEngine } from '@/lib/audio-engine-bridge';
 
 interface FaderProps {
     id: string;
@@ -16,6 +20,32 @@ export function Fader({ id }: FaderProps) {
     const toggleSolo = useDAWStore((state) => state.toggleSolo);
     const toggleMute = useDAWStore((state) => state.toggleMute);
     const isFullMixer = useDAWStore((state) => state.isFullMixer);
+    
+    const addInsert = useDAWStore((state) => state.addInsert);
+    const openPlugin = useDAWStore((state) => state.openPlugin);
+    const toggleInsertBypass = useDAWStore((state) => state.toggleInsertBypass);
+
+    const [pickerOpen, setPickerOpen] = useState(false);
+    const [realLevel, setRealLevel] = useState(0);
+
+    // Sync with Audio Engine
+    useEffect(() => {
+        audioEngine.setTrackVolume(id, fader.value);
+        audioEngine.setTrackPan(id, fader.pan);
+        audioEngine.setTrackMute(id, fader.isMuted);
+    }, [id, fader.value, fader.pan, fader.isMuted]);
+
+    // Level Update Loop
+    useEffect(() => {
+        let animationFrameId: number;
+        const updateLevel = () => {
+            const level = audioEngine.getVUMeterLevel(id);
+            setRealLevel(level);
+            animationFrameId = requestAnimationFrame(updateLevel);
+        };
+        updateLevel();
+        return () => cancelAnimationFrame(animationFrameId);
+    }, [id]);
 
     if (!fader) return null;
 
@@ -28,16 +58,51 @@ export function Fader({ id }: FaderProps) {
                 <div className="absolute inset-x-0 bottom-0 h-[1px] bg-cyan-400/20 shadow-[0_0_10px_rgba(34,211,238,0.5)]" />
             </div>
 
-            {/* FX Slots (Mini Buttons) */}
-            <div className="grid grid-cols-2 gap-1 w-full mb-3 px-1">
-                {['EQ', 'COMP', 'DLY', 'FX'].map((fx) => (
-                    <button
-                        key={fx}
-                        className="h-5 rounded-[1px] bg-[#111] border border-white/5 text-[7px] font-black text-white/20 hover:text-white/60 hover:bg-[#222] transition-all tracking-tighter uppercase ring-1 ring-black"
-                    >
-                        {fx}
-                    </button>
-                ))}
+            {/* FX Slots (Dynamic Inserts) */}
+            <div className="grid grid-cols-1 gap-1 w-full mb-3 px-1 relative">
+                {[0, 1, 2, 3].map((index) => {
+                    const insert = fader.inserts[index];
+                    return (
+                        <div key={index} className="relative group/insert">
+                            {insert ? (
+                                <div className="flex gap-0.5 h-5 w-full">
+                                    <button
+                                        onClick={() => toggleInsertBypass(id, insert.id)}
+                                        className={cn(
+                                            "w-4 h-full rounded-l-[1px] border border-white/5 flex items-center justify-center transition-all",
+                                            insert.bypass ? "bg-zinc-900 text-zinc-700" : "bg-cyan-900/40 text-cyan-400 shadow-[inset_0_0_10px_rgba(34,211,238,0.2)]"
+                                        )}
+                                    >
+                                        <Power size={8} />
+                                    </button>
+                                    <button
+                                        onClick={() => openPlugin(insert.id)}
+                                        className={cn(
+                                            "flex-1 rounded-r-[1px] bg-[#111] border-y border-r border-white/5 text-[7px] font-black transition-all tracking-tighter uppercase ring-1 ring-black flex items-center px-1.5",
+                                            insert.bypass ? "text-white/10" : "text-white/60 hover:text-white hover:bg-[#222]"
+                                        )}
+                                    >
+                                        <span className="truncate">{insert.pluginId}</span>
+                                    </button>
+                                </div>
+                            ) : (
+                                <button
+                                    onClick={() => setPickerOpen(true)}
+                                    className="h-5 w-full rounded-[1px] bg-black/40 border border-dashed border-white/5 text-[6px] font-bold text-white/5 hover:text-white/20 hover:border-white/10 hover:bg-white/5 transition-all uppercase tracking-widest"
+                                >
+                                    Empty
+                                </button>
+                            )}
+                        </div>
+                    );
+                })}
+
+                {pickerOpen && (
+                    <PluginPicker 
+                        onSelect={(pluginId) => addInsert(id, pluginId)}
+                        onClose={() => setPickerOpen(false)}
+                    />
+                )}
             </div>
 
             {/* Top Section: Buttons & Small Screen */}
@@ -87,7 +152,7 @@ export function Fader({ id }: FaderProps) {
 
                 {/* LED VU Meter integrated into fader track */}
                 <div className="absolute right-1 top-4 bottom-4 w-1.5 opacity-80 pointer-events-none z-0">
-                    <VUMeter level={fader.isMuted ? 0 : Math.floor(fader.value * 1.27)} className="h-full w-full rounded-sm" />
+                    <VUMeter level={fader.isMuted ? 0 : realLevel} className="h-full w-full rounded-sm" />
                 </div>
 
                 {/* Functional Slider Track */}

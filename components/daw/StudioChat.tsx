@@ -23,7 +23,15 @@ declare global {
     }
 }
 
-export function StudioChat() {
+export function StudioChat({ 
+    embedded = false, 
+    songName, 
+    onExecuteMastering 
+}: { 
+    embedded?: boolean, 
+    songName?: string, 
+    onExecuteMastering?: () => void 
+}) {
     const addTrack = useDAWStore((state) => state.addTrack);
     const setTracks = useDAWStore((state) => state.setTracks);
     const clearTracks = useDAWStore((state) => state.clearTracks);
@@ -31,9 +39,15 @@ export function StudioChat() {
 
     const [isOpen, setIsOpen] = useState(false);
     const [input, setInput] = useState('');
-    const [messages, setMessages] = useState<{ role: 'user' | 'assistant', content: string }[]>([
-        { role: 'assistant', content: '¡Estamos en el studio! El plan está listo. ¿Quieres que genere la primera mitad de los instrumentos o prefieres grabar algo tú primero?' }
-    ]);
+    const [messages, setMessages] = useState<{ role: 'user' | 'assistant', content: string }[]>([]);
+
+    useEffect(() => {
+        const greeting = songName 
+            ? `¿Necesitas ayuda con tu master de "${songName}"? Aquí estoy listo para ayudarte.`
+            : '¡Estamos en el studio! El plan está listo. ¿Quieres que genere la primera mitad de los instrumentos o prefieres grabar algo tú primero?';
+        
+        setMessages([{ role: 'assistant', content: greeting }]);
+    }, [songName]);
     const [isTyping, setIsTyping] = useState(false);
     const [isListening, setIsListening] = useState(false);
     const [isSpeaking, setIsSpeaking] = useState(false);
@@ -140,23 +154,41 @@ export function StudioChat() {
             return;
         }
 
+        if ((lowInput.includes('masteriza') || lowInput.includes('arregla') || lowInput.includes('aplica el adn')) && onExecuteMastering) {
+            setIsTyping(true);
+            setTimeout(() => {
+                onExecuteMastering();
+                const msg = "¡Claro que sí! Estoy analizando el ADN de tu mezcla ahora mismo. Voy a aplicar mi configuración Gold Standard para que suene con todo el peso de Da Graba Studio. ¡Mira cómo se mueven los equipos!";
+                setMessages(prev => [...prev, { role: 'assistant', content: msg }]);
+                setIsTyping(false);
+                playJohnVoice(msg);
+            }, 1000);
+            return;
+        }
+
         setIsTyping(true);
-        // Simulation for now - will connect to specialized Production API
-        setTimeout(() => {
-            let response = "Entendido, estoy trabajando en ello...";
+        try {
+            const history = messages.map(m => ({ role: m.role, content: m.content }));
+            const response = await fetch('/api/ai/engineer', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: textToSend, history })
+            });
 
-            if (lowInput.includes('continua') || lowInput.includes('sigue')) {
-                response = "Perfecto, expandiendo la estructura. Añadiendo variaciones en el beat y texturas para el coro.";
-            } else if (lowInput.includes('separa') || lowInput.includes('stems')) {
-                response = "Iniciando proceso de separación de pistas (Stems). Procesando voz, percusión y armonía...";
-            } else if (lowInput.includes('efecto') || lowInput.includes('bajo')) {
-                response = "¡Entendido! Añadiendo un compresor y saturación al track del Bajo en el compás solicitado. John se encarga.";
-            }
+            if (!response.ok) throw new Error('Failed to fetch AI response');
 
-            setMessages(prev => [...prev, { role: 'assistant', content: response }]);
+            const data = await response.json();
+            const aiMessage = data.message;
+
+            setMessages(prev => [...prev, { role: 'assistant', content: aiMessage }]);
             setIsTyping(false);
-            playJohnVoice(response);
-        }, 1500);
+            playJohnVoice(aiMessage);
+        } catch (error) {
+            console.error('AI Error:', error);
+            const errorMsg = "Lo siento, John tiene problemas de conexión ahora mismo. Pero sigo aquí.";
+            setMessages(prev => [...prev, { role: 'assistant', content: errorMsg }]);
+            setIsTyping(false);
+        }
     };
 
     const handleVoiceInput = (transcript: string) => {
@@ -174,27 +206,29 @@ export function StudioChat() {
     };
 
     return (
-        <div className={`fixed right-8 bottom-32 z-50 transition-all duration-500 flex flex-col items-end ${isOpen ? 'w-80 h-[450px]' : 'w-12 h-12'}`}>
+        <div className={embedded ? "w-full h-full" : `fixed right-8 bottom-32 z-50 transition-all duration-500 flex flex-col items-end ${isOpen ? 'w-80 h-[450px]' : 'w-12 h-12'}`}>
 
-            {/* TOGGLE BUTTON */}
-            <div className="flex flex-col gap-3">
-                <button
-                    onClick={toggleListening}
-                    className={`w-12 h-12 rounded-full flex items-center justify-center transition-all duration-300 shadow-2xl ${isListening ? 'bg-red-500 animate-pulse glow-red' : 'bg-white/5 border border-white/10 hover:bg-white/10'}`}
-                >
-                    {isListening ? <Mic className="text-white" size={20} /> : <MicOff className="text-silver-dark" size={20} />}
-                </button>
+            {/* TOGGLE BUTTON - Only show if not embedded */}
+            {!embedded && (
+                <div className="flex flex-col gap-3">
+                    <button
+                        onClick={toggleListening}
+                        className={`w-12 h-12 rounded-full flex items-center justify-center transition-all duration-300 shadow-2xl ${isListening ? 'bg-red-500 animate-pulse glow-red' : 'bg-white/5 border border-white/10 hover:bg-white/10'}`}
+                    >
+                        {isListening ? <Mic className="text-white" size={20} /> : <MicOff className="text-silver-dark" size={20} />}
+                    </button>
 
-                <button
-                    onClick={() => setIsOpen(!isOpen)}
-                    className={`w-12 h-12 rounded-full flex items-center justify-center transition-all duration-300 shadow-2xl ${isOpen ? 'bg-orange-600 scale-90' : 'bg-gradient-to-br from-cyan-glow to-blue-600 glow-cyan hover:scale-110'}`}
-                >
-                    {isOpen ? <ChevronRight className="text-white" /> : <MessageSquare className="text-white" />}
-                </button>
-            </div>
+                    <button
+                        onClick={() => setIsOpen(!isOpen)}
+                        className={`w-12 h-12 rounded-full flex items-center justify-center transition-all duration-300 shadow-2xl ${isOpen ? 'bg-orange-600 scale-90' : 'bg-gradient-to-br from-cyan-glow to-blue-600 glow-cyan hover:scale-110'}`}
+                    >
+                        {isOpen ? <ChevronRight className="text-white" /> : <MessageSquare className="text-white" />}
+                    </button>
+                </div>
+            )}
 
             {/* CHAT WINDOW */}
-            <div className={`mt-4 w-full h-full bg-[#0B1015]/95 backdrop-blur-xl border border-white/10 rounded-2xl flex flex-col overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.5)] transition-opacity duration-300 ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+            <div className={`${embedded ? 'w-full h-full' : 'mt-4 w-full h-full'} bg-[#0B1015]/95 backdrop-blur-xl border border-white/10 rounded-2xl flex flex-col overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.5)] transition-opacity duration-300 ${embedded || isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
 
                 {/* Header */}
                 <div className="px-4 py-3 border-b border-white/5 bg-white/5 flex items-center justify-between">

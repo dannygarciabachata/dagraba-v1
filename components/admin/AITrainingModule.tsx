@@ -1,26 +1,74 @@
 'use client';
 
-import React, { useState } from 'react';
-import { Play, UploadCloud, Terminal as TermIcon, FileAudio, Users, Music, Mic2 } from 'lucide-react';
+import { Play, UploadCloud, Terminal as TermIcon, FileAudio, Users, Music, Mic2, Scan, Activity, Zap, BarChart3, Binary } from 'lucide-react';
 
 export function AITrainingModule() {
-    const [trainingType, setTrainingType] = useState<'voice' | 'instrument'>('voice');
+    const [trainingType, setTrainingType] = useState<'voice' | 'instrument' | 'mastering'>('voice');
     const [selectedArtist, setSelectedArtist] = useState<string>('');
     const [modelName, setModelName] = useState<string>('');
     const [audioFiles, setAudioFiles] = useState<any[]>([]);
+    const [rawAudio, setRawAudio] = useState<File | null>(null);
+    const [masteredAudio, setMasteredAudio] = useState<File | null>(null);
+    const [dnaProfileName, setDnaProfileName] = useState<string>('');
+    const [dnaGenre, setDnaGenre] = useState<string>('DGB_BACHATA');
+    const [dnaResult, setDnaResult] = useState<any>(null);
     const [epochs, setEpochs] = useState<number>(100);
     const [isTraining, setIsTraining] = useState(false);
+    const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [logs, setLogs] = useState<string[]>([]);
 
-    const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files) {
-            setAudioFiles(Array.from(e.target.files));
+    const handleAnalyzeDNA = async () => {
+        if (!rawAudio || !masteredAudio || !dnaProfileName) return;
+
+        setIsAnalyzing(true);
+        setLogs(prev => [...prev, `[INIT] Iniciando Análisis de ADN DGB: ${dnaProfileName}`]);
+        setLogs(prev => [...prev, `[DSP] Comparando señales Mix vs Master...`]);
+
+        try {
+            // Convert files to base64 for the prototype
+            const toBase64 = (file: File) => new Promise<string>((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = () => resolve(reader.result as string);
+                reader.onerror = error => reject(error);
+            });
+
+            const rawBase64 = await toBase64(rawAudio);
+            const masteredBase64 = await toBase64(masteredAudio);
+
+            const response = await fetch('/api/ai/analyze-dna', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    rawAudio: rawBase64,
+                    masteredAudio: masteredBase64,
+                    profileName: dnaProfileName,
+                    genre: dnaGenre
+                })
+            });
+
+            const data = await response.json();
+            if (data.success) {
+                setDnaResult(data.dna);
+                setLogs(prev => [...prev, `[SUCCESS] ADN extraído con éxito. LUFS Target: ${data.dna.loudness.target_lufs}`]);
+                setLogs(prev => [...prev, `[DATABASE] Perfil Guardado en el Gold Standard.`]);
+            } else {
+                setLogs(prev => [...prev, `[ERROR] ${data.error || 'Fallo en el análisis.'}`]);
+            }
+        } catch (error) {
+            setLogs(prev => [...prev, `[ERROR] Error de comunicación con el Scanner.`]);
+        } finally {
+            setIsAnalyzing(false);
         }
     };
 
     const handleTrain = async () => {
         if (trainingType === 'voice' && (!selectedArtist || audioFiles.length === 0)) return;
         if (trainingType === 'instrument' && !modelName) return;
+        if (trainingType === 'mastering') {
+            await handleAnalyzeDNA();
+            return;
+        }
 
         setIsTraining(true);
         setLogs(prev => [...prev, `[INIT] Iniciando proceso de entrenamiento: ${trainingType === 'voice' ? selectedArtist : modelName}`]);
@@ -78,17 +126,24 @@ export function AITrainingModule() {
                 <div className="flex bg-[#111] p-1 rounded-lg border border-[#222]">
                     <button
                         onClick={() => setTrainingType('voice')}
-                        className={`px-4 py-1.5 rounded-md text-[10px] font-black tracking-widest transition-all flex items-center gap-2 ${trainingType === 'voice' ? 'bg-purple-600 text-white' : 'text-[#444] hover:text-[#888]'
+                        className={`px-4 py-1.5 rounded-md text-[10px] font-black tracking-widest transition-all flex items-center gap-2 ${trainingType === 'voice' ? 'bg-purple-600 text-white shadow-[0_0_10px_rgba(168,85,247,0.3)]' : 'text-[#444] hover:text-[#888]'
                             }`}
                     >
                         <Mic2 size={12} /> VOZ
                     </button>
                     <button
                         onClick={() => setTrainingType('instrument')}
-                        className={`px-4 py-1.5 rounded-md text-[10px] font-black tracking-widest transition-all flex items-center gap-2 ${trainingType === 'instrument' ? 'bg-indigo-600 text-white' : 'text-[#444] hover:text-[#888]'
+                        className={`px-4 py-1.5 rounded-md text-[10px] font-black tracking-widest transition-all flex items-center gap-2 ${trainingType === 'instrument' ? 'bg-indigo-600 text-white shadow-[0_0_10px_rgba(79,70,229,0.3)]' : 'text-[#444] hover:text-[#888]'
                             }`}
                     >
                         <Music size={12} /> INSTRUMENTO
+                    </button>
+                    <button
+                        onClick={() => setTrainingType('mastering')}
+                        className={`px-4 py-1.5 rounded-md text-[10px] font-black tracking-widest transition-all flex items-center gap-2 ${trainingType === 'mastering' ? 'bg-orange-600 text-white shadow-[0_0_10px_rgba(234,88,12,0.3)]' : 'text-[#444] hover:text-[#888]'
+                            }`}
+                    >
+                        <Scan size={12} /> MASTERING DNA
                     </button>
                 </div>
             </div>
@@ -96,7 +151,7 @@ export function AITrainingModule() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 {/* Configuration Form */}
                 <div className="flex flex-col gap-6">
-                    {trainingType === 'voice' ? (
+                    {trainingType === 'voice' && (
                         <>
                             {/* Artist Selector */}
                             <div className="flex flex-col gap-2">
@@ -125,7 +180,9 @@ export function AITrainingModule() {
                                         type="file"
                                         multiple
                                         accept="audio/*"
-                                        onChange={handleFileUpload}
+                                        onChange={(e) => {
+                                            if (e.target.files) setAudioFiles(Array.from(e.target.files));
+                                        }}
                                         className="absolute inset-0 opacity-0 cursor-pointer"
                                     />
                                     <UploadCloud size={32} className="text-[#666]" />
@@ -134,7 +191,9 @@ export function AITrainingModule() {
                                 </div>
                             </div>
                         </>
-                    ) : (
+                    )}
+
+                    {trainingType === 'instrument' && (
                         <>
                             {/* Instrument Model Configuration */}
                             <div className="flex flex-col gap-2">
@@ -160,6 +219,66 @@ export function AITrainingModule() {
                         </>
                     )}
 
+                    {trainingType === 'mastering' && (
+                        <div className="flex flex-col gap-5">
+                            <div className="flex flex-col gap-2">
+                                <label className="text-xs font-bold text-[#888] tracking-widest flex items-center gap-2">
+                                    <Zap size={14} /> NOMBRE DEL PERFIL SÓNICO
+                                </label>
+                                <input
+                                    type="text"
+                                    placeholder="Ej: DGB_BACHATA_GOLD_MASTER"
+                                    className="bg-[#111] border border-[#333] rounded-md px-4 py-2 text-sm text-[#E0E0E0] outline-none focus:border-orange-500 transition-colors"
+                                    value={dnaProfileName}
+                                    onChange={(e) => setDnaProfileName(e.target.value)}
+                                />
+                            </div>
+
+                            <div className="flex flex-col gap-2">
+                                <label className="text-xs font-bold text-[#888] tracking-widest">GÉNERO MUSICAL</label>
+                                <select
+                                    className="bg-[#111] border border-[#333] rounded-md px-4 py-2 text-sm text-[#E0E0E0] outline-none focus:border-orange-500 transition-colors"
+                                    value={dnaGenre}
+                                    onChange={(e) => setDnaGenre(e.target.value)}
+                                >
+                                    <option value="DGB_BACHATA">Bachata DGB</option>
+                                    <option value="DGB_BOLERO">Bolero DGB</option>
+                                    <option value="DGB_TRAP">Trap DGB</option>
+                                    <option value="DGB_MERENGUE">Merengue DGB</option>
+                                </select>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="flex flex-col gap-2">
+                                    <label className="text-[10px] font-bold text-[#666] tracking-tighter uppercase">Mixdown (Crudo)</label>
+                                    <div className="border border-[#333] rounded bg-[#111] p-3 flex flex-col items-center gap-2 relative h-24 justify-center">
+                                        <input 
+                                            type="file" 
+                                            accept="audio/*" 
+                                            className="absolute inset-0 opacity-0 cursor-pointer"
+                                            onChange={(e) => setRawAudio(e.target.files?.[0] || null)}
+                                        />
+                                        <FileAudio size={20} className={rawAudio ? "text-orange-500" : "text-[#444]"} />
+                                        <span className="text-[10px] text-center line-clamp-1">{rawAudio ? rawAudio.name : "Subir Mix"}</span>
+                                    </div>
+                                </div>
+                                <div className="flex flex-col gap-2">
+                                    <label className="text-[10px] font-bold text-[#666] tracking-tighter uppercase">Master (Danny)</label>
+                                    <div className="border border-[#333] rounded bg-[#111] p-3 flex flex-col items-center gap-2 relative h-24 justify-center">
+                                        <input 
+                                            type="file" 
+                                            accept="audio/*" 
+                                            className="absolute inset-0 opacity-0 cursor-pointer"
+                                            onChange={(e) => setMasteredAudio(e.target.files?.[0] || null)}
+                                        />
+                                        <Activity size={20} className={masteredAudio ? "text-orange-500" : "text-[#444]"} />
+                                        <span className="text-[10px] text-center line-clamp-1">{masteredAudio ? masteredAudio.name : "Subir Master"}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     {/* Epochs Selector */}
                     <div className="flex flex-col gap-2">
                         <label className="text-xs font-bold text-[#888] tracking-widest flex items-center justify-between">
@@ -180,16 +299,26 @@ export function AITrainingModule() {
                     {/* Execute Button */}
                     <button
                         onClick={handleTrain}
-                        disabled={isTraining || (trainingType === 'voice' ? (!selectedArtist || audioFiles.length === 0) : !modelName)}
-                        className={`mt-4 py-4 rounded-md flex items-center justify-center gap-3 font-black tracking-widest text-lg transition-all ${isTraining || (trainingType === 'voice' ? (!selectedArtist || audioFiles.length === 0) : !modelName)
+                        disabled={isTraining || isAnalyzing || (trainingType === 'voice' ? (!selectedArtist || audioFiles.length === 0) : trainingType === 'instrument' ? !modelName : (!dnaProfileName || !rawAudio || !masteredAudio))}
+                        className={`mt-4 py-4 rounded-md flex items-center justify-center gap-3 font-black tracking-widest text-lg transition-all ${isTraining || isAnalyzing || (trainingType === 'voice' ? (!selectedArtist || audioFiles.length === 0) : trainingType === 'instrument' ? !modelName : (!dnaProfileName || !rawAudio || !masteredAudio))
                                 ? 'bg-[#222] text-[#555] border border-[#333] cursor-not-allowed'
                                 : trainingType === 'voice'
                                     ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-[0_0_20px_rgba(168,85,247,0.5)] hover:shadow-[0_0_30px_rgba(168,85,247,0.8)] border border-purple-400'
-                                    : 'bg-gradient-to-r from-indigo-600 to-blue-600 text-white shadow-[0_0_20px_rgba(79,70,229,0.5)] hover:shadow-[0_0_30px_rgba(79,70,229,0.8)] border border-indigo-400'
+                                    : trainingType === 'instrument'
+                                        ? 'bg-gradient-to-r from-indigo-600 to-blue-600 text-white shadow-[0_0_20px_rgba(79,70,229,0.5)] hover:shadow-[0_0_30px_rgba(79,70,229,0.8)] border border-indigo-400'
+                                        : 'bg-gradient-to-r from-orange-600 to-red-600 text-white shadow-[0_0_20px_rgba(234,88,12,0.5)] hover:shadow-[0_0_30px_rgba(234,88,12,0.8)] border border-orange-400'
                             }`}
                     >
-                        <Play size={24} fill={(!isTraining && ((trainingType === 'voice' && selectedArtist && audioFiles.length > 0) || (trainingType === 'instrument' && modelName))) ? "currentColor" : "none"} />
-                        {trainingType === 'voice' ? 'ENTRENAR VOZ' : 'ENTRENAR INSTRUMENTO'}
+                        {isAnalyzing ? (
+                            <div className="flex items-center gap-2 animate-pulse">
+                                <Zap className="animate-spin" size={24} /> ESCANEANDO ADN...
+                            </div>
+                        ) : (
+                            <>
+                                <Play size={24} fill={(!isTraining && ((trainingType === 'voice' && selectedArtist && audioFiles.length > 0) || (trainingType === 'instrument' && modelName) || (trainingType === 'mastering' && rawAudio && masteredAudio && dnaProfileName))) ? "currentColor" : "none"} />
+                                {trainingType === 'voice' ? 'ENTRENAR VOZ' : trainingType === 'instrument' ? 'ENTRENAR INSTRUMENTO' : 'ESCANEAR ADN MASTERING'}
+                            </>
+                        )}
                     </button>
                 </div>
 
@@ -211,12 +340,55 @@ export function AITrainingModule() {
                         )}
                         {logs.map((log, index) => (
                             <div key={index} className="break-words">
-                                <span className="text-[#00F0FF] mr-2">{`>`}</span>
-                                <span className={log.includes('Éxito') || log.includes('Completado') ? 'text-green-400' : 'text-[#DDD]'}>
+                                <span className={`${log.includes('SUCCESS') ? 'text-green-500' : log.includes('ERROR') ? 'text-red-500' : 'text-[#00F0FF]'} mr-2`}>{`>`}</span>
+                                <span className={log.includes('Éxito') || log.includes('Completado') || log.includes('SUCCESS') ? 'text-green-400' : 'text-[#DDD]'}>
                                     {log}
                                 </span>
                             </div>
                         ))}
+                        
+                        {dnaResult && (
+                            <div className="mt-4 p-4 bg-orange-900/20 border border-orange-500/30 rounded-md flex flex-col gap-3 font-sans animate-in fade-in slide-in-from-bottom-2">
+                                <div className="flex items-center gap-2 text-orange-400 font-bold border-b border-orange-500/20 pb-2">
+                                    <Binary size={16} /> ADN SÓNICO DE DGB DETECTADO
+                                </div>
+                                <div className="grid grid-cols-2 gap-4 text-[10px]">
+                                    <div className="flex flex-col gap-1">
+                                        <span className="text-[#666] uppercase">Loudness (LUFS)</span>
+                                        <div className="flex justify-between items-baseline">
+                                            <span className="text-[#AAA]">Input:</span>
+                                            <span className="text-white bg-[#222] px-1 rounded">{dnaResult.loudness.input_lufs}</span>
+                                        </div>
+                                        <div className="flex justify-between items-baseline">
+                                            <span className="text-[#AAA]">Target:</span>
+                                            <span className="text-orange-400 bg-orange-900/30 px-1 rounded">{dnaResult.loudness.target_lufs}</span>
+                                        </div>
+                                        <div className="flex justify-between items-baseline">
+                                            <span className="text-[#AAA]">Gain Lift:</span>
+                                            <span className="text-green-400">+{dnaResult.loudness.gain_lift_db} dB</span>
+                                        </div>
+                                    </div>
+                                    <div className="flex flex-col gap-1">
+                                        <span className="text-[#666] uppercase">Dinámica</span>
+                                        <div className="flex justify-between items-baseline">
+                                            <span className="text-[#AAA]">Crest Factor:</span>
+                                            <span className="text-white bg-[#222] px-1 rounded">{dnaResult.dynamics.crest_factor}</span>
+                                        </div>
+                                        <div className="flex justify-between items-baseline">
+                                            <span className="text-[#AAA]">Peak Ceiling:</span>
+                                            <span className="text-white bg-[#222] px-1 rounded">{dnaResult.dynamics.peak_ceiling} dB</span>
+                                        </div>
+                                        <div className="mt-2 text-[9px] text-[#555] italic">
+                                            Curva de EQ Match{` {${dnaResult.spectral_envelope.frequencies.length}}`} puntos.
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-2 mt-2 bg-black/40 p-2 rounded border border-orange-500/10">
+                                    <BarChart3 size={14} className="text-orange-500" />
+                                    <span className="text-[9px] text-orange-200/60 uppercase tracking-widest">Modelo de entrenamiento Modal.com actualizado</span>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>

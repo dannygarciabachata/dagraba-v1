@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import OpenAI from 'openai';
+import { MASTERING_ENGINEER_PROMPT } from '@/lib/ai/prompts/mastering-engineer';
 
 const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
@@ -18,13 +19,7 @@ export async function POST(req: Request) {
             messages: [
                 {
                     role: 'system',
-                    content: `You are John, a professional Music Producer and Engineer at "Da Graba Studio". 
-          Your goal is to help artists plan their hits. 
-          Be creative, encouraging, and technical when needed (discussing mix, structure, or lyrics). 
-          Keep responses concise but high-energy. 
-          If they ask for lyrics, provide a short snippet (4-8 lines) in their requested style (Trap, Reggaeton, etc.).
-          When you feel the plan is solid, encourage the artist to start the session by saying phrases like "¡Dale!", "¡Manos a la obra!" or "¡Empecemos!".
-          Language: Spanish.`
+                    content: MASTERING_ENGINEER_PROMPT
                 },
                 ...history,
                 { role: 'user', content: message }

@@ -9,6 +9,7 @@ import { TransportBar } from '@/components/daw/TransportBar';
 import { SpectrumAnalyzer } from '@/components/daw/SpectrumAnalyzer';
 import { StudioChat } from '@/components/daw/StudioChat';
 import { Activity } from 'lucide-react';
+import { PluginWindow } from '@/components/daw/PluginWindow';
 
 export default function Studio() {
     const faders = useDAWStore((state) => state.faders);
@@ -22,6 +23,9 @@ export default function Studio() {
 
     // Every track has a corresponding fader with same ID
     const activeFaders = faders;
+
+    const openPluginIds = useDAWStore((state) => state.openPluginIds);
+    const closePlugin = useDAWStore((state) => state.closePlugin);
 
     return (
         <div className="flex flex-col h-full w-full pointer-events-auto bg-[#0A0A0C]">
@@ -138,6 +142,24 @@ export default function Studio() {
 
             {/* AI PRODUCTION CHAT */}
             <StudioChat />
+
+            {/* FLOATING PLUGIN WINDOWS */}
+            {openPluginIds.map((insertId) => {
+                // Find which fader/track this insert belongs to
+                const fader = faders.find(f => f.inserts.some(i => i.id === insertId));
+                const insert = fader?.inserts.find(i => i.id === insertId);
+                
+                if (!fader || !insert) return null;
+
+                return (
+                    <PluginWindow 
+                        key={insertId}
+                        trackId={fader.id}
+                        insert={insert}
+                        onClose={() => closePlugin(insertId)}
+                    />
+                );
+            })}
         </div>
     );
 }

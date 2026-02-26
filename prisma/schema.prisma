@@ -123,3 +123,13 @@ model PlaylistTrack {
   sample     InstrumentSample @relation(fields: [sampleId], references: [id])
   createdAt  DateTime @default(now())
 }
+
+model MasteringDNA {
+  id              String   @id @default(cuid())
+  profileName     String
+  genre           String
+  dnaData         Json     // The sonic profile JSON
+  isGoldStandard  Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}

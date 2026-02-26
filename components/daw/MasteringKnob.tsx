@@ -18,13 +18,35 @@ export function MasteringKnob({ label, value, onChange, size = 'md' }: Mastering
     };
 
     return (
-        <div className="flex flex-col items-center gap-3">
+        <div 
+            className="flex flex-col items-center gap-3"
+            onMouseDown={(e) => {
+                const startY = e.clientY;
+                const startValue = value;
+                
+                const handleMouseMove = (moveEvent: MouseEvent) => {
+                    const deltaY = startY - moveEvent.clientY;
+                    const newValue = Math.min(100, Math.max(0, startValue + deltaY));
+                    if (onChange) onChange(newValue);
+                };
+
+                const handleMouseUp = () => {
+                    window.removeEventListener('mousemove', handleMouseMove);
+                    window.removeEventListener('mouseup', handleMouseUp);
+                    document.body.style.cursor = 'default';
+                };
+
+                window.addEventListener('mousemove', handleMouseMove);
+                window.addEventListener('mouseup', handleMouseUp);
+                document.body.style.cursor = 'ns-resize';
+            }}
+        >
             {/* Knob Container (The groove/shadow it sits in) */}
             <div className={`${sizeClasses[size]} rounded-full bg-[#1A1A1A] p-1 shadow-[inset_0_4px_10px_rgba(0,0,0,0.8),0_2px_4px_rgba(255,255,255,0.05)] relative flex items-center justify-center`}>
 
                 {/* The Knob Body */}
                 <div
-                    className="w-full h-full rounded-full bg-gradient-to-b from-[#333] to-[#111] shadow-[0_4px_8px_rgba(0,0,0,0.6),inset_0_2px_1px_rgba(255,255,255,0.2)] relative cursor-ns-resize group"
+                    className="w-full h-full rounded-full bg-gradient-to-b from-[#333] to-[#111] shadow-[0_4px_8px_rgba(0,0,0,0.6),inset_0_2px_1px_rgba(255,255,255,0.2)] relative cursor-ns-resize group transition-transform duration-500 ease-out"
                     style={{ transform: `rotate(${rotation}deg)` }}
                 >
                     {/* The Indicator Line */}
@@ -33,7 +55,7 @@ export function MasteringKnob({ label, value, onChange, size = 'md' }: Mastering
             </div>
 
             {/* Label */}
-            <span className="text-[10px] font-bold tracking-widest text-[#888] uppercase">{label}</span>
+            <span className="text-[10px] font-bold tracking-widest text-[#888] uppercase select-none">{label}</span>
         </div>
     );
 }

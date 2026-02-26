@@ -15,8 +15,8 @@ export function GlobalFooterPlayer() {
     const [volume, setVolume] = useState(0.8);
 
     useEffect(() => {
-        if (currentPreviewTrack && audioRef.current) {
-            audioRef.current.src = currentPreviewTrack.url || '';
+        if (currentPreviewTrack && currentPreviewTrack.url && audioRef.current) {
+            audioRef.current.src = currentPreviewTrack.url;
             audioRef.current.play().catch(err => console.error("Playback error:", err));
             setIsPlaying(true);
         } else if (audioRef.current) {

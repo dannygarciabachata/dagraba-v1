@@ -1,24 +1,46 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useDAWStore } from '@/store/useDAWStore';
+import { audioEngine } from '@/lib/audio-engine-bridge';
 
 export function StudioMonitor({ className = '' }: { className?: string }) {
-    const masterLevel = useDAWStore((state) => state.masterLevel);
     const isPlaying = useDAWStore((state) => state.isPlaying);
+    const [bassLevel, setBassLevel] = useState(0); // 0 to 1
+    const [midLevel, setMidLevel] = useState(0); // 0 to 1
 
-    // Calculate pulse intensity: 1.0 (base) to 1.05 (max kick)
-    // We dampen it so it's "cool" but not distracting
+    useEffect(() => {
+        if (!isPlaying) {
+            setBassLevel(0);
+            setMidLevel(0);
+            return;
+        }
+
+        let animationFrameId: number;
+        const updateLevels = () => {
+            // Get bass frequency intensity (20Hz - 150Hz) for woofer
+            const bass = audioEngine.getFrequencyLevel('master-track', 20, 150);
+            // Get mid frequency intensity (150Hz - 2kHz) for cabinetry/tweeter
+            const mid = audioEngine.getFrequencyLevel('master-track', 150, 2000);
+            
+            setBassLevel(bass);
+            setMidLevel(mid);
+            
+            animationFrameId = requestAnimationFrame(updateLevels);
+        };
+
+        updateLevels();
+        return () => cancelAnimationFrame(animationFrameId);
+    }, [isPlaying]);
+
+    // Calculate pulse intensity: 1.0 (base) to 1.05 (max mid/high expansion)
     const pulseScale = useMemo(() => {
-        if (!isPlaying) return 1;
-        const level = masterLevel; // 0 to 1
-        return 1 + (level * 0.05); // Max 5% expansion
-    }, [masterLevel, isPlaying]);
+        return 1 + (midLevel * 0.03); 
+    }, [midLevel]);
 
-    // Woofer specific pulse (stronger)
+    // Woofer specific pulse (stronger vibration)
     const wooferScale = useMemo(() => {
-        if (!isPlaying) return 1;
-        return 1 + (masterLevel * 0.12); // Max 12% expansion for the cone
-    }, [masterLevel, isPlaying]);
+        return 1 + (bassLevel * 0.15); 
+    }, [bassLevel]);
 
     return (
         <div className={`flex flex-col items-center justify-center w-64 h-96 ${className}`}>
@@ -61,7 +83,7 @@ export function StudioMonitor({ className = '' }: { className?: string }) {
 
             {/* Monitor Base Shadow - Also pulse slightly */}
             <motion.div
-                animate={{ scaleX: pulseScale, opacity: 0.7 + (masterLevel * 0.3) }}
+                animate={{ scaleX: pulseScale, opacity: 0.7 + (bassLevel * 0.3) }}
                 className="w-48 h-4 bg-black/90 blur-xl mt-2 rounded-full"
             />
         </div>

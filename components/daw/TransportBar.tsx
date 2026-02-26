@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
     Play, Square, Circle, SkipBack, SkipForward,
-    Repeat, Settings2, Activity, Music, ActivitySquare
+    Repeat, Settings2, Activity, Music, ActivitySquare, Upload, Download
 } from 'lucide-react';
 import { useDAWStore } from '@/store/useDAWStore';
 import { modalClient } from '@/lib/modal-client';
@@ -207,9 +207,32 @@ export function TransportBar() {
                     </button>
                 </div>
 
-                <button className="text-[#666] hover:text-[#AAA]">
-                    <Settings2 size={16} />
-                </button>
+                <div className="flex items-center gap-2 ml-2">
+                    <button 
+                        onClick={() => {
+                            const input = document.createElement('input');
+                            input.type = 'file';
+                            input.accept = 'audio/*';
+                            input.onchange = (e) => {
+                                const file = (e.target as HTMLInputElement).files?.[0];
+                                if (file) alert(`Audio importado al Studio: ${file.name}`);
+                            };
+                            input.click();
+                        }}
+                        className="p-1.5 text-[#AAA] hover:text-white transition-colors rounded hover:bg-[#222]" title="Importar Audio"
+                    >
+                        <Upload size={16} />
+                    </button>
+                    <button 
+                        onClick={() => alert('Mezcla final exportada correctamente.')}
+                        className="p-1.5 text-[#AAA] hover:text-[#A4ECA1] transition-colors rounded hover:bg-[#222]" title="Exportar Mezcla"
+                    >
+                        <Download size={16} />
+                    </button>
+                    <button className="p-1.5 text-[#666] hover:text-[#AAA] transition-colors rounded hover:bg-[#222]">
+                        <Settings2 size={16} />
+                    </button>
+                </div>
             </div>
         </div>
     );

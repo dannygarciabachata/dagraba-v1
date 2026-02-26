@@ -204,16 +204,33 @@ export default function Crear() {
         setIsGenerating(true);
 
         try {
-            // Updated payload mapping to generic MusicGenerationRequest
+            let finalPrompt = '';
+            let finalStyle = '';
+            let finalCustomMode = false;
+
+            if (isInstrumental) {
+                finalCustomMode = true;
+                finalPrompt = "";
+                finalStyle = `${prompt}, ${selectedTool}${promptIntensity > 50 ? ', intense' : ''}`;
+            } else if (lyrics.trim().length > 0) {
+                finalCustomMode = true;
+                finalPrompt = lyrics;
+                finalStyle = `${prompt}, ${selectedTool}${promptIntensity > 50 ? ', intense' : ''}`;
+            } else {
+                finalCustomMode = false;
+                // For customMode: false, prompt is a single text description
+                finalPrompt = `${prompt} en el estilo de ${selectedTool}${promptIntensity > 50 ? ' con mucha intensidad' : ''}`;
+            }
+
             const payload = {
-                provider: 'kie', // Hardcoded to KIE for now per logic, but allows dynamic switch later
-                prompt: isInstrumental ? prompt : (lyrics || prompt),
+                provider: 'kie', 
+                prompt: finalPrompt,
                 title: title || undefined,
                 instrumental: isInstrumental,
-                customMode: true,
+                customMode: finalCustomMode,
                 model: 'V4_5',
-                style: selectedTool + (promptIntensity > 50 ? ', intense' : ''),
-                callbackUrl: `${window.location.origin}/api/ai/webhook` // Standardized generic webhook pattern
+                style: finalCustomMode ? finalStyle : undefined,
+                callbackUrl: `${window.location.origin}/api/ai/webhook` 
             };
 
             const response = await fetch('/api/ai/generate', {
