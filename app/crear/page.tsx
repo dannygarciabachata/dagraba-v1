@@ -40,6 +40,12 @@ const MOCK_TRACKS = [
     }
 ];
 
+const GENRES = [
+    'Trap', 'Reggaeton', 'Drill', 'R&B', 'Pop Urbano',
+    'Afrobeat', 'Dembow', 'Salsa', 'Bachata', 'Hip Hop',
+    'House', 'Synthwave', 'Lofi', 'Corridos Tumbados'
+];
+
 export default function Crear() {
     const router = useRouter();
     const { currentPreviewTrack, setPreviewTrack } = useDAWStore();
@@ -211,6 +217,19 @@ export default function Crear() {
                         </div>
                     </div>
 
+                    {/* Genres Carousel */}
+                    <div className="flex overflow-x-auto custom-scrollbar pb-2 gap-2 mt-[-8px]">
+                        {GENRES.map(genre => (
+                            <button
+                                key={genre}
+                                onClick={() => setPrompt(prev => prev ? `${prev}, ${genre}` : genre)}
+                                className="whitespace-nowrap px-3 py-1.5 bg-[#111] hover:bg-[#222] border border-[#222] hover:border-[#333] rounded-full text-[10px] font-bold tracking-wider text-[#888] hover:text-white transition-all"
+                            >
+                                {genre}
+                            </button>
+                        ))}
+                    </div>
+
                     {/* Toggles */}
                     <div className="flex gap-2">
                         <button
@@ -306,7 +325,7 @@ export default function Crear() {
 
             {/* CENTER PANEL: Vertical Track List */}
             <main className="flex-1 overflow-y-auto custom-scrollbar bg-[#050505] p-8">
-                <div className="max-w-4xl mx-auto flex flex-col gap-6">
+                <div className="max-w-xl mx-auto flex flex-col gap-6">
                     <div className="flex items-center justify-between mb-2">
                         <h3 className="text-xs font-black tracking-[0.3em] text-[#444] uppercase">Tus Creaciones</h3>
                         <div className="flex gap-4">
