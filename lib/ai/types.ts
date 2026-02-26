@@ -21,10 +21,19 @@ export interface MusicGenerationRequest {
     customMode?: boolean;
 }
 
+export interface VideoGenerationRequest {
+    taskId: string;
+    audioId: string;
+    callBackUrl?: string;
+    author?: string;
+    domainName?: string;
+}
+
 export interface TaskStatusResponse {
     status: 'PENDING' | 'SUCCESS' | 'ERROR' | 'PARTIAL';
     taskId: string;
     tracks?: TrackData[];
+    videoUrl?: string; // Optional for MP4 tasks
     error?: string;
 }
 
@@ -36,9 +45,25 @@ export interface BaseMusicService {
     generateMusic(request: MusicGenerationRequest): Promise<string>;
 
     /**
+     * Start a new music video (MP4) generation task
+     * @returns The taskId representing the queued job
+     */
+    generateVideo?(request: VideoGenerationRequest): Promise<string>;
+
+    /**
      * Check the current status of a music generation task
      */
     getTaskStatus(taskId: string): Promise<TaskStatusResponse>;
+
+    /**
+     * Check the current status of an MP4 generation task
+     */
+    getVideoTaskStatus?(taskId: string): Promise<TaskStatusResponse>;
+
+    /**
+     * Check the current status of a generic Market Models task
+     */
+    getMarketTaskStatus?(taskId: string): Promise<TaskStatusResponse>;
 
     /**
      * Extend an existing track

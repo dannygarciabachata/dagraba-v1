@@ -7,6 +7,7 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const taskId = searchParams.get('taskId');
     const provider = searchParams.get('provider') || 'kie';
+    const type = searchParams.get('type') || 'music'; // 'music', 'video', 'market'
 
     if (!taskId) {
         return NextResponse.json({ success: false, error: 'taskId is required' }, { status: 400 });
@@ -25,7 +26,22 @@ export async function GET(request: Request) {
                 break;
         }
 
-        const statusResponse = await service.getTaskStatus(taskId);
+        let statusResponse;
+
+        switch (type) {
+            case 'video':
+                if (!service.getVideoTaskStatus) throw new Error(`Provider ${provider} does not support video status`);
+                statusResponse = await service.getVideoTaskStatus(taskId);
+                break;
+            case 'market':
+                if (!service.getMarketTaskStatus) throw new Error(`Provider ${provider} does not support market status`);
+                statusResponse = await service.getMarketTaskStatus(taskId);
+                break;
+            case 'music':
+            default:
+                statusResponse = await service.getTaskStatus(taskId);
+                break;
+        }
 
         return NextResponse.json({ success: true, data: statusResponse }, { status: 200 });
 
