@@ -23,7 +23,7 @@ class WebAudioEngine {
         // We delay context creation until a user interaction (play)
     }
 
-    private initContext() {
+    public initContext() {
         if (!this.ctx) {
             this.ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
             this.masterGain = this.ctx.createGain();
@@ -115,6 +115,19 @@ class WebAudioEngine {
         const gainValue = isMuted ? 0 : 1; // This should ideally be multiplied by the fader value
         // For simplicity, we'll store the target gain elsewhere or just use 0/1 for now
         // A better way is to have another GainNode for mute
+    }
+
+    setTrackSolo(trackId: string, isSolo: boolean) {
+        // Dummy implementation for compilation
+    }
+
+    moveAudioClip(clipId: string, newTime: number) {
+        // Dummy implementation
+    }
+
+    getWaveformData(clipId: string, arg2?: any): number[] {
+        // Dummy implementation
+        return [];
     }
 
     // New method to connect a real audio element (like in the mastering page)

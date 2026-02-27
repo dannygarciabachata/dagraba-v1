@@ -30,10 +30,13 @@ export function Fader({ id }: FaderProps) {
 
     // Sync with Audio Engine
     useEffect(() => {
+        if (!fader) return;
         audioEngine.setTrackVolume(id, fader.value);
         audioEngine.setTrackPan(id, fader.pan);
         audioEngine.setTrackMute(id, fader.isMuted);
-    }, [id, fader.value, fader.pan, fader.isMuted]);
+    }, [id, fader?.value, fader?.pan, fader?.isMuted]);
+
+    if (!fader) return null;
 
     // Level Update Loop
     useEffect(() => {

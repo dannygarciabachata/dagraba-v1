@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { Play, UploadCloud, Terminal as TermIcon, FileAudio, Users, Music, Mic2, Scan, Activity, Zap, BarChart3, Binary } from 'lucide-react';
 
 export function AITrainingModule() {
@@ -21,8 +22,8 @@ export function AITrainingModule() {
         if (!rawAudio || !masteredAudio || !dnaProfileName) return;
 
         setIsAnalyzing(true);
-        setLogs(prev => [...prev, `[INIT] Iniciando Análisis de ADN DGB: ${dnaProfileName}`]);
-        setLogs(prev => [...prev, `[DSP] Comparando señales Mix vs Master...`]);
+        setLogs((prev: string[]) => [...prev, `[INIT] Iniciando Análisis de ADN DGB: ${dnaProfileName}`]);
+        setLogs((prev: string[]) => [...prev, `[DSP] Comparando señales Mix vs Master...`]);
 
         try {
             // Convert files to base64 for the prototype
@@ -50,13 +51,13 @@ export function AITrainingModule() {
             const data = await response.json();
             if (data.success) {
                 setDnaResult(data.dna);
-                setLogs(prev => [...prev, `[SUCCESS] ADN extraído con éxito. LUFS Target: ${data.dna.loudness.target_lufs}`]);
-                setLogs(prev => [...prev, `[DATABASE] Perfil Guardado en el Gold Standard.`]);
+                setLogs((prev: string[]) => [...prev, `[SUCCESS] ADN extraído con éxito. LUFS Target: ${data.dna.loudness.target_lufs}`]);
+                setLogs((prev: string[]) => [...prev, `[DATABASE] Perfil Guardado en el Gold Standard.`]);
             } else {
-                setLogs(prev => [...prev, `[ERROR] ${data.error || 'Fallo en el análisis.'}`]);
+                setLogs((prev: string[]) => [...prev, `[ERROR] ${data.error || 'Fallo en el análisis.'}`]);
             }
         } catch (error) {
-            setLogs(prev => [...prev, `[ERROR] Error de comunicación con el Scanner.`]);
+            setLogs((prev: string[]) => [...prev, `[ERROR] Error de comunicación con el Scanner.`]);
         } finally {
             setIsAnalyzing(false);
         }
@@ -71,11 +72,11 @@ export function AITrainingModule() {
         }
 
         setIsTraining(true);
-        setLogs(prev => [...prev, `[INIT] Iniciando proceso de entrenamiento: ${trainingType === 'voice' ? selectedArtist : modelName}`]);
+        setLogs((prev: string[]) => [...prev, `[INIT] Iniciando proceso de entrenamiento: ${trainingType === 'voice' ? selectedArtist : modelName}`]);
 
         if (trainingType === 'instrument') {
             try {
-                setLogs(prev => [...prev, `[API] Contactando backend de entrenamiento Instrumental...`]);
+                setLogs((prev: string[]) => [...prev, `[API] Contactando backend de entrenamiento Instrumental...`]);
                 const response = await fetch('/api/ai/train/sao', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -87,24 +88,24 @@ export function AITrainingModule() {
                     })
                 });
                 const data = await response.json();
-                setLogs(prev => [...prev, `[MODAL] Job ID generado: ${data.modelId || 'pending'}`]);
-                setLogs(prev => [...prev, `[GPU] Reservando cluster para Stable Audio Open...`]);
+                setLogs((prev: string[]) => [...prev, `[MODAL] Job ID generado: ${data.modelId || 'pending'}`]);
+                setLogs((prev: string[]) => [...prev, `[GPU] Reservando cluster para Stable Audio Open...`]);
             } catch (error) {
-                setLogs(prev => [...prev, `[ERROR] Fallo al iniciar entrenamiento instrumental.`]);
+                setLogs((prev: string[]) => [...prev, `[ERROR] Fallo al iniciar entrenamiento instrumental.`]);
             }
         } else {
             setTimeout(() => {
-                setLogs(prev => [...prev, `[MODAL] Dispatching job: Voice_Cloning_V1`]);
+                setLogs((prev: string[]) => [...prev, `[MODAL] Dispatching job: Voice_Cloning_V1`]);
             }, 1000);
         }
 
         setTimeout(() => {
-            setLogs(prev => [...prev, `[GPU] Asignando A100... Éxito`]);
-            setLogs(prev => [...prev, `[TRAIN] Iniciando Epoch 1/${epochs}`]);
+            setLogs((prev: string[]) => [...prev, `[GPU] Asignando A100... Éxito`]);
+            setLogs((prev: string[]) => [...prev, `[TRAIN] Iniciando Epoch 1/${epochs}`]);
         }, 2500);
 
         setTimeout(() => {
-            setLogs(prev => [...prev, `[TRAIN] Completado. Guardando pesos del modelo...`]);
+            setLogs((prev: string[]) => [...prev, `[TRAIN] Completado. Guardando pesos del modelo...`]);
             setIsTraining(false);
         }, 6000);
     };

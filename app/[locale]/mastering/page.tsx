@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import { StudioMonitor } from '@/components/daw/StudioMonitor';
 import { MasteringKnob } from '@/components/daw/MasteringKnob';
 import { Activity, Power, SlidersHorizontal, Upload, Download, Play, Pause, Volume2, Repeat, Music, History, Save, ChevronLeft, MessageSquare, Sparkles } from 'lucide-react';
-import { useMasteringStore } from '@/store/useMasteringStore';
+import { useMasteringStore, MasteringSettings } from '@/store/useMasteringStore';
 import { audioEngine } from '@/lib/audio-engine-bridge';
 import { StudioChat } from '@/components/daw/StudioChat';
 import { SpectrumAnalyzer } from '@/components/daw/SpectrumAnalyzer';
@@ -269,35 +269,35 @@ export default function Mastering() {
                 setAiStatus('CONFIGURANDO GATE...');
                 setCurrentModule('gate');
                 await new Promise(r => setTimeout(r, 1200));
-                setSettings(prev => ({ ...prev, gateBypass: false, gateThreshold: targetSettings.gateThreshold }));
+                setSettings((prev: MasteringSettings) => ({ ...prev, gateBypass: false, gateThreshold: targetSettings.gateThreshold }));
                 await new Promise(r => setTimeout(r, 800));
 
                 // 2. EQ
                 setAiStatus('CORRIGIENDO BALANCE ESPECTRAL (EQ)...');
                 setCurrentModule('eq');
                 await new Promise(r => setTimeout(r, 1200));
-                setSettings(prev => ({ ...prev, eqBypass: false, eqHighpass: targetSettings.eqHighpass, eqTilt: targetSettings.eqTilt }));
+                setSettings((prev: MasteringSettings) => ({ ...prev, eqBypass: false, eqHighpass: targetSettings.eqHighpass, eqTilt: targetSettings.eqTilt }));
                 await new Promise(r => setTimeout(r, 800));
                 
                 // 3. LEVELER
                 setAiStatus('CALIBRANDO GAIN STAGING (LEVELER)...');
                 setCurrentModule('leveler');
                 await new Promise(r => setTimeout(r, 1200));
-                setSettings(prev => ({ ...prev, levelerBypass: false, levelerTarget: targetSettings.levelerTarget }));
+                setSettings((prev: MasteringSettings) => ({ ...prev, levelerBypass: false, levelerTarget: targetSettings.levelerTarget }));
                 await new Promise(r => setTimeout(r, 800));
 
                 // 4. COMPRESSOR
                 setAiStatus('ESTABILIZANDO DINÁMICA DE SEÑAL...');
                 setCurrentModule('compressor');
                 await new Promise(r => setTimeout(r, 1200));
-                setSettings(prev => ({ ...prev, compBypass: false, compStrength: targetSettings.compStrength }));
+                setSettings((prev: MasteringSettings) => ({ ...prev, compBypass: false, compStrength: targetSettings.compStrength }));
                 await new Promise(r => setTimeout(r, 800));
 
                 // 5. LIMITER
                 setAiStatus('MAXIMIZANDO VOLUMEN FINAL (LIMITER)...');
                 setCurrentModule('limiter');
                 await new Promise(r => setTimeout(r, 1200));
-                setSettings(prev => ({ ...prev, limBypass: false, limStrength: targetSettings.limStrength, limCeiling: targetSettings.limCeiling }));
+                setSettings((prev: MasteringSettings) => ({ ...prev, limBypass: false, limStrength: targetSettings.limStrength, limCeiling: targetSettings.limCeiling }));
                 await new Promise(r => setTimeout(r, 1000));
             }
 
@@ -514,283 +514,162 @@ export default function Mastering() {
 
                 {/* Center Plugin Rack */}
                 <div className="flex-1 max-w-4xl relative">
-                    {/* The Plugin Enclosure */}
-                    <div className="bg-[#2B2B2B] rounded-2xl shadow-[0_30px_60px_rgba(0,0,0,0.9),inset_0_1px_1px_rgba(255,255,255,0.1)] border border-[#1A1A1A] p-4 flex flex-col gap-4">
-
+                    {/* The Plugin Enclosure - LANDR Style */}
+                    <div className="bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-800 via-slate-900 to-black rounded-xl shadow-[0_30px_60px_rgba(0,0,0,0.9),inset_0_1px_1px_rgba(255,255,255,0.05)] border border-slate-700/30 p-6 flex flex-col gap-6 w-full max-w-5xl mx-auto">
+                        
                         {/* Header Bar */}
-                        <div className="flex justify-between items-center px-2 py-1">
-                            <div className="flex items-center gap-6">
-                                <span className="text-white font-bold text-sm tracking-wide flex items-center gap-2">
-                                    <Activity size={16} />
-                                    DA GRABA
-                                </span>
-                                <div className="flex flex-col">
-                                    <span className="text-white/80 font-bold text-[10px] uppercase tracking-tighter leading-none">Stereo Master Rack</span>
-                                    <div className="flex items-center gap-1.5 mt-0.5">
-                                        <div className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
-                                        <input 
-                                            value={selectedSong} 
-                                            onChange={(e) => setSelectedSong(e.target.value)}
-                                            className="bg-transparent border-none text-cyan-400 text-[11px] font-mono focus:outline-none focus:ring-1 focus:ring-cyan-400/30 rounded px-1 transition-all w-48"
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Export buttons in header */}
-                            <div className="flex items-center gap-3">
-                                <button onClick={handleSave} className="flex items-center gap-1.5 px-3 py-1 bg-white/5 hover:bg-white/10 border border-white/10 rounded text-xs text-white/60 hover:text-white transition-colors">
-                                    <Save size={12} /> Guardar
-                                </button>
-                                <button onClick={handleExport} className="flex items-center gap-1.5 px-3 py-1 bg-green-600/20 hover:bg-green-600/40 border border-green-500/50 rounded text-xs text-green-400 hover:text-green-300 transition-colors">
-                                    <Download size={12} /> Exportar
-                                </button>
-                            </div>
-
-                            {/* AI Mastering Button */}
+                        <div className="flex justify-between items-center px-4">
                             <div className="flex items-center gap-4">
-                                <select 
-                                    value={selectedGenre}
-                                    onChange={(e) => setSelectedGenre(e.target.value)}
-                                    className="bg-black/40 border border-white/10 rounded px-2 py-1 text-[9px] text-cyan-400 font-bold focus:outline-none"
+                                <div className="w-8 h-8 rounded-full border border-white/20 flex items-center justify-center">
+                                    <div className="w-5 h-5 rounded-full border border-white/40 border-t-transparent animate-spin-slow" />
+                                </div>
+                                <span className="text-white font-medium tracking-widest text-sm opacity-90">DA-GRABA Studio Mastering</span>
+                            </div>
+
+                            {/* Center Toggles */}
+                            <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-4 bg-white/5 rounded-full px-4 py-1.5 backdrop-blur-md border border-white/10">
+                                <span className="text-[11px] font-bold text-cyan-300 uppercase tracking-widest mr-2 cursor-pointer shadow-[0_0_10px_rgba(103,232,249,0.3)]">Master</span>
+                            </div>
+
+                            {/* Right Controls */}
+                            <div className="flex items-center gap-4">
+                                <button className="text-xs text-white/50 hover:text-white transition-colors tracking-widest uppercase">Gain Match</button>
+                                <button 
+                                    onClick={() => setIsOn(!isOn)}
+                                    className={`text-xs px-3 py-1 rounded transition-colors tracking-widest uppercase border ${isOn ? 'border-cyan-500/50 text-cyan-400 bg-cyan-500/10' : 'border-white/20 text-white/50 hover:bg-white/5'}`}
                                 >
-                                    <option value="DGB_BACHATA">BACHATA DGB</option>
-                                    <option value="DGB_BOLERO">BOLERO DGB</option>
-                                    <option value="DGB_TRAP">TRAP DGB</option>
-                                    <option value="DGB_MERENGUE">MERENGUE DGB</option>
-                                </select>
+                                    Bypass
+                                </button>
                                 <button
                                     onClick={startAIMastering}
                                     disabled={isAIMastering}
-                                    className={`px-4 py-1 rounded-full border flex items-center gap-2 text-[10px] font-black tracking-widest transition-all ${
+                                    className={`px-3 py-1 rounded border flex items-center gap-2 text-xs font-bold tracking-widest transition-all ${
                                         isAIMastering 
                                         ? 'bg-orange-500/20 border-orange-500 text-orange-400 animate-pulse' 
-                                        : 'bg-cyan-500/10 border-cyan-500/50 text-cyan-400 hover:bg-cyan-500 hover:text-black shadow-[0_0_15px_rgba(6,182,212,0.2)]'
+                                        : 'bg-indigo-500/20 border-indigo-500/50 text-indigo-300 hover:bg-indigo-500/40 hover:text-white shadow-[0_0_15px_rgba(99,102,241,0.2)]'
                                     }`}
                                 >
                                     <Sparkles size={12} /> {isAIMastering ? 'AI WORKING' : 'AI MASTER'}
                                 </button>
-                                <button
-                                    onClick={() => setIsOn(!isOn)}
-                                    className="w-12 h-6 rounded-full bg-[#111] shadow-[inset_0_2px_4px_rgba(0,0,0,0.8)] relative flex items-center px-1"
-                                >
-                                    <div className={`w-4 h-4 rounded-full shadow-md transition-all duration-300 ${isOn ? 'bg-green-500 translate-x-6 glow-primary' : 'bg-[#444] translate-x-0'}`} />
-                                </button>
+                                <div className="flex gap-2 text-white/30 ml-2">
+                                    <span className="cursor-pointer hover:text-white transition-colors">⟲</span>
+                                    <span className="cursor-pointer hover:text-white transition-colors">⟳</span>
+                                    <span className="cursor-pointer hover:text-white transition-colors">•••</span>
+                                </div>
                             </div>
                         </div>
 
-                        {/* master_me Module Selector (Expert Mode Tabs) */}
-                        <div className="flex flex-col gap-2 mx-2">
-                            <div className="flex items-center justify-between bg-black/20 rounded-lg p-1 border border-white/5">
-                                {['gate', 'eq', 'leveler', 'compressor', 'multiband', 'limiter'].map((mod, idx) => (
-                                    <div key={mod} className="flex-1 flex items-center">
+                        <div className={`transition-opacity duration-500 flex flex-col gap-6 ${isOn ? 'opacity-100' : 'opacity-30 pointer-events-none'}`}>
+                            
+                            {/* Top Half: Massive Spectrum Analyzer */}
+                            <div className="h-64 relative bg-slate-900/50 rounded-lg overflow-hidden border-b border-white/5">
+                                {isAIMastering && (
+                                    <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-900/80 backdrop-blur-sm z-10 animate-in fade-in">
+                                        <div className="w-16 h-16 rounded-full border-2 border-indigo-500 border-t-transparent animate-spin mb-4" />
+                                        <span className="text-xs font-mono text-indigo-300 tracking-widest text-center uppercase">{aiStatus}</span>
+                                    </div>
+                                )}
+                                <SpectrumAnalyzer 
+                                    analyzer={audioEngine.getTrackAnalyser('master-track')} 
+                                    naked 
+                                />
+                                {/* Frequency Labels */}
+                                <div className="absolute bottom-2 left-0 right-0 flex justify-between px-8 pointer-events-none opacity-30 text-[9px] font-mono text-white">
+                                    <span>20</span><span>50</span><span>100</span><span>200</span><span>500</span><span>1K</span><span>2K</span><span>5K</span><span>10K</span><span>20K</span>
+                                </div>
+                            </div>
+
+                            {/* Middle Toggles (Style) */}
+                            <div className="flex justify-center -mt-10 relative z-10">
+                                <div className="flex bg-slate-800/80 backdrop-blur-xl rounded-full p-1 border border-slate-600/50 shadow-2xl">
+                                    {['DGB_BOLERO', 'DGB_BACHATA', 'DGB_MERENGUE'].map((genre) => (
                                         <button
-                                            onClick={() => setCurrentModule(mod as any)}
-                                            className={`flex-1 py-1.5 px-2 rounded-md text-[9px] font-black uppercase tracking-widest transition-all ${
-                                                currentModule === mod 
-                                                ? 'bg-cyan-500 text-black shadow-[0_0_15px_rgba(6,182,212,0.4)]' 
-                                                : 'text-white/40 hover:text-white/70 hover:bg-white/5'
+                                            key={genre}
+                                            onClick={() => setSelectedGenre(genre)}
+                                            className={`px-8 py-1.5 rounded-full text-xs font-medium tracking-wide transition-all ${
+                                                selectedGenre === genre 
+                                                ? 'bg-blue-600 shadow-[0_0_15px_rgba(37,99,235,0.6)] text-white' 
+                                                : 'text-white/40 hover:text-white/80'
                                             }`}
                                         >
-                                            {mod === 'compressor' ? 'Comp' : mod === 'multiband' ? 'M-Band' : mod}
+                                            {genre === 'DGB_BOLERO' ? 'Warm' : genre === 'DGB_BACHATA' ? 'Balanced' : 'Open'}
                                         </button>
-                                        {idx < 5 && (
-                                            <div className="px-1 text-white/10 text-[8px] font-black">➔</div>
-                                        )}
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Bottom Half: Control Grid */}
+                            <div className="grid grid-cols-12 gap-4 px-4 pb-4">
+                                
+                                {/* EQUALIZER */}
+                                <div className="col-span-3 flex flex-col items-center gap-4">
+                                    <span className="text-[9px] font-bold text-white/30 tracking-widest uppercase">Equalizer</span>
+                                    <div className="flex gap-4">
+                                        <MasteringKnob label="Low" value={settings.eqHighpass} onChange={(v) => setSettings({...settings, eqHighpass: v})} size="md" />
+                                        <MasteringKnob label="Mid" value={settings.eqTilt} onChange={(v) => setSettings({...settings, eqTilt: v})} size="md" />
+                                        <MasteringKnob label="High" value={settings.eqSideGain} onChange={(v) => setSettings({...settings, eqSideGain: v})} size="md" />
                                     </div>
-                                ))}
-                            </div>
-                            <div className="flex justify-center">
-                                <span className="text-[7px] text-cyan-400/40 uppercase font-black tracking-widest">Signal Flow: Pre-Processing ➔ Gate ➔ EQ ➔ Leveler ➔ Comp ➔ M-Band ➔ Limiter ➔ Brickwall</span>
-                            </div>
-                        </div>
+                                </div>
 
-                        <div className={`transition-opacity duration-500 ${isOn ? 'opacity-100' : 'opacity-30 pointer-events-none'}`}>
-                            {/* Middle Displays Row */}
-                            <div className="grid grid-cols-3 gap-4 h-48">
+                                {/* PRESENCE */}
+                                <div className="col-span-2 flex flex-col items-center gap-4 border-l border-white/5 pl-4">
+                                    <span className="text-[9px] font-bold text-white/30 tracking-widest uppercase">Presence</span>
+                                    <MasteringKnob label="Amount" value={settings.eqSideFreq} onChange={(v) => setSettings({...settings, eqSideFreq: v})} size="md" />
+                                </div>
 
-                                {/* Display 1: Real-time Spectrum Analyzer or AI Status */}
-                                <div className="bg-[#181818] rounded-lg border border-[#333] shadow-[inset_0_5px_15px_rgba(0,0,0,0.9)] overflow-hidden relative">
-                                     {isAIMastering ? (
-                                        <div className="absolute inset-0 flex flex-col items-center justify-center p-4 bg-black/60 backdrop-blur-sm z-10 animate-in fade-in">
-                                            <div className="flex gap-1 mb-4">
-                                                {[...Array(5)].map((_, i) => (
-                                                    <div key={i} className="w-1.5 h-6 bg-cyan-500 animate-[bounce_1s_infinite]" style={{ animationDelay: `${i * 0.1}s` }} />
-                                                ))}
+                                {/* DE-ESSER */}
+                                <div className="col-span-2 flex flex-col items-center gap-4 border-l border-white/5 pl-4">
+                                    <span className="text-[9px] font-bold text-white/30 tracking-widest uppercase">De-Esser</span>
+                                    <div className="flex gap-4">
+                                        <MasteringKnob label="Amount" value={settings.mbStrengthHigh} onChange={(v) => setSettings({...settings, mbStrengthHigh: v})} size="md" />
+                                        <MasteringKnob label="Frequency" value={settings.mbCrossoverHigh} onChange={(v) => setSettings({...settings, mbCrossoverHigh: v})} size="md" />
+                                    </div>
+                                </div>
+
+                                {/* DYNAMICS */}
+                                <div className="col-span-3 flex flex-col items-center gap-4 border-l border-white/5 pl-4">
+                                    <span className="text-[9px] font-bold text-white/30 tracking-widest uppercase">Dynamics</span>
+                                    <div className="flex gap-4">
+                                        <MasteringKnob label="Compression" value={settings.compStrength} onChange={(v) => setSettings({...settings, compStrength: v})} size="md" />
+                                        <MasteringKnob label="Character" value={settings.compAttack} onChange={(v) => setSettings({...settings, compAttack: v})} size="md" />
+                                        <MasteringKnob label="Saturation" value={settings.inputDrive} onChange={(v) => setSettings({...settings, inputDrive: v})} size="md" />
+                                    </div>
+                                </div>
+
+                                {/* LOUDNESS (Rightmost) */}
+                                <div className="col-span-2 flex flex-col items-center justify-between border-l border-white/5 pl-4 h-full">
+                                    <span className="text-[9px] font-bold text-white/30 tracking-widest uppercase">Loudness</span>
+                                    <div className="flex items-center gap-4 w-full justify-center">
+                                        <div className="flex flex-col items-center -mr-2">
+                                            <MasteringKnob label="" value={settings.levelerTarget} onChange={(v) => setSettings({...settings, levelerTarget: v})} size="lg" />
+                                            <span className="text-[9px] text-white/40 font-medium tracking-widest mt-2">{settings.levelerTarget.toFixed(1)} LUFS</span>
+                                        </div>
+                                        {/* Fake LUFS Meter */}
+                                        <div className="flex flex-col items-center gap-1">
+                                            <span className="text-[8px] font-mono text-cyan-400">-0.2 dB</span>
+                                            <div className="w-2 h-24 bg-black rounded-sm relative overflow-hidden ring-1 ring-white/10">
+                                                <div className="absolute bottom-0 w-full bg-gradient-to-t from-cyan-600 via-cyan-400 to-white transition-all shadow-[0_0_10px_rgba(6,182,212,0.8)]" style={{ height: `${isPlaying ? 60 + Math.random() * 30 : 0}%` }} />
                                             </div>
-                                            <span className="text-[10px] font-mono text-cyan-400 tracking-tighter text-center uppercase leading-tight">{aiStatus}</span>
-                                        </div>
-                                     ) : null}
-                                     <SpectrumAnalyzer 
-                                        analyzer={audioEngine.getTrackAnalyser('master-track')} 
-                                        naked 
-                                    />
-                                </div>
-
-                                {/* Display 2: Compare LED Meters */}
-                                <div className="bg-[#2A2A2D] rounded-lg border border-[#1A1A1C] shadow-inner p-4 flex flex-col items-center justify-between">
-                                    <div className="flex gap-8 h-24 w-full justify-center">
-                                        {/* Source Meter */}
-                                        <div className="flex flex-col gap-1 h-full w-8 bg-[#111] rounded-sm p-1 shadow-inner justify-end">
-                                            <div className="text-[8px] text-center text-silver-dark font-mono uppercase mb-1">SRC</div>
-                                            {Array.from({ length: 12 }).map((_, i) => (
-                                                <div key={`s-${i}`} className={`h-1.5 w-full rounded-xs ${i < 3 ? 'bg-[#333]' : i < 6 ? 'bg-yellow-500/80 shadow-[0_0_5px_rgba(234,179,8,0.5)]' : 'bg-green-500/80 shadow-[0_0_5px_rgba(34,197,94,0.5)]'}`} />
-                                            ))}
-                                        </div>
-
-                                        {/* Master Meter */}
-                                        <div className="flex flex-col gap-1 h-full w-8 bg-[#111] rounded-sm p-1 shadow-inner justify-end">
-                                            <div className="text-[8px] text-center text-silver-dark font-mono uppercase mb-1">MST</div>
-                                            {Array.from({ length: 12 }).map((_, i) => (
-                                                <div key={`m-${i}`} className={`h-1.5 w-full rounded-xs ${i < 1 ? 'bg-[#333]' : i < 4 ? 'bg-yellow-500 shadow-[0_0_8px_rgba(234,179,8,0.8)]' : 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.8)]'}`} />
-                                            ))}
                                         </div>
                                     </div>
-
-                                    <button
-                                        onMouseDown={() => setIsComparing(true)}
-                                        onMouseUp={() => setIsComparing(false)}
-                                        onMouseLeave={() => setIsComparing(false)}
-                                        className={`mt-4 px-6 py-1 rounded bg-[#1A1A1A] border border-[#333] text-[10px] font-bold tracking-widest uppercase transition-all shadow-[0_4px_6px_rgba(0,0,0,0.5)] active:translate-y-1 active:shadow-none ${isComparing ? 'text-red-500 glow-red border-red-500/50' : 'text-[#888] hover:text-[#AAA]'}`}
-                                    >
-                                        COMPARE
-                                    </button>
                                 </div>
 
-                                {/* Display 3: Right Side Panel (Master Mode) */}
-                                <div className="bg-[#303030] rounded-lg border border-[#3A3A3A] p-4 flex flex-col items-center justify-center gap-6 shadow-inner">
-                                    <div className="bg-[#1A1A1C] px-4 py-1.5 rounded-full border border-cyan-glow/30 flex items-center justify-between w-full cursor-pointer shadow-inner">
-                                        <span className="text-cyan-glow text-xs font-bold tracking-widest uppercase">Stereo</span>
-                                        <span className="text-white/50 text-[10px]">▼</span>
-                                    </div>
-                                    <MasteringKnob 
-                                        label="INPUT DRIVE" 
-                                        value={settings.inputDrive} 
-                                        onChange={(v) => setSettings({...settings, inputDrive: v})}
-                                        size="sm" 
-                                    />
-                                    <MasteringKnob 
-                                        label="WIDTH" 
+                            </div>
+                            
+                            {/* STEREO FIELD (Bottom Left) */}
+                            <div className="flex flex-col gap-2 px-8 pb-4">
+                                <span className="text-[9px] font-bold text-white/30 tracking-widest uppercase">Stereo Field</span>
+                                <div className="flex items-center gap-4 w-48">
+                                    <span className="text-[9px] text-white/40">Focus</span>
+                                    <input 
+                                        type="range" 
+                                        min="0" max="100" 
                                         value={settings.stereoWidth} 
-                                        onChange={(v) => setSettings({...settings, stereoWidth: v})}
-                                        size="sm" 
+                                        onChange={(e) => setSettings({...settings, stereoWidth: parseFloat(e.target.value)})}
+                                        className="flex-1 h-0.5 bg-white/10 rounded-full appearance-none [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-2 [&::-webkit-slider-thumb]:h-2 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-blue-500 outline-none"
                                     />
+                                    <span className="text-[9px] text-blue-400 font-bold">{settings.stereoWidth}% Wide</span>
                                 </div>
-
-                            </div>
-
-                            {/* Bottom Row Knobs: Dynamic master_me module controls */}
-                            <div className="mt-4 bg-[#303030] rounded-lg border border-[#3A3A3A] p-8 flex justify-around items-center shadow-inner min-h-[180px]">
-                                {currentModule === 'gate' && (
-                                    <div className="flex-1 flex gap-8 items-center justify-center">
-                                        <div className="flex flex-col items-center gap-3 px-6 py-4 bg-black/20 rounded-2xl border border-white/5 shadow-xl">
-                                            <button 
-                                                onClick={() => setSettings({...settings, gateBypass: !settings.gateBypass})}
-                                                className={`w-12 h-6 rounded-full transition-all relative overflow-hidden group ${!settings.gateBypass ? 'bg-cyan-500/80' : 'bg-red-500/20 border border-red-500/30'}`}
-                                            >
-                                                <div className={`absolute top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-white transition-all shadow-md ${!settings.gateBypass ? 'left-7' : 'left-1'}`} />
-                                            </button>
-                                            <span className="text-[8px] text-white/40 font-black uppercase tracking-widest leading-none">Power</span>
-                                        </div>
-                                        <MasteringKnob label="THRESHOLD" value={settings.gateThreshold} onChange={(v) => setSettings({...settings, gateThreshold: v})} size="lg" />
-                                        <MasteringKnob label="RELEASE" value={settings.gateRelease} onChange={(v) => setSettings({...settings, gateRelease: v})} size="lg" />
-                                    </div>
-                                )}
-                                {currentModule === 'eq' && (
-                                    <div className="flex-1 flex gap-8 items-center justify-center">
-                                        <div className="flex flex-col items-center gap-3 px-6 py-4 bg-black/20 rounded-2xl border border-white/5 shadow-xl">
-                                            <button 
-                                                onClick={() => setSettings({...settings, eqBypass: !settings.eqBypass})}
-                                                className={`w-12 h-6 rounded-full transition-all relative overflow-hidden group ${!settings.eqBypass ? 'bg-cyan-500/80' : 'bg-red-500/20 border border-red-500/30'}`}
-                                            >
-                                                <div className={`absolute top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-white transition-all shadow-md ${!settings.eqBypass ? 'left-7' : 'left-1'}`} />
-                                            </button>
-                                            <span className="text-[8px] text-white/40 font-black uppercase tracking-widest leading-none">Power</span>
-                                        </div>
-                                        <MasteringKnob label="HIGHPASS" value={settings.eqHighpass} onChange={(v) => setSettings({...settings, eqHighpass: v})} size="lg" />
-                                        <MasteringKnob label="TILT" value={settings.eqTilt} onChange={(v) => setSettings({...settings, eqTilt: v})} size="lg" />
-                                        <MasteringKnob label="S-GAIN" value={settings.eqSideGain} onChange={(v) => setSettings({...settings, eqSideGain: v})} size="lg" />
-                                        <MasteringKnob label="S-FREQ" value={settings.eqSideFreq} onChange={(v) => setSettings({...settings, eqSideFreq: v})} size="lg" />
-                                    </div>
-                                )}
-                                {currentModule === 'leveler' && (
-                                    <div className="flex-1 flex gap-8 items-center justify-center">
-                                        <div className="flex flex-col items-center gap-3 px-6 py-4 bg-black/20 rounded-2xl border border-white/5 shadow-xl">
-                                            <button 
-                                                onClick={() => setSettings({...settings, levelerBypass: !settings.levelerBypass})}
-                                                className={`w-12 h-6 rounded-full transition-all relative overflow-hidden group ${!settings.levelerBypass ? 'bg-cyan-500/80' : 'bg-red-500/20 border border-red-500/30'}`}
-                                            >
-                                                <div className={`absolute top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-white transition-all shadow-md ${!settings.levelerBypass ? 'left-7' : 'left-1'}`} />
-                                            </button>
-                                            <span className="text-[8px] text-white/40 font-black uppercase tracking-widest leading-none">Power</span>
-                                        </div>
-                                        <MasteringKnob label="TARGET" value={settings.levelerTarget} onChange={(v) => setSettings({...settings, levelerTarget: v})} size="lg" />
-                                        <MasteringKnob label="BRAKE" value={settings.levelerBrake} onChange={(v) => setSettings({...settings, levelerBrake: v})} size="lg" />
-                                        <MasteringKnob label="MAX +" value={settings.levelerMaxPlus} onChange={(v) => setSettings({...settings, levelerMaxPlus: v})} size="lg" />
-                                        <MasteringKnob label="MAX -" value={settings.levelerMaxMinus} onChange={(v) => setSettings({...settings, levelerMaxMinus: v})} size="lg" />
-                                    </div>
-                                )}
-                                {currentModule === 'compressor' && (
-                                    <div className="flex-1 flex gap-8 items-center justify-center">
-                                        <div className="flex flex-col items-center gap-3 px-6 py-4 bg-black/20 rounded-2xl border border-white/5 shadow-xl">
-                                            <button 
-                                                onClick={() => setSettings({...settings, compBypass: !settings.compBypass})}
-                                                className={`w-12 h-6 rounded-full transition-all relative overflow-hidden group ${!settings.compBypass ? 'bg-cyan-500/80' : 'bg-red-500/20 border border-red-500/30'}`}
-                                            >
-                                                <div className={`absolute top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-white transition-all shadow-md ${!settings.compBypass ? 'left-7' : 'left-1'}`} />
-                                            </button>
-                                            <span className="text-[8px] text-white/40 font-black uppercase tracking-widest leading-none">Power</span>
-                                        </div>
-                                        <MasteringKnob label="STRENGTH" value={settings.compStrength} onChange={(v) => setSettings({...settings, compStrength: v})} size="lg" />
-                                        <MasteringKnob label="ATTACK" value={settings.compAttack} onChange={(v) => setSettings({...settings, compAttack: v})} size="lg" />
-                                        <MasteringKnob label="RELEASE" value={settings.compRelease} onChange={(v) => setSettings({...settings, compRelease: v})} size="lg" />
-                                        <MasteringKnob label="MAKEUP" value={settings.compMakeup} onChange={(v) => setSettings({...settings, compMakeup: v})} size="lg" />
-                                    </div>
-                                )}
-                                {currentModule === 'multiband' && (
-                                    <div className="flex-1 flex gap-8 items-center justify-center">
-                                        <div className="flex flex-col items-center gap-3 px-6 py-4 bg-black/20 rounded-2xl border border-white/5 shadow-xl mr-4">
-                                            <button 
-                                                onClick={() => setSettings({...settings, mbBypass: !settings.mbBypass})}
-                                                className={`w-12 h-6 rounded-full transition-all relative overflow-hidden group ${!settings.mbBypass ? 'bg-cyan-500/80' : 'bg-red-500/20 border border-red-500/30'}`}
-                                            >
-                                                <div className={`absolute top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-white transition-all shadow-md ${!settings.mbBypass ? 'left-7' : 'left-1'}`} />
-                                            </button>
-                                            <span className="text-[8px] text-white/40 font-black uppercase tracking-widest leading-none">Power</span>
-                                        </div>
-                                        <div className="flex flex-col items-center gap-4 border-r border-white/5 pr-8">
-                                            <span className="text-[8px] text-white/30 uppercase font-black tracking-widest">Low Bands</span>
-                                            <div className="flex gap-4">
-                                                <MasteringKnob label="STR" value={settings.mbStrengthLow} onChange={(v) => setSettings({...settings, mbStrengthLow: v})} size="md" />
-                                                <MasteringKnob label="CROSS" value={settings.mbCrossoverLow} onChange={(v) => setSettings({...settings, mbCrossoverLow: v})} size="md" />
-                                            </div>
-                                        </div>
-                                        <div className="flex flex-col items-center gap-4">
-                                            <span className="text-[8px] text-white/30 uppercase font-black tracking-widest">High Bands</span>
-                                            <div className="flex gap-4">
-                                                <MasteringKnob label="STR" value={settings.mbStrengthHigh} onChange={(v) => setSettings({...settings, mbStrengthHigh: v})} size="md" />
-                                                <MasteringKnob label="CROSS" value={settings.mbCrossoverHigh} onChange={(v) => setSettings({...settings, mbCrossoverHigh: v})} size="md" />
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
-                                {currentModule === 'limiter' && (
-                                    <div className="flex-1 flex gap-8 items-center justify-center">
-                                        <div className="flex flex-col items-center gap-3 px-6 py-4 bg-black/20 rounded-2xl border border-white/5 shadow-xl">
-                                            <button 
-                                                onClick={() => setSettings({...settings, limBypass: !settings.limBypass})}
-                                                className={`w-12 h-6 rounded-full transition-all relative overflow-hidden group ${!settings.limBypass ? 'bg-cyan-500/80' : 'bg-red-500/20 border border-red-500/30'}`}
-                                            >
-                                                <div className={`absolute top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-white transition-all shadow-md ${!settings.limBypass ? 'left-7' : 'left-1'}`} />
-                                            </button>
-                                            <span className="text-[8px] text-white/40 font-black uppercase tracking-widest leading-none">Power</span>
-                                        </div>
-                                        <MasteringKnob label="STRENGTH" value={settings.limStrength} onChange={(v) => setSettings({...settings, limStrength: v})} size="lg" />
-                                        <MasteringKnob label="ATTACK" value={settings.limAttack} onChange={(v) => setSettings({...settings, limAttack: v})} size="lg" />
-                                        <MasteringKnob label="RELEASE" value={settings.limRelease} onChange={(v) => setSettings({...settings, limRelease: v})} size="lg" />
-                                        <MasteringKnob label="CEILING" value={settings.limCeiling} onChange={(v) => setSettings({...settings, limCeiling: v})} size="lg" />
-                                    </div>
-                                )}
                             </div>
 
                         </div>

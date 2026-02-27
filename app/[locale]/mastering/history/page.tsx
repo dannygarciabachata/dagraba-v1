@@ -29,12 +29,12 @@ export default function MasteringHistory() {
             const project = history.find(p => p.id === playingId);
             if (project) {
                 if (isMastered) {
-                    audioEngine.updateEQ('master-track', project.settings.eqHighpass, project.settings.eqTilt);
-                    audioEngine.updateCompressor('master-track', project.settings.compStrength, project.settings.compAttack, project.settings.compRelease);
+                    audioEngine.updateEQ('master-track', project.settings.eqHighpass, project.settings.eqTilt, false);
+                    audioEngine.updateCompressor('master-track', project.settings.compStrength, project.settings.compAttack, project.settings.compRelease, false);
                 } else {
                     // Neutral settings for "MIX ORIGINAL"
-                    audioEngine.updateEQ('master-track', 0, 0);
-                    audioEngine.updateCompressor('master-track', 0, 0.03, 0.1);
+                    audioEngine.updateEQ('master-track', 0, 0, true);
+                    audioEngine.updateCompressor('master-track', 0, 0.03, 0.1, true);
                 }
             }
         }

@@ -3,10 +3,10 @@ import { prisma } from '@/lib/prisma';
 
 export async function GET(
     request: NextRequest,
-    { params }: { params: { genre: string } }
+    context: { params: Promise<{ genre: string }> }
 ) {
     try {
-        const genre = params.genre;
+        const { genre } = await context.params;
 
         // Find the Gold Standard DNA for this genre
         const goldStandard = await prisma.masteringDNA.findFirst({

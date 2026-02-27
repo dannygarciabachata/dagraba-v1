@@ -26,9 +26,9 @@ export function PluginWindow({ trackId, insert, onClose }: PluginWindowProps) {
         if (insert.bypass) return;
 
         if (insert.pluginId === 'eq') {
-            audioEngine.updateEQ(trackId, insert.settings.eqHighpass, insert.settings.eqTilt);
+            audioEngine.updateEQ(trackId, insert.settings.eqHighpass, insert.settings.eqTilt, false);
         } else if (insert.pluginId === 'compressor') {
-            audioEngine.updateCompressor(trackId, insert.settings.compStrength, insert.settings.compAttack, insert.settings.compRelease);
+            audioEngine.updateCompressor(trackId, insert.settings.compStrength, insert.settings.compAttack, insert.settings.compRelease, false);
         }
     }, [trackId, insert.settings, insert.bypass, insert.pluginId]);
 
