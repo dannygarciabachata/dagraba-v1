@@ -10,35 +10,8 @@ import {
     MoreVertical, Globe, Trash2, Layers, Bot, Loader2
 } from 'lucide-react';
 import { useDAWStore } from '@/store/useDAWStore';
+import { useCreatorStore } from '@/store/useCreatorStore';
 import { Slider } from '@/components/ui/Slider';
-
-// Mock data for the generated tracks
-const MOCK_TRACKS = [
-    {
-        id: 'track-1',
-        title: 'Sombras en la Calle',
-        style: 'Dark Trap, 808s, Moody',
-        duration: '2:45',
-        image: 'https://picsum.photos/seed/darktrap/200/200',
-        tags: ['Trap', 'Dark'],
-        lyrics: "[Verse 1]\nCaminando en la penumbra de la ciudad\nBuscando una salida, una realidad\nLos bajos retumban en mi pecho hoy\nNo sé a dónde voy, pero aquí estoy.\n\n[Chorus]\nSombras en la calle, luces que se van\nEl eco de un sueño que no volverá.",
-        views: '1.2k',
-        likes: 124,
-        url: 'https://cdn.pixabay.com/audio/2022/03/10/audio_c8c8a73a56.mp3'
-    },
-    {
-        id: 'track-2',
-        title: 'Luces de Neón',
-        style: 'Melodic Trap, Heavy Bass, Futuristic',
-        duration: '3:10',
-        image: 'https://picsum.photos/seed/neon/200/200',
-        tags: ['Trap', 'Melodic'],
-        lyrics: "[Verse 1]\nReflejos de neón en el asfalto frío\nUn mundo de cristal, un vacío mío\nLas máquinas cantan una melodía\nQue me atrapa el alma, pura fantasía.\n\n[Chorus]\nBrilla el neón, brilla el metal\nUn viaje eterno, algo sideral.",
-        views: '850',
-        likes: 92,
-        url: 'https://cdn.pixabay.com/audio/2021/11/24/audio_12345678.mp3'
-    }
-];
 
 const GENRES = [
     'Trap', 'Reggaeton', 'Drill', 'R&B', 'Pop Urbano',
@@ -46,12 +19,12 @@ const GENRES = [
     'House', 'Synthwave', 'Lofi', 'Corridos Tumbados'
 ];
 
+
 export default function Crear() {
     const router = useRouter();
     const { currentPreviewTrack, setPreviewTrack } = useDAWStore();
+    const { tracks, activeTrack, setTracks, setActiveTrack, updateTrack, removeTrack, addTrack } = useCreatorStore();
     const [isGenerating, setIsGenerating] = useState(false);
-    const [tracks, setTracks] = useState<any[]>(MOCK_TRACKS);
-    const [activeTrack, setActiveTrack] = useState<any>(MOCK_TRACKS[0]);
 
     // Track Menu State
     const [openMenuId, setOpenMenuId] = useState<string | null>(null);
@@ -129,7 +102,7 @@ export default function Crear() {
                 const newTaskId = data.taskId;
 
                 // Add placeholder track for tracking status
-                setTracks([{
+                addTrack({
                     id: newTaskId,
                     title: payload.title || `Video for ${editTrack.title}`,
                     style: editMode,
@@ -140,9 +113,10 @@ export default function Crear() {
                     views: '0',
                     likes: 0,
                     url: ''
-                }, ...tracks]);
+                });
 
                 setEditModalOpen(false);
+
                 setEditPrompt("");
                 setEditContinueAt("0");
 
@@ -169,24 +143,19 @@ export default function Crear() {
                     // Update the track with real data
                     if (data.data.tracks && data.data.tracks.length > 0) {
                         const generatedTrack = data.data.tracks[0];
-                        setTracks(prev => prev.map(t =>
-                            t.id === taskId ? {
-                                ...t,
-                                duration: generatedTrack.duration ? `${Math.floor(generatedTrack.duration / 60)}:${Math.floor(generatedTrack.duration % 60).toString().padStart(2, '0')}` : 'Ready',
-                                image: generatedTrack.imageUrl || '/logo_circular.png',
-                                url: generatedTrack.audioUrl || generatedTrack.streamAudioUrl || '',
-                                tags: generatedTrack.tags ? generatedTrack.tags.split(',') : t.tags
-                            } : t
-                        ));
+                        updateTrack(taskId, {
+                            duration: generatedTrack.duration ? `${Math.floor(generatedTrack.duration / 60)}:${Math.floor(generatedTrack.duration % 60).toString().padStart(2, '0')}` : 'Ready',
+                            image: generatedTrack.imageUrl || '/logo_circular.png',
+                            url: generatedTrack.audioUrl || generatedTrack.streamAudioUrl || '',
+                            tags: generatedTrack.tags ? generatedTrack.tags.split(',') : undefined // Will only update if provided
+                        });
 
                         // Stop polling if complete
                         if (status === 'SUCCESS') return;
                     }
                 } else if (status === 'ERROR') {
                     console.error('Task failed:', data.data.error);
-                    setTracks(prev => prev.map(t =>
-                        t.id === taskId ? { ...t, duration: 'Error', tags: ['Error'] } : t
-                    ));
+                    updateTrack(taskId, { duration: 'Error', tags: ['Error'] });
                     return;
                 }
             }
@@ -244,7 +213,6 @@ export default function Crear() {
             if (data.success && data.taskId) {
                 const taskId = data.taskId;
 
-                // Add "Processing" track to UI
                 const newTrack = {
                     id: taskId,
                     title: title || 'Nueva Creación IA',
@@ -258,8 +226,7 @@ export default function Crear() {
                     url: ''
                 };
 
-                setTracks([newTrack, ...tracks]);
-                setActiveTrack(newTrack);
+                addTrack(newTrack);
                 setPrompt("");
                 setTitle("");
 
@@ -623,9 +590,8 @@ export default function Crear() {
                                             >
                                                 <Activity size={14} /> Generar Video (MP4)
                                             </button>
-                                            <div className="h-px bg-[#222] my-1 w-[90%] mx-auto" />
                                             <button
-                                                onClick={(e) => { e.stopPropagation(); setOpenMenuId(null); setTracks(tracks.filter(t => t.id !== track.id)); }}
+                                                onClick={(e) => { e.stopPropagation(); setOpenMenuId(null); removeTrack(track.id); }}
                                                 className="w-full text-left px-4 py-3 text-xs font-bold text-red-500 hover:text-red-400 hover:bg-red-500/10 flex items-center gap-3 transition-colors"
                                             >
                                                 <Trash2 size={14} /> Borrar

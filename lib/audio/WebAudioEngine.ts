@@ -196,9 +196,11 @@ class WebAudioEngine {
         // depending on the node type. For a gate-like compressor, threshold 0 means no compression.
         // real gate logic is harder, but let's just use gain for bypass
         if (bypass) {
+            chain.gate.ratio.setTargetAtTime(1, this.ctx!.currentTime, 0.1);
             chain.gate.threshold.setTargetAtTime(0, this.ctx!.currentTime, 0.1);
         } else {
             // Map 0-100 to -100 to 0
+            chain.gate.ratio.setTargetAtTime(20, this.ctx!.currentTime, 0.1);
             const threshValue = -((100 - threshold));
             chain.gate.threshold.setTargetAtTime(threshValue, this.ctx!.currentTime, 0.1);
         }
@@ -279,6 +281,11 @@ class WebAudioEngine {
             const gainValue = 0.5 + (target / 100) * 1.5;
             chain.output.gain.setTargetAtTime(gainValue, this.ctx!.currentTime, 0.1);
         }
+    }
+
+    updateMultiband(trackId: string, lowStr: number, highStr: number, bypass: boolean) {
+        // Placeholder for multiband - logic would require a splitter and multiple compressors
+        // For now, let's just use it as a global tone shaper or additional compression
     }
 }
 

@@ -61,6 +61,7 @@ export interface MasteringProject {
     audioId?: string;
     dna: string;
     settings: MasteringSettings;
+    frequencyData?: number[]; // Snapshot of final spectral balance
 }
 
 interface MasteringState {
@@ -70,6 +71,7 @@ interface MasteringState {
     addToHistory: (project: Omit<MasteringProject, 'date'>) => void;
     deleteFromHistory: (id: string) => void;
     getProjectById: (id: string) => MasteringProject | undefined;
+    cleanupOldHistory: () => void;
 }
 
 export const useMasteringStore = create<MasteringState>()(
@@ -94,6 +96,16 @@ export const useMasteringStore = create<MasteringState>()(
             },
             getProjectById: (id) => {
                 return get().history.find((p) => p.id === id);
+            },
+            cleanupOldHistory: () => {
+                const NINETY_DAYS_MS = 90 * 24 * 60 * 60 * 1000;
+                const now = Date.now();
+                set((state) => ({
+                    history: state.history.filter((p) => {
+                        const projectDate = new Date(p.date).getTime();
+                        return (now - projectDate) < NINETY_DAYS_MS;
+                    }),
+                }));
             },
         }),
         {

@@ -11,6 +11,7 @@ import { SpectrumAnalyzer } from '@/components/daw/SpectrumAnalyzer';
 import { AudioStorage } from '@/lib/audio/AudioStorage';
 import Link from 'next/link';
 import { useParams, useSearchParams } from 'next/navigation';
+import { useCreatorStore } from '@/store/useCreatorStore';
 
 export default function Mastering() {
     const params = useParams();
@@ -35,50 +36,50 @@ export default function Mastering() {
     const [currentAudioId, setCurrentAudioId] = useState<string | null>(null);
 
     // Mastering Knobs State (master_me architecture)
-    const [settings, setSettings] = useState({
+    const [settings, setSettings] = useState<MasteringSettings>({
         // Gate
-        gateThreshold: 10,
-        gateAttack: 5,
+        gateThreshold: -12,
+        gateAttack: 10,
         gateRelease: 100,
         
         // EQ
-        eqHighpass: 30,
+        eqHighpass: 35,
         eqTilt: 0,
-        eqSideGain: 20,
-        eqSideFreq: 4000,
+        eqSideGain: 0,
+        eqSideFreq: 100,
         
         // Leveler
         levelerTarget: -14,
-        levelerBrake: -60,
-        levelerMaxPlus: 6,
-        levelerMaxMinus: 12,
+        levelerBrake: 50,
+        levelerMaxPlus: 10,
+        levelerMaxMinus: 10,
         
         // Knee Compressor
         compStrength: 30,
-        compAttack: 20,
+        compAttack: 30,
         compRelease: 200,
         compKnee: 6,
         compMakeup: 0,
         
         // Multiband
         mbStrengthLow: 20,
-        mbStrengthHigh: 40,
+        mbStrengthHigh: 15,
         mbAttackLow: 50,
-        mbAttackHigh: 20,
-        mbCrossoverLow: 200,
-        mbCrossoverHigh: 5000,
+        mbAttackHigh: 30,
+        mbCrossoverLow: 250,
+        mbCrossoverHigh: 3000,
         
-        // Limiter & Brickwall
-        limStrength: 50,
-        limAttack: 2,
+        // Limiter
+        limStrength: 40,
+        limAttack: 1,
         limRelease: 100,
-        limCeiling: -0.1,
+        limCeiling: -1.0,
 
         // Legacy/Direct
-        inputDrive: 20,
-        stereoWidth: 60,
+        inputDrive: 0,
+        stereoWidth: 0,
 
-        // Bypasses (Power status)
+        // Bypasses (Power status) - START ALL OFF
         gateBypass: true,
         eqBypass: true,
         levelerBypass: true,
@@ -87,7 +88,12 @@ export default function Mastering() {
         limBypass: true,
     });
 
-    const { history, addToHistory, getProjectById, currentModule, setCurrentModule } = useMasteringStore();
+    const { history, currentModule, setCurrentModule, addToHistory, getProjectById, cleanupOldHistory } = useMasteringStore();
+    const creatorTracks = useCreatorStore((state) => state.tracks);
+
+    useEffect(() => {
+        cleanupOldHistory();
+    }, []);
     const audioRef = useRef<HTMLAudioElement | null>(null);
 
     // Load project from history if requested or recover last session
@@ -101,13 +107,14 @@ export default function Mastering() {
                     setMetadataDNA(project.dna);
                     setSettings(project.settings);
                     
-                    const blob = await AudioStorage.getAudio(project.id);
+                    const audioId = project.audioId || project.id;
+                    const blob = await AudioStorage.getAudio(audioId);
                     if (blob) {
                         setAudioUrl(URL.createObjectURL(blob));
-                        setCurrentAudioId(project.id);
+                        setCurrentAudioId(audioId);
                     } else if (project.audioUrl && !project.audioUrl.startsWith('blob:')) {
                         setAudioUrl(project.audioUrl);
-                        setCurrentAudioId(project.id);
+                        setCurrentAudioId(audioId);
                     }
                     return;
                 }
@@ -124,18 +131,14 @@ export default function Mastering() {
                 if (blob) {
                     setAudioUrl(URL.createObjectURL(blob));
                     setCurrentAudioId(audioId);
+                } else if (project.audioUrl && !project.audioUrl.startsWith('blob:')) {
+                    setAudioUrl(project.audioUrl);
+                    setCurrentAudioId(audioId);
                 }
             }
         };
         loadProject();
     }, [loadId, getProjectById, history, audioUrl]);
-
-    // List of songs currently available for mastering
-    const songList = [
-        { name: 'Proyecto 1 - Final', dna: 'PROJ-001-A' },
-        { name: 'Grabación de Voz - Raw', dna: 'PROJ-002-B' },
-        { name: 'Mix Down Instrumental', dna: 'PROJ-003-C' }
-    ];
 
     // Mocking user plan for export logic
     const userPlan = 'Básico';
@@ -259,34 +262,57 @@ export default function Mastering() {
                     }
                 }
 
-                // Sequential movement for visual impact
-                // GATE
-                setCurrentModule('gate');
-                setSettings(prev => ({ ...prev, gateBypass: false }));
-                await new Promise(r => setTimeout(r, 1000));
-
-                // EQ
-                setCurrentModule('eq');
-                setSettings(prev => ({ ...prev, eqBypass: false, eqHighpass: targetSettings.eqHighpass, eqTilt: targetSettings.eqTilt }));
-                await new Promise(r => setTimeout(r, 1000));
+                // --- SEQUENTIAL AI NAVIGATION ---
+                // The user wants to SEE the parameters as the AI applies them.
                 
-                // LEVELER
+                // 1. GATE
+                setAiStatus('CONFIGURANDO GATE...');
+                setCurrentModule('gate');
+                await new Promise(r => setTimeout(r, 1200));
+                setSettings(prev => ({ ...prev, gateBypass: false, gateThreshold: targetSettings.gateThreshold }));
+                await new Promise(r => setTimeout(r, 800));
+
+                // 2. EQ
+                setAiStatus('CORRIGIENDO BALANCE ESPECTRAL (EQ)...');
+                setCurrentModule('eq');
+                await new Promise(r => setTimeout(r, 1200));
+                setSettings(prev => ({ ...prev, eqBypass: false, eqHighpass: targetSettings.eqHighpass, eqTilt: targetSettings.eqTilt }));
+                await new Promise(r => setTimeout(r, 800));
+                
+                // 3. LEVELER
+                setAiStatus('CALIBRANDO GAIN STAGING (LEVELER)...');
                 setCurrentModule('leveler');
+                await new Promise(r => setTimeout(r, 1200));
                 setSettings(prev => ({ ...prev, levelerBypass: false, levelerTarget: targetSettings.levelerTarget }));
-                await new Promise(r => setTimeout(r, 1000));
+                await new Promise(r => setTimeout(r, 800));
 
-                // COMPRESSOR
+                // 4. COMPRESSOR
+                setAiStatus('ESTABILIZANDO DINÁMICA DE SEÑAL...');
                 setCurrentModule('compressor');
+                await new Promise(r => setTimeout(r, 1200));
                 setSettings(prev => ({ ...prev, compBypass: false, compStrength: targetSettings.compStrength }));
-                await new Promise(r => setTimeout(r, 1000));
+                await new Promise(r => setTimeout(r, 800));
 
-                // LIMITER
+                // 5. LIMITER
+                setAiStatus('MAXIMIZANDO VOLUMEN FINAL (LIMITER)...');
                 setCurrentModule('limiter');
+                await new Promise(r => setTimeout(r, 1200));
                 setSettings(prev => ({ ...prev, limBypass: false, limStrength: targetSettings.limStrength, limCeiling: targetSettings.limCeiling }));
                 await new Promise(r => setTimeout(r, 1000));
             }
 
             setAiStatus('MASTERIZACIÓN IA COMPLETADA.');
+            
+            // Save to history with frequency "snapshot" (DNA summary)
+            addToHistory({
+                id: currentAudioId || `master-${Date.now()}`,
+                name: selectedSong,
+                audioUrl: audioUrl,
+                audioId: currentAudioId || undefined,
+                dna: metadataDNA,
+                settings: settings,
+                frequencyData: [settings.eqHighpass, settings.eqTilt, settings.eqSideGain] // Summary of spectral actions
+            });
             setTimeout(() => {
                 setIsAIMastering(false);
                 setAiStatus('');
@@ -413,6 +439,8 @@ export default function Mastering() {
                             <button
                                 key={project.id}
                                 onClick={async () => {
+                                    audioEngine.initContext();
+                                    setIsPlaying(false); // Stop current playback
                                     setSelectedSong(project.name);
                                     setMetadataDNA(project.dna);
                                     setSettings(project.settings);
@@ -421,6 +449,18 @@ export default function Mastering() {
                                     if (blob) {
                                         setAudioUrl(URL.createObjectURL(blob));
                                         setCurrentAudioId(audioId);
+                                        // Auto-play selected track
+                                        setTimeout(() => setIsPlaying(true), 100);
+                                    } else if (project.audioUrl && !project.audioUrl.startsWith('blob:')) {
+                                        setAudioUrl(project.audioUrl);
+                                        setCurrentAudioId(audioId);
+                                        setTimeout(() => setIsPlaying(true), 100);
+                                    } else {
+                                        alert("El archivo de audio original ya no está disponible en la memoria local. Por favor, vuelve a importarlo.");
+                                    }
+                                    
+                                    if (audioRef.current) {
+                                        audioRef.current.currentTime = 0;
                                     }
                                 }}
                                 className={`flex flex-col min-w-[160px] px-4 py-2 rounded-xl transition-all border ${
@@ -434,21 +474,29 @@ export default function Mastering() {
                             </button>
                         ))}
                         {/* Fallback mock list if history is empty */}
-                        {history.length === 0 && songList.map((song) => (
+                        {creatorTracks.map((track) => (
                             <button
-                                key={song.dna}
+                                key={`creator-${track.id}`}
                                 onClick={() => {
-                                    setSelectedSong(song.name);
-                                    setMetadataDNA(song.dna);
+                                    audioEngine.initContext();
+                                    setIsPlaying(false);
+                                    setSelectedSong(track.title);
+                                    setMetadataDNA("AI CREATOR");
+                                    setAudioUrl(track.url);
+                                    setCurrentAudioId(track.id);
+                                    setTimeout(() => setIsPlaying(true), 100);
+                                    if (audioRef.current) {
+                                        audioRef.current.currentTime = 0;
+                                    }
                                 }}
                                 className={`flex flex-col min-w-[160px] px-4 py-2 rounded-xl transition-all border ${
-                                    selectedSong === song.name 
-                                    ? 'bg-cyan-500/10 border-cyan-500/30 text-white shadow-[0_0_15px_rgba(6,182,212,0.1)]' 
+                                    selectedSong === track.title 
+                                    ? 'bg-orange-500/10 border-orange-500/30 text-white shadow-[0_0_15px_rgba(255,107,0,0.1)]' 
                                     : 'bg-white/5 border-transparent text-white/40 hover:bg-white/10'
                                 }`}
                             >
-                                <span className="text-[10px] font-bold truncate">{song.name}</span>
-                                <span className="text-[7px] font-mono opacity-40 uppercase tracking-tighter">DNA: {song.dna}</span>
+                                <span className="text-[10px] font-bold truncate">{track.title}</span>
+                                <span className="text-[7px] font-mono opacity-40 uppercase tracking-tighter">SOURCE: AI CREATOR</span>
                             </button>
                         ))}
                     </div>
@@ -635,14 +683,14 @@ export default function Mastering() {
                             <div className="mt-4 bg-[#303030] rounded-lg border border-[#3A3A3A] p-8 flex justify-around items-center shadow-inner min-h-[180px]">
                                 {currentModule === 'gate' && (
                                     <div className="flex-1 flex gap-8 items-center justify-center">
-                                        <div className="flex flex-col items-center gap-2">
+                                        <div className="flex flex-col items-center gap-3 px-6 py-4 bg-black/20 rounded-2xl border border-white/5 shadow-xl">
                                             <button 
                                                 onClick={() => setSettings({...settings, gateBypass: !settings.gateBypass})}
-                                                className={`w-6 h-6 rounded-full border transition-all ${!settings.gateBypass ? 'bg-cyan-500 border-cyan-400 shadow-[0_0_10px_rgba(6,182,212,0.5)]' : 'bg-black border-white/10'}`}
+                                                className={`w-12 h-6 rounded-full transition-all relative overflow-hidden group ${!settings.gateBypass ? 'bg-cyan-500/80' : 'bg-red-500/20 border border-red-500/30'}`}
                                             >
-                                                <div className={`w-1.5 h-1.5 rounded-full mx-auto ${!settings.gateBypass ? 'bg-white animate-pulse' : 'bg-white/10'}`} />
+                                                <div className={`absolute top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-white transition-all shadow-md ${!settings.gateBypass ? 'left-7' : 'left-1'}`} />
                                             </button>
-                                            <span className="text-[7px] text-white/30 font-black uppercase tracking-tighter">Power</span>
+                                            <span className="text-[8px] text-white/40 font-black uppercase tracking-widest leading-none">Power</span>
                                         </div>
                                         <MasteringKnob label="THRESHOLD" value={settings.gateThreshold} onChange={(v) => setSettings({...settings, gateThreshold: v})} size="lg" />
                                         <MasteringKnob label="RELEASE" value={settings.gateRelease} onChange={(v) => setSettings({...settings, gateRelease: v})} size="lg" />
@@ -650,31 +698,31 @@ export default function Mastering() {
                                 )}
                                 {currentModule === 'eq' && (
                                     <div className="flex-1 flex gap-8 items-center justify-center">
-                                        <div className="flex flex-col items-center gap-2">
+                                        <div className="flex flex-col items-center gap-3 px-6 py-4 bg-black/20 rounded-2xl border border-white/5 shadow-xl">
                                             <button 
                                                 onClick={() => setSettings({...settings, eqBypass: !settings.eqBypass})}
-                                                className={`w-6 h-6 rounded-full border transition-all ${!settings.eqBypass ? 'bg-cyan-500 border-cyan-400 shadow-[0_0_10px_rgba(6,182,212,0.5)]' : 'bg-black border-white/10'}`}
+                                                className={`w-12 h-6 rounded-full transition-all relative overflow-hidden group ${!settings.eqBypass ? 'bg-cyan-500/80' : 'bg-red-500/20 border border-red-500/30'}`}
                                             >
-                                                <div className={`w-1.5 h-1.5 rounded-full mx-auto ${!settings.eqBypass ? 'bg-white animate-pulse' : 'bg-white/10'}`} />
+                                                <div className={`absolute top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-white transition-all shadow-md ${!settings.eqBypass ? 'left-7' : 'left-1'}`} />
                                             </button>
-                                            <span className="text-[7px] text-white/30 font-black uppercase tracking-tighter">Power</span>
+                                            <span className="text-[8px] text-white/40 font-black uppercase tracking-widest leading-none">Power</span>
                                         </div>
                                         <MasteringKnob label="HIGHPASS" value={settings.eqHighpass} onChange={(v) => setSettings({...settings, eqHighpass: v})} size="lg" />
                                         <MasteringKnob label="TILT" value={settings.eqTilt} onChange={(v) => setSettings({...settings, eqTilt: v})} size="lg" />
                                         <MasteringKnob label="S-GAIN" value={settings.eqSideGain} onChange={(v) => setSettings({...settings, eqSideGain: v})} size="lg" />
-                                        <MasteringKnob label="SIDE FREQ" value={settings.eqSideFreq} onChange={(v) => setSettings({...settings, eqSideFreq: v})} size="lg" />
+                                        <MasteringKnob label="S-FREQ" value={settings.eqSideFreq} onChange={(v) => setSettings({...settings, eqSideFreq: v})} size="lg" />
                                     </div>
                                 )}
                                 {currentModule === 'leveler' && (
                                     <div className="flex-1 flex gap-8 items-center justify-center">
-                                        <div className="flex flex-col items-center gap-2">
+                                        <div className="flex flex-col items-center gap-3 px-6 py-4 bg-black/20 rounded-2xl border border-white/5 shadow-xl">
                                             <button 
                                                 onClick={() => setSettings({...settings, levelerBypass: !settings.levelerBypass})}
-                                                className={`w-6 h-6 rounded-full border transition-all ${!settings.levelerBypass ? 'bg-cyan-500 border-cyan-400 shadow-[0_0_10px_rgba(6,182,212,0.5)]' : 'bg-black border-white/10'}`}
+                                                className={`w-12 h-6 rounded-full transition-all relative overflow-hidden group ${!settings.levelerBypass ? 'bg-cyan-500/80' : 'bg-red-500/20 border border-red-500/30'}`}
                                             >
-                                                <div className={`w-1.5 h-1.5 rounded-full mx-auto ${!settings.levelerBypass ? 'bg-white animate-pulse' : 'bg-white/10'}`} />
+                                                <div className={`absolute top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-white transition-all shadow-md ${!settings.levelerBypass ? 'left-7' : 'left-1'}`} />
                                             </button>
-                                            <span className="text-[7px] text-white/30 font-black uppercase tracking-tighter">Power</span>
+                                            <span className="text-[8px] text-white/40 font-black uppercase tracking-widest leading-none">Power</span>
                                         </div>
                                         <MasteringKnob label="TARGET" value={settings.levelerTarget} onChange={(v) => setSettings({...settings, levelerTarget: v})} size="lg" />
                                         <MasteringKnob label="BRAKE" value={settings.levelerBrake} onChange={(v) => setSettings({...settings, levelerBrake: v})} size="lg" />
@@ -684,14 +732,14 @@ export default function Mastering() {
                                 )}
                                 {currentModule === 'compressor' && (
                                     <div className="flex-1 flex gap-8 items-center justify-center">
-                                        <div className="flex flex-col items-center gap-2">
+                                        <div className="flex flex-col items-center gap-3 px-6 py-4 bg-black/20 rounded-2xl border border-white/5 shadow-xl">
                                             <button 
                                                 onClick={() => setSettings({...settings, compBypass: !settings.compBypass})}
-                                                className={`w-6 h-6 rounded-full border transition-all ${!settings.compBypass ? 'bg-cyan-500 border-cyan-400 shadow-[0_0_10px_rgba(6,182,212,0.5)]' : 'bg-black border-white/10'}`}
+                                                className={`w-12 h-6 rounded-full transition-all relative overflow-hidden group ${!settings.compBypass ? 'bg-cyan-500/80' : 'bg-red-500/20 border border-red-500/30'}`}
                                             >
-                                                <div className={`w-1.5 h-1.5 rounded-full mx-auto ${!settings.compBypass ? 'bg-white animate-pulse' : 'bg-white/10'}`} />
+                                                <div className={`absolute top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-white transition-all shadow-md ${!settings.compBypass ? 'left-7' : 'left-1'}`} />
                                             </button>
-                                            <span className="text-[7px] text-white/30 font-black uppercase tracking-tighter">Power</span>
+                                            <span className="text-[8px] text-white/40 font-black uppercase tracking-widest leading-none">Power</span>
                                         </div>
                                         <MasteringKnob label="STRENGTH" value={settings.compStrength} onChange={(v) => setSettings({...settings, compStrength: v})} size="lg" />
                                         <MasteringKnob label="ATTACK" value={settings.compAttack} onChange={(v) => setSettings({...settings, compAttack: v})} size="lg" />
@@ -701,14 +749,14 @@ export default function Mastering() {
                                 )}
                                 {currentModule === 'multiband' && (
                                     <div className="flex-1 flex gap-8 items-center justify-center">
-                                        <div className="flex flex-col items-center gap-2 mr-4">
+                                        <div className="flex flex-col items-center gap-3 px-6 py-4 bg-black/20 rounded-2xl border border-white/5 shadow-xl mr-4">
                                             <button 
                                                 onClick={() => setSettings({...settings, mbBypass: !settings.mbBypass})}
-                                                className={`w-6 h-6 rounded-full border transition-all ${!settings.mbBypass ? 'bg-cyan-500 border-cyan-400 shadow-[0_0_10px_rgba(6,182,212,0.5)]' : 'bg-black border-white/10'}`}
+                                                className={`w-12 h-6 rounded-full transition-all relative overflow-hidden group ${!settings.mbBypass ? 'bg-cyan-500/80' : 'bg-red-500/20 border border-red-500/30'}`}
                                             >
-                                                <div className={`w-1.5 h-1.5 rounded-full mx-auto ${!settings.mbBypass ? 'bg-white animate-pulse' : 'bg-white/10'}`} />
+                                                <div className={`absolute top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-white transition-all shadow-md ${!settings.mbBypass ? 'left-7' : 'left-1'}`} />
                                             </button>
-                                            <span className="text-[7px] text-white/30 font-black uppercase tracking-tighter">Power</span>
+                                            <span className="text-[8px] text-white/40 font-black uppercase tracking-widest leading-none">Power</span>
                                         </div>
                                         <div className="flex flex-col items-center gap-4 border-r border-white/5 pr-8">
                                             <span className="text-[8px] text-white/30 uppercase font-black tracking-widest">Low Bands</span>
@@ -728,14 +776,14 @@ export default function Mastering() {
                                 )}
                                 {currentModule === 'limiter' && (
                                     <div className="flex-1 flex gap-8 items-center justify-center">
-                                        <div className="flex flex-col items-center gap-2">
+                                        <div className="flex flex-col items-center gap-3 px-6 py-4 bg-black/20 rounded-2xl border border-white/5 shadow-xl">
                                             <button 
                                                 onClick={() => setSettings({...settings, limBypass: !settings.limBypass})}
-                                                className={`w-6 h-6 rounded-full border transition-all ${!settings.limBypass ? 'bg-cyan-500 border-cyan-400 shadow-[0_0_10px_rgba(6,182,212,0.5)]' : 'bg-black border-white/10'}`}
+                                                className={`w-12 h-6 rounded-full transition-all relative overflow-hidden group ${!settings.limBypass ? 'bg-cyan-500/80' : 'bg-red-500/20 border border-red-500/30'}`}
                                             >
-                                                <div className={`w-1.5 h-1.5 rounded-full mx-auto ${!settings.limBypass ? 'bg-white animate-pulse' : 'bg-white/10'}`} />
+                                                <div className={`absolute top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-white transition-all shadow-md ${!settings.limBypass ? 'left-7' : 'left-1'}`} />
                                             </button>
-                                            <span className="text-[7px] text-white/30 font-black uppercase tracking-tighter">Power</span>
+                                            <span className="text-[8px] text-white/40 font-black uppercase tracking-widest leading-none">Power</span>
                                         </div>
                                         <MasteringKnob label="STRENGTH" value={settings.limStrength} onChange={(v) => setSettings({...settings, limStrength: v})} size="lg" />
                                         <MasteringKnob label="ATTACK" value={settings.limAttack} onChange={(v) => setSettings({...settings, limAttack: v})} size="lg" />

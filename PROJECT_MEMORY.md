@@ -35,6 +35,12 @@ Inspirado en Suno AI y DA GRABA:
 ### 4. Admin Rack (`/admin`)
 -   Un panel de control "estilo nave espacial" para Danny.
 -   Gestión de activos, entrenamiento de nuevos modelos IA (Kie.ai) y monitoreo financiero.
+-   **AITrainingModule.tsx**: Permite al usuario subir archivos JSON de entrenamiento para enseñar a la IA la "matemática del mastering" basada en géneros (DGB_BACHATA, etc.).
+
+### 5. Mastering Engine (`/mastering`)
+-   **`WebAudioEngine.ts`**: Un motor modular que implementa Gate, EQ, Leveler, Compressor y Limiter. Soporta bypass por módulo y procesamiento Mid-Side.
+-   **`MasteringKnob.tsx`**: Controles de precisión con soporte para arrastre vertical (mouse drag) y animaciones de morphing cuando la IA toma el control.
+-   **`useMasteringStore.ts`**: Persistencia de historial de proyectos y configuraciones detalladas de masterización.
 
 ---
 
@@ -53,15 +59,16 @@ Inspirado en Suno AI y DA GRABA:
 4.  **Fase 4**: Refinamiento "Logic Pro" del Piano Roll y Mixer.
 5.  **Fase 5**: Transformación a **Consola Completa**. Los faders ganaron analísis espectral independiente y slots de FX digitales. La navegación se unificó en el Transport Bar para alternar entre MIX y EDIT.
 6.  **Fase 6**: **Localización & Integración del Player**. Se implementó `next-intl` para soportar 7 idiomas (EN, ES, PT, FR, DE, IT, JA). Se integró un player persistente (`GlobalFooterPlayer`) y un sistema de gestión de playlists (`AddToPlaylistModal`) con persistencia en base de datos (Prisma). El sistema ahora permite el cambio dinámico de idioma desde el Sidebar.
-7.  **Fase 7 (Actual)**: **Rebranding & Integración Canva**. Se renombró el proyecto completamente a "DA GRABA". Se eliminaron las ofertas de API públicas del sistema para enfocarse en la aplicación central. Se integró la API de **Canva Connect** (`/covers`) y se creó la estructura inicial para una aplicación nativa de Canva (`canva-app/`), permitiendo diseñar portadas para las canciones generadas. La configuración de `next-intl` se actualizó para soportar routing asíncrono en Next.js 15.
+7.  **Fase 7**: **Rebranding & Integración Canva**. Se renombró el proyecto completamente a "DA GRABA". Se integró la API de **Canva Connect** para diseñar portadas. La configuración de `next-intl` se actualizó para soportar routing asíncrono en Next.js 15.
+8.  **Fase 8 (Actual)**: **Ingeniería de Mastering & AI Workflow**. Se creó una suite de masterización completa. Los controles (Knobs) ahora son interactivos mediante arrastre de ratón. El "Ingeniero John" recibió una actualización lógica: ahora navega visualmente por los módulos (Gate, EQ, etc.) mientras procesa, suspende la música durante el análisis, y reanuda con un aviso de seguridad de volumen al finalizar. Se implementó persistencia total de audio en el navegador usando IndexedDB para el historial de mastering.
 
 ---
 
 ## 🚀 Próximos Pasos
--   **Efectos Activos**: Implementar la lógica real para los botones EQ/COMP que abran interfaces de procesamiento.
+-   **Efectos Activos**: Extender la lógica de plugins a los canales individuales del Mixer (`/studio`).
 -   **Clonación en Tiempo Real**: Optimizar el pipeline de ElevenLabs para menor latencia.
 -   **Stem Separation Directa**: Botón en la consola para separar tracks de audio subidos por el usuario.
--   **Dashboard Localized**: Continuar con la localización de las páginas de Dashboard y Studio.
+-   **Exportación de Master**: Implementar el renderizado offline del audio procesado para descarga final.
 
 ---
 **Documento creado para Danny Garcia - DA GRABA STUDIO V1 - Febrero 2026**
