@@ -218,7 +218,7 @@ export default function Crear() {
                 const newTrack = {
                     id: taskId,
                     title: title || 'Nueva Creación IA',
-                    style: selectedTool,
+                    style: [selectedGenre, selectedTool !== 'Create Anything' ? selectedTool : ''].filter(Boolean).join(', ') || selectedTool,
                     duration: 'Procesando...',
                     image: '/logo_circular.png',
                     tags: ['IA', isInstrumental ? 'Instrumental' : 'Vocal', 'Procesando'],
@@ -350,8 +350,8 @@ export default function Crear() {
                                 key={genre}
                                 onClick={() => setSelectedGenre(selectedGenre === genre ? null : genre)}
                                 className={`whitespace-nowrap px-3 py-1.5 border rounded-full text-[10px] font-bold tracking-wider transition-all ${selectedGenre === genre
-                                        ? 'bg-orange-600/20 border-orange-500/60 text-orange-400 shadow-[0_0_8px_rgba(255,107,0,0.3)]'
-                                        : 'bg-[#111] hover:bg-[#222] border-[#222] hover:border-[#333] text-[#888] hover:text-white'
+                                    ? 'bg-orange-600/20 border-orange-500/60 text-orange-400 shadow-[0_0_8px_rgba(255,107,0,0.3)]'
+                                    : 'bg-[#111] hover:bg-[#222] border-[#222] hover:border-[#333] text-[#888] hover:text-white'
                                     }`}
                             >
                                 {genre}
@@ -527,7 +527,7 @@ export default function Crear() {
                                         <h4 className="text-lg font-bold text-white truncate">{track.title}</h4>
                                         <span className="text-[10px] text-orange-500 font-mono tracking-tighter">{track.duration}</span>
                                     </div>
-                                    <p className="text-sm text-[#666] mb-3 truncate italic">{track.style}</p>
+                                    <p className="text-sm text-[#666] mb-3 truncate italic">{track.style?.split(',').slice(0, 2).join(', ')}</p>
                                     <div className="flex items-center gap-4 mt-2">
                                         <div className="flex items-center gap-1.5 text-[10px] text-[#444] font-bold">
                                             <Eye size={12} /> {track.views}
