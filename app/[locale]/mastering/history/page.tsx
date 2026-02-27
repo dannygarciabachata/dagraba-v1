@@ -29,11 +29,11 @@ export default function MasteringHistory() {
             const project = history.find(p => p.id === playingId);
             if (project) {
                 if (isMastered) {
-                    audioEngine.updateEQ('master-track', project.settings.eqHighpass, project.settings.eqTilt, false);
+                    audioEngine.updateEQ('master-track', project.settings.eqHighpass, project.settings.eqTilt, 50, 50, false);
                     audioEngine.updateCompressor('master-track', project.settings.compStrength, project.settings.compAttack, project.settings.compRelease, false);
                 } else {
                     // Neutral settings for "MIX ORIGINAL"
-                    audioEngine.updateEQ('master-track', 0, 0, true);
+                    audioEngine.updateEQ('master-track', 0, 0, 50, 50, true);
                     audioEngine.updateCompressor('master-track', 0, 0.03, 0.1, true);
                 }
             }
@@ -67,7 +67,7 @@ export default function MasteringHistory() {
             const url = URL.createObjectURL(blob);
             setPreviewUrl(url);
             setPlayingId(project.id);
-            
+
             // Wait for metadata/load to call play
             const onCanPlay = async () => {
                 try {
@@ -97,16 +97,16 @@ export default function MasteringHistory() {
 
     return (
         <div className="flex flex-col w-full h-full bg-[#050505] text-white p-12 overflow-y-auto custom-scrollbar">
-            <audio 
-                ref={audioRef} 
-                src={previewUrl || undefined} 
+            <audio
+                ref={audioRef}
+                src={previewUrl || undefined}
                 onEnded={() => setPlayingId(null)}
                 className="hidden"
             />
             {/* Header */}
             <div className="flex items-center justify-between mb-12">
                 <div className="flex items-center gap-6">
-                    <Link 
+                    <Link
                         href={`/${locale}/mastering`}
                         className="w-12 h-12 rounded-full bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 transition-all group"
                     >
@@ -117,7 +117,7 @@ export default function MasteringHistory() {
                         <p className="text-white/40 text-sm font-mono mt-1 tracking-widest uppercase">Gestiona tus sesiones y revisiones pasadas</p>
                     </div>
                 </div>
-                
+
                 <div className="flex items-center gap-4 bg-white/5 px-6 py-3 rounded-2xl border border-white/10">
                     <div className="flex flex-col items-end">
                         <span className="text-[10px] text-white/40 uppercase font-black">Proyectos Guardados</span>
@@ -133,7 +133,7 @@ export default function MasteringHistory() {
                     </div>
                     <h2 className="text-xl font-bold text-white/60">No hay proyectos en el historial</h2>
                     <p className="text-white/30 text-sm mt-2">Tus sesiones de mastering aparecerán aquí cuando las guardes o exportes.</p>
-                    <Link 
+                    <Link
                         href={`/${locale}/mastering`}
                         className="mt-8 px-8 py-3 bg-cyan-500 text-black font-black uppercase tracking-widest text-xs rounded-full hover:scale-105 transition-all shadow-[0_0_30px_rgba(6,182,212,0.3)]"
                     >
@@ -143,20 +143,19 @@ export default function MasteringHistory() {
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {history.map((project) => (
-                        <div 
+                        <div
                             key={project.id}
                             className="group relative bg-[#111] border border-white/5 rounded-3xl p-6 hover:border-cyan-500/30 transition-all hover:shadow-[0_20px_40px_rgba(0,0,0,0.4)]"
                         >
                             {/* Card Header: Play & Info */}
                             <div className="flex items-start justify-between mb-6">
                                 <div className="flex items-center gap-4">
-                                    <button 
+                                    <button
                                         onClick={() => handleTogglePlay(project)}
-                                        className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all shadow-xl ${
-                                            playingId === project.id 
-                                            ? 'bg-orange-600 text-white animate-pulse ring-2 ring-orange-500/50' 
-                                            : 'bg-gradient-to-br from-neutral-800 to-black border border-white/10 text-cyan-400 hover:scale-105 active:scale-95'
-                                        }`}
+                                        className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all shadow-xl ${playingId === project.id
+                                                ? 'bg-orange-600 text-white animate-pulse ring-2 ring-orange-500/50'
+                                                : 'bg-gradient-to-br from-neutral-800 to-black border border-white/10 text-cyan-400 hover:scale-105 active:scale-95'
+                                            }`}
                                     >
                                         {playingId === project.id ? <Pause size={24} /> : <Play size={24} className="ml-1" />}
                                     </button>
@@ -167,8 +166,8 @@ export default function MasteringHistory() {
                                         </div>
                                     </div>
                                 </div>
-                                
-                                <button 
+
+                                <button
                                     onClick={(e) => handleDelete(project.id, e)}
                                     className="p-2 text-white/20 hover:text-red-500 transition-colors"
                                 >
@@ -180,23 +179,21 @@ export default function MasteringHistory() {
                             <div className="mb-6">
                                 {playingId === project.id ? (
                                     <div className="bg-black/40 p-1.5 rounded-2xl border border-white/10 flex items-center gap-1">
-                                        <button 
+                                        <button
                                             onClick={() => setIsMastered(true)}
-                                            className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-xl text-[10px] font-black transition-all ${
-                                                isMastered 
-                                                ? 'bg-cyan-500 text-black shadow-[0_0_20px_rgba(6,182,212,0.4)]' 
-                                                : 'text-white/40 hover:bg-white/5'
-                                            }`}
+                                            className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-xl text-[10px] font-black transition-all ${isMastered
+                                                    ? 'bg-cyan-500 text-black shadow-[0_0_20px_rgba(6,182,212,0.4)]'
+                                                    : 'text-white/40 hover:bg-white/5'
+                                                }`}
                                         >
                                             <Activity size={12} /> MASTERADO
                                         </button>
-                                        <button 
+                                        <button
                                             onClick={() => setIsMastered(false)}
-                                            className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-xl text-[10px] font-black transition-all ${
-                                                !isMastered 
-                                                ? 'bg-orange-500 text-white shadow-[0_0_20px_rgba(249,115,22,0.4)]' 
-                                                : 'text-white/40 hover:bg-white/5'
-                                            }`}
+                                            className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-xl text-[10px] font-black transition-all ${!isMastered
+                                                    ? 'bg-orange-500 text-white shadow-[0_0_20px_rgba(249,115,22,0.4)]'
+                                                    : 'text-white/40 hover:bg-white/5'
+                                                }`}
                                         >
                                             <Music size={12} /> MIX ORIGINAL
                                         </button>
@@ -217,7 +214,7 @@ export default function MasteringHistory() {
                                 </div>
                             </div>
 
-                            <button 
+                            <button
                                 onClick={() => {
                                     router.push(`/${locale}/mastering?load=${project.id}`);
                                 }}

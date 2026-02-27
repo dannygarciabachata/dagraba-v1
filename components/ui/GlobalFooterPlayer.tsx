@@ -15,15 +15,35 @@ export function GlobalFooterPlayer() {
     const [volume, setVolume] = useState(0.8);
 
     useEffect(() => {
-        if (currentPreviewTrack && currentPreviewTrack.url && audioRef.current) {
-            audioRef.current.src = currentPreviewTrack.url;
-            audioRef.current.play().catch(err => console.error("Playback error:", err));
+        const audio = audioRef.current;
+        if (!audio) return;
+
+        if (currentPreviewTrack) {
+            const src = currentPreviewTrack.streamAudioUrl || currentPreviewTrack.url || '';
+            if (!src) {
+                // Track not ready yet (still processing)
+                audio.pause();
+                setIsPlaying(false);
+                return;
+            }
+            audio.src = src;
+            audio.load();
+            audio.volume = volume;
+            audio.play().catch(err => {
+                // Autoplay blocked or URL problem
+                console.warn('[GlobalPlayer] Playback failed:', err);
+                setIsPlaying(false);
+            });
             setIsPlaying(true);
-        } else if (audioRef.current) {
-            audioRef.current.pause();
+        } else {
+            audio.pause();
+            audio.src = '';
             setIsPlaying(false);
+            setProgress(0);
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [currentPreviewTrack]);
+
 
     const togglePlay = () => {
         if (!audioRef.current) return;

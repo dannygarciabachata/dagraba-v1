@@ -7,10 +7,18 @@ import { useDAWStore } from '@/store/useDAWStore';
 interface SpectrumAnalyzerProps {
     analyzer?: AnalyserNode; // Optional: If provided, uses real audio data
     naked?: boolean; // If true, removes background and border
+    isPlaying?: boolean; // Optional override
 }
 
-export function SpectrumAnalyzer({ analyzer, naked }: SpectrumAnalyzerProps) {
-    const isPlaying = useDAWStore((state) => state.isPlaying);
+export function SpectrumAnalyzer({ analyzer, naked, isPlaying }: SpectrumAnalyzerProps) {
+    const dawIsPlaying = useDAWStore((state) => state.isPlaying);
+    const actualIsPlaying = isPlaying !== undefined ? isPlaying : dawIsPlaying;
+    
+    const isPlayingRef = useRef(actualIsPlaying);
+    useEffect(() => {
+        isPlayingRef.current = actualIsPlaying;
+    }, [actualIsPlaying]);
+
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const requestRef = useRef<number>(0);
 
@@ -51,7 +59,7 @@ export function SpectrumAnalyzer({ analyzer, naked }: SpectrumAnalyzerProps) {
         const renderFrame = () => {
             requestRef.current = requestAnimationFrame(renderFrame);
 
-            if (!isPlaying) {
+            if (!isPlayingRef.current) {
                 // Dim the display when not playing
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
                 // Slowly decay any existing peaks

@@ -12,7 +12,9 @@ export interface CreatorTrack {
     views: string;
     likes: number;
     url: string;
+    streamAudioUrl?: string;
 }
+
 
 const MOCK_TRACKS: CreatorTrack[] = [
     {

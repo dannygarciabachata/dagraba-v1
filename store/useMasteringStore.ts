@@ -85,9 +85,13 @@ export const useMasteringStore = create<MasteringState>()(
                     ...project,
                     date: new Date().toISOString(),
                 };
-                set((state) => ({
-                    history: [newProject, ...state.history],
-                }));
+                set((state) => {
+                    // Remove any existing entry with the same ID to prevent duplication
+                    const filteredHistory = state.history.filter(p => p.id !== project.id);
+                    return {
+                        history: [newProject, ...filteredHistory],
+                    };
+                });
             },
             deleteFromHistory: (id) => {
                 set((state) => ({

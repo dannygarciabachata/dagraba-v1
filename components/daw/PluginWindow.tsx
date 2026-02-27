@@ -23,14 +23,39 @@ export function PluginWindow({ trackId, insert, onClose }: PluginWindowProps) {
 
     // Sync with Audio Engine
     useEffect(() => {
-        if (insert.bypass) return;
+        if (insert.bypass && insert.pluginId !== 'limiter') return;
 
         if (insert.pluginId === 'eq') {
-            audioEngine.updateEQ(trackId, insert.settings.eqHighpass, insert.settings.eqTilt, false);
+            audioEngine.updateEQ(
+                trackId,
+                insert.settings.eqHighpass ?? 50,
+                insert.settings.eqTilt ?? 50,
+                insert.settings.eqSideGain ?? 50,
+                insert.settings.eqSideFreq ?? 50,
+                insert.bypass
+            );
         } else if (insert.pluginId === 'compressor') {
-            audioEngine.updateCompressor(trackId, insert.settings.compStrength, insert.settings.compAttack, insert.settings.compRelease, false);
+            audioEngine.updateCompressor(
+                trackId,
+                insert.settings.compStrength,
+                insert.settings.compAttack,
+                insert.settings.compRelease,
+                insert.bypass
+            );
+        } else if (insert.pluginId === 'limiter') {
+            // Load WASM worklet on first open, then route through it
+            audioEngine.loadWasmLimiter().then((loaded) => {
+                audioEngine.updateLimiter(
+                    trackId,
+                    insert.settings.limStrength ?? 50,
+                    insert.settings.limCeiling ?? -0.3,
+                    insert.bypass,
+                    loaded  // use WASM if it loaded successfully
+                );
+            });
         }
     }, [trackId, insert.settings, insert.bypass, insert.pluginId]);
+
 
     const renderModule = () => {
         const props = {
@@ -54,7 +79,7 @@ export function PluginWindow({ trackId, insert, onClose }: PluginWindowProps) {
             {/* Header / Title Bar */}
             <div className="flex items-center justify-between px-4 py-2 bg-[#1A1A1A] rounded-t-lg border-b border-white/5">
                 <div className="flex items-center gap-3">
-                    <button 
+                    <button
                         onClick={() => toggleInsertBypass(trackId, insert.id)}
                         className={`w-6 h-6 rounded-full flex items-center justify-center transition-all ${insert.bypass ? 'bg-zinc-800 text-zinc-600' : 'bg-cyan-500 text-black shadow-[0_0_10px_rgba(6,182,212,0.5)]'}`}
                     >
@@ -64,8 +89,8 @@ export function PluginWindow({ trackId, insert, onClose }: PluginWindowProps) {
                         DA GRABA <span className="text-cyan-400">{insert.pluginId === 'multiband' ? 'M-BAND' : insert.pluginId}</span>
                     </span>
                 </div>
-                
-                <button 
+
+                <button
                     onClick={onClose}
                     className="p-1 hover:bg-white/5 rounded-md text-white/20 hover:text-white transition-colors"
                 >

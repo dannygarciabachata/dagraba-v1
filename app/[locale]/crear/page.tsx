@@ -48,6 +48,7 @@ export default function Crear() {
     const [lyricsIntensity, setLyricsIntensity] = useState(85);
     const [selectedTool, setSelectedTool] = useState('Create Anything');
     const [showToolsMenu, setShowToolsMenu] = useState(false);
+    const [selectedGenre, setSelectedGenre] = useState<string | null>(null);
 
     const generateAILyrics = () => {
         if (!prompt) return;
@@ -71,7 +72,7 @@ export default function Crear() {
         try {
             const isVideo = editMode === 'video';
             const endpoint = isVideo ? '/api/ai/generate/video' : '/api/ai/edit';
-            
+
             const payload: any = {
                 action: editMode,
             };
@@ -177,29 +178,30 @@ export default function Crear() {
             let finalStyle = '';
             let finalCustomMode = false;
 
+            const genreTag = selectedGenre || '';
             if (isInstrumental) {
                 finalCustomMode = true;
                 finalPrompt = "";
-                finalStyle = `${prompt}, ${selectedTool}${promptIntensity > 50 ? ', intense' : ''}`;
+                finalStyle = [prompt, genreTag, selectedTool !== 'Create Anything' ? selectedTool : '', promptIntensity > 50 ? 'intense' : ''].filter(Boolean).join(', ');
             } else if (lyrics.trim().length > 0) {
                 finalCustomMode = true;
                 finalPrompt = lyrics;
-                finalStyle = `${prompt}, ${selectedTool}${promptIntensity > 50 ? ', intense' : ''}`;
+                finalStyle = [prompt, genreTag, selectedTool !== 'Create Anything' ? selectedTool : '', promptIntensity > 50 ? 'intense' : ''].filter(Boolean).join(', ');
             } else {
                 finalCustomMode = false;
                 // For customMode: false, prompt is a single text description
-                finalPrompt = `${prompt} en el estilo de ${selectedTool}${promptIntensity > 50 ? ' con mucha intensidad' : ''}`;
+                finalPrompt = [prompt, genreTag ? `en estilo ${genreTag}` : '', selectedTool !== 'Create Anything' ? `al estilo de ${selectedTool}` : '', promptIntensity > 50 ? 'con mucha intensidad' : ''].filter(Boolean).join(' ');
             }
 
             const payload = {
-                provider: 'kie', 
+                provider: 'kie',
                 prompt: finalPrompt,
                 title: title || undefined,
                 instrumental: isInstrumental,
                 customMode: finalCustomMode,
                 model: 'V4_5',
                 style: finalCustomMode ? finalStyle : undefined,
-                callbackUrl: `${window.location.origin}/api/ai/webhook` 
+                callbackUrl: `${window.location.origin}/api/ai/webhook`
             };
 
             const response = await fetch('/api/ai/generate', {
@@ -346,8 +348,11 @@ export default function Crear() {
                         {GENRES.map(genre => (
                             <button
                                 key={genre}
-                                onClick={() => setPrompt(prev => prev ? `${prev}, ${genre}` : genre)}
-                                className="whitespace-nowrap px-3 py-1.5 bg-[#111] hover:bg-[#222] border border-[#222] hover:border-[#333] rounded-full text-[10px] font-bold tracking-wider text-[#888] hover:text-white transition-all"
+                                onClick={() => setSelectedGenre(selectedGenre === genre ? null : genre)}
+                                className={`whitespace-nowrap px-3 py-1.5 border rounded-full text-[10px] font-bold tracking-wider transition-all ${selectedGenre === genre
+                                        ? 'bg-orange-600/20 border-orange-500/60 text-orange-400 shadow-[0_0_8px_rgba(255,107,0,0.3)]'
+                                        : 'bg-[#111] hover:bg-[#222] border-[#222] hover:border-[#333] text-[#888] hover:text-white'
+                                    }`}
                             >
                                 {genre}
                             </button>
@@ -506,7 +511,7 @@ export default function Crear() {
                                     }`}
                             >
                                 <div className="w-24 h-24 shrink-0 rounded-xl overflow-hidden relative shadow-2xl">
-                                    <img src={track.image} alt={track.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                                    <img src={track.image} alt="" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
                                     <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                                         <button
                                             onClick={(e) => handlePlayTrack(track, e)}
@@ -559,10 +564,30 @@ export default function Crear() {
                                                 <Share2 size={14} /> Compartir
                                             </button>
                                             <button
-                                                onClick={(e) => { e.stopPropagation(); setOpenMenuId(null); /* handle stems */ }}
+                                                onClick={async (e) => {
+                                                    e.stopPropagation();
+                                                    setOpenMenuId(null);
+                                                    const src = track.url || track.streamAudioUrl;
+                                                    if (!src) {
+                                                        alert('La pista aún está siendo procesada. Inténtalo más tarde.');
+                                                        return;
+                                                    }
+                                                    try {
+                                                        const res = await fetch(src);
+                                                        const blob = await res.blob();
+                                                        const url = URL.createObjectURL(blob);
+                                                        const a = document.createElement('a');
+                                                        a.href = url;
+                                                        a.download = `${track.title || 'stem'}.mp3`;
+                                                        a.click();
+                                                        URL.revokeObjectURL(url);
+                                                    } catch {
+                                                        alert('Error descargando el stem. Intenta de nuevo.');
+                                                    }
+                                                }}
                                                 className="w-full text-left px-4 py-3 text-xs font-bold text-silver-light hover:text-white hover:bg-orange-600 flex items-center gap-3 transition-colors"
                                             >
-                                                <Layers size={14} /> Separar Stems
+                                                <Layers size={14} /> Separar / Descargar Stems
                                             </button>
                                             <div className="h-px bg-[#222] my-1 w-[90%] mx-auto" />
                                             {/* Advanced Edit Options */}
@@ -690,16 +715,16 @@ export default function Crear() {
                     <div className="bg-[#111] border border-[#333] rounded-2xl w-full max-w-md p-6 shadow-2xl animate-in zoom-in-95 duration-200">
                         <div className="flex justify-between items-center mb-6">
                             <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                                {editMode === 'extend' && <><ArrowUpRight size={20} className="text-orange-500"/> Extender Pista</>}
-                                {editMode === 'vocals' && <><Type size={20} className="text-orange-500"/> Añadir Voces</>}
-                                {editMode === 'instrumental' && <><Music size={20} className="text-orange-500"/> Añadir Instrumental</>}
-                                {editMode === 'video' && <><Activity size={20} className="text-orange-500"/> Generar Video MP4</>}
+                                {editMode === 'extend' && <><ArrowUpRight size={20} className="text-orange-500" /> Extender Pista</>}
+                                {editMode === 'vocals' && <><Type size={20} className="text-orange-500" /> Añadir Voces</>}
+                                {editMode === 'instrumental' && <><Music size={20} className="text-orange-500" /> Añadir Instrumental</>}
+                                {editMode === 'video' && <><Activity size={20} className="text-orange-500" /> Generar Video MP4</>}
                             </h3>
                             <button onClick={() => setEditModalOpen(false)} className="p-2 text-[#666] hover:text-white bg-[#222] rounded-full">
                                 <Plus size={20} className="rotate-45" />
                             </button>
                         </div>
-                        
+
                         <div className="flex items-center gap-4 mb-6 p-4 bg-[#1A1A1A] rounded-xl border border-[#333]">
                             <img src={editTrack.image} alt="cover" className="w-12 h-12 rounded-lg object-cover" />
                             <div>
@@ -723,7 +748,7 @@ export default function Crear() {
                                         <p className="text-[10px] text-[#666]">Deja en 0 para extender desde el final de la pista ({editTrack.duration}).</p>
                                     </div>
                                 )}
-                                
+
                                 <div className="space-y-2">
                                     <label className="text-xs font-bold text-[#888] uppercase tracking-wider">
                                         {editMode === 'vocals' ? 'Letras o estilo vocal' : (editMode === 'extend' ? 'Cómo continuar' : 'Estilo Instrumental')}

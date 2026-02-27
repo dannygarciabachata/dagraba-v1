@@ -82,12 +82,57 @@ export default function CanvaCovers() {
                                         <span className="text-[10px] font-bold text-[#888] tracking-widest uppercase">Cargando Editor de Canva...</span>
                                     </div>
                                 ) : (
-                                    <iframe
-                                        src="https://www.canva.com/design/play"
-                                        className="w-full h-full border-none"
-                                        title="Canva Editor"
-                                        sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
-                                    />
+                                    <div className="w-full h-full bg-[#E8EAED] flex flex-col relative overflow-hidden">
+                                        {/* Canva Top Bar */}
+                                        <div className="h-12 bg-gradient-to-r from-blue-600 to-purple-600 flex items-center px-4 justify-between shrink-0">
+                                            <div className="flex items-center gap-2">
+                                                <div className="w-6 h-6 bg-white rounded flex items-center justify-center font-bold text-blue-600 text-xs shadow-sm">C</div>
+                                                <span className="text-white font-semibold text-sm">Canva Connect API</span>
+                                            </div>
+                                            <div className="flex gap-2">
+                                                <div className="h-8 px-3 bg-white/20 rounded border border-white/30 flex items-center text-white text-xs font-medium cursor-not-allowed">
+                                                    Share
+                                                </div>
+                                                <div className="h-8 px-3 bg-white text-blue-600 rounded flex items-center text-xs font-bold cursor-not-allowed shadow-sm">
+                                                    Export
+                                                </div>
+                                            </div>
+                                        </div>
+                                        {/* Canva Main Workspace */}
+                                        <div className="flex-1 flex">
+                                            {/* Canva Sidebar */}
+                                            <div className="w-16 bg-white border-r border-gray-200 flex flex-col items-center py-4 gap-6 shrink-0 z-10 shadow-[2px_0_10px_rgba(0,0,0,0.05)]">
+                                                <div className="w-8 h-8 rounded hover:bg-gray-100 flex flex-col items-center justify-center gap-1 cursor-not-allowed text-gray-500">
+                                                    <div className="w-4 h-4 rounded-sm border-2 border-current" />
+                                                </div>
+                                                <div className="w-8 h-8 rounded hover:bg-gray-100 flex flex-col items-center justify-center gap-1 cursor-not-allowed text-gray-500">
+                                                    <div className="text-sm font-bold">T</div>
+                                                </div>
+                                                <div className="w-8 h-8 rounded hover:bg-gray-100 flex flex-col items-center justify-center gap-1 cursor-not-allowed text-gray-500">
+                                                    <div className="w-4 h-4 bg-current rounded-full" />
+                                                </div>
+                                            </div>
+                                            {/* Canva Canvas */}
+                                            <div className="flex-1 bg-gray-100 flex items-center justify-center p-8 overflow-auto">
+                                                <div className="w-[500px] h-[500px] bg-gradient-to-br from-gray-900 to-black shadow-2xl flex flex-col items-center justify-center text-center relative overflow-hidden border border-white/10">
+                                                    {/* Decorative rings */}
+                                                    <div className="absolute inset-0 flex items-center justify-center">
+                                                        <div className="w-64 h-64 rounded-full border border-white/5" />
+                                                        <div className="absolute w-48 h-48 rounded-full border border-white/5" />
+                                                        <div className="absolute w-32 h-32 rounded-full border border-white/5" />
+                                                    </div>
+                                                    {/* Center logo */}
+                                                    <div className="relative z-10 flex flex-col items-center gap-3">
+                                                        <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-[0_0_40px_rgba(79,70,229,0.5)]">
+                                                            <span className="text-white font-black text-2xl">DG</span>
+                                                        </div>
+                                                        <span className="text-white/30 text-[10px] font-mono tracking-[0.3em] uppercase">Conecta Canva para editar</span>
+                                                    </div>
+                                                </div>
+
+                                            </div>
+                                        </div>
+                                    </div>
                                 )}
                             </div>
                         </div>

@@ -17,19 +17,7 @@ interface AudioClip {
 export function AudioTimeline() {
     const tracks = useDAWStore((state) => state.tracks);
 
-    if (tracks.length === 0) {
-        return (
-            <div className="flex-1 flex flex-col items-center justify-center h-full text-center p-8">
-                <div className="w-12 h-12 rounded-full border border-white/10 flex items-center justify-center mb-4 bg-white/5 animate-pulse">
-                    <div className="w-4 h-4 rounded-full bg-cyan-glow shadow-[0_0_10px_#00F0FF]" />
-                </div>
-                <h3 className="text-white font-bold tracking-widest text-sm mb-2 uppercase">Espacio de Trabajo Limpio</h3>
-                <p className="text-silver-dark text-xs max-w-xs leading-relaxed">
-                    Dile a John en el chat qué quieres crear y él abrirá los tracks mágicamente...
-                </p>
-            </div>
-        );
-    }
+
 
     const [isPlaying, setIsPlaying] = useState(false);
     const [playhead, setPlayhead] = useState(0); // seconds
@@ -157,6 +145,20 @@ export function AudioTimeline() {
 
     }, [clips, pixelsPerSecond]);
 
+
+    if (tracks.length === 0) {
+        return (
+            <div className="flex-1 flex flex-col items-center justify-center h-full text-center p-8">
+                <div className="w-12 h-12 rounded-full border border-white/10 flex items-center justify-center mb-4 bg-white/5 animate-pulse">
+                    <div className="w-4 h-4 rounded-full bg-cyan-glow shadow-[0_0_10px_#00F0FF]" />
+                </div>
+                <h3 className="text-white font-bold tracking-widest text-sm mb-2 uppercase">Espacio de Trabajo Limpio</h3>
+                <p className="text-silver-dark text-xs max-w-xs leading-relaxed">
+                    Dile a John en el chat qué quieres crear y él abrirá los tracks mágicamente...
+                </p>
+            </div>
+        );
+    }
 
     return (
         <div className="flex flex-col w-full h-full bg-[#18181A] border border-[#222] shadow-[inset_0_5px_20px_rgba(0,0,0,0.8)] rounded-xl overflow-hidden font-mono select-none">
