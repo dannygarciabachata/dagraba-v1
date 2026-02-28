@@ -1,1 +1,0 @@
-export const CARD_THUMBNAIL_SIDE_LENGTH_PX = 56;

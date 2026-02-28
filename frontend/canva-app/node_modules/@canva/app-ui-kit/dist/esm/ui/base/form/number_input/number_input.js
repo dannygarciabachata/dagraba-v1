@@ -1,1 +1,0 @@
-export { NumberInput, isNonNegativeIntegerCharacter, isIntegerCharacter, isNonNegativeDecimalCharacter, isDecimalCharacter, convertFullWidthNumerics, getRoundedNumberValue } from './private/number_input';
