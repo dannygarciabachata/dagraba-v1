@@ -9,6 +9,7 @@ import { GlobalFooterPlayer } from "@/components/ui/GlobalFooterPlayer";
 import { ThemeProvider } from "@/components/ui/ThemeProvider";
 import { AuthProvider } from "@/context/AuthContext";
 import { LoginModal } from "@/components/auth/LoginModal";
+import { ConvexClientProvider } from "@/components/providers/ConvexClientProvider";
 
 export const metadata: Metadata = {
   title: "DA GRABA STUDIO V1",
@@ -40,25 +41,27 @@ export default async function RootLayout({
         <NextIntlClientProvider messages={messages}>
           <ThemeProvider>
             <AuthProvider>
-              {/* Ambient background layer */}
-              <div className="absolute inset-0 pointer-events-none z-0">
-                <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.08] mix-blend-overlay" />
-                <div className="absolute top-0 inset-x-0 h-96 bg-gradient-to-b from-cyan-glow/5 to-transparent blur-3xl opacity-40" />
-              </div>
+              <ConvexClientProvider>
+                {/* Ambient background layer */}
+                <div className="absolute inset-0 pointer-events-none z-0">
+                  <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.08] mix-blend-overlay" />
+                  <div className="absolute top-0 inset-x-0 h-96 bg-gradient-to-b from-cyan-glow/5 to-transparent blur-3xl opacity-40" />
+                </div>
 
-              {/* Sidebar Navigation */}
-              <Sidebar />
+                {/* Sidebar Navigation */}
+                <Sidebar />
 
-              {/* Fullscreen App Container */}
-              <main className="relative z-10 flex-1 h-full flex flex-col overflow-y-auto overflow-x-hidden">
-                {children}
-              </main>
+                {/* Fullscreen App Container */}
+                <main className="relative z-10 flex-1 h-full flex flex-col overflow-y-auto overflow-x-hidden">
+                  {children}
+                </main>
 
-              {/* Persistent Audio Player */}
-              <GlobalFooterPlayer />
+                {/* Persistent Audio Player */}
+                <GlobalFooterPlayer />
 
-              {/* Global Auth Modal */}
-              <LoginModal />
+                {/* Global Auth Modal */}
+                <LoginModal />
+              </ConvexClientProvider>
             </AuthProvider>
           </ThemeProvider>
         </NextIntlClientProvider>

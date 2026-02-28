@@ -7,6 +7,8 @@ import { CloudStatusPanel } from './CloudStatusPanel';
 import { ThemeToggle } from './ThemeToggle';
 import { useTranslations, useLocale } from 'next-intl';
 import { useAuth } from '@/context/AuthContext';
+import { useUserStore } from '@/store/useUserStore';
+import { Coins } from 'lucide-react';
 
 const navItems = [
     { id: 'dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -109,6 +111,27 @@ export function Sidebar() {
                 </div>
 
                 <div className="w-full px-2 lg:px-4 flex flex-col gap-2">
+                    {/* Credits Display */}
+                    <div className="mx-2 mb-4 p-3 rounded-xl bg-white/5 border border-white/10 flex flex-col gap-2 group/credits hover:border-orange-500/30 transition-all duration-500">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                                <div className="w-6 h-6 rounded-lg bg-orange-500/10 flex items-center justify-center text-orange-500">
+                                    <Coins size={14} className="group-hover/credits:rotate-12 transition-transform" />
+                                </div>
+                                <span className="text-[10px] font-black tracking-widest text-[#555] uppercase">Balance</span>
+                            </div>
+                            <span className="text-[10px] font-black text-white px-2 py-0.5 bg-white/5 rounded border border-white/5 uppercase tracking-tighter">
+                                {useUserStore.getState().plan}
+                            </span>
+                        </div>
+                        <div className="flex items-baseline gap-1">
+                            <span className="text-xl font-black text-white tracking-tighter tabular-nums drop-shadow-[0_0_8px_rgba(255,255,255,0.2)]">
+                                {useUserStore(state => state.credits)}
+                            </span>
+                            <span className="text-[9px] font-black text-[#444] uppercase tracking-widest">créditos</span>
+                        </div>
+                    </div>
+
                     <Link
                         href={getLocalizedHref('/settings')}
                         className={`flex items-center gap-3 px-3 lg:px-4 py-3 rounded-lg w-full transition-all duration-300 group border ${pathname.startsWith(getLocalizedHref('/settings'))

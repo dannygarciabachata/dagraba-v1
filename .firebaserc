@@ -1,5 +1,7 @@
 {
-  "projects": {},
+  "projects": {
+    "default": "dagraba-studio-official-23866"
+  },
   "targets": {},
   "etags": {}
 }

@@ -3,12 +3,12 @@ import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
-    apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "AIzaSyBQ5lHaz_XacGwxqOZVZIvh1EpnoYMjPt0",
-    authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || "dagraba-studio-v1.firebaseapp.com",
-    projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "dagraba-studio-v1",
-    storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || "dagraba-studio-v1.firebasestorage.app",
-    messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || "495871214955",
-    appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || "1:495871214955:web:47424b21d06c71dc85782e"
+    apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "AIzaSyAX3zd9VbOFTCqWUH9RbHJB6P8s7tnAia0",
+    authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || "dagraba-studio-official-23866.firebaseapp.com",
+    projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "dagraba-studio-official-23866",
+    storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || "dagraba-studio-official-23866.firebasestorage.app",
+    messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || "907429313502",
+    appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || "1:907429313502:web:17d56e63daa0d577463b4f"
 };
 
 // Initialize Firebase safely for Next.js SSR

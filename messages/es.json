@@ -53,5 +53,19 @@
         "de": "Deutsch",
         "it": "Italiano",
         "ja": "日本語"
+    },
+    "Landing": {
+        "heroTitle1": "Crea la Música que ",
+        "heroTitle2": "Imaginas",
+        "heroSubtitle": "Producción musical impulsada por IA de nivel profesional. Crea hits, diseña sonidos y masteriza tu audio en segundos.",
+        "ctaStart": "Empieza Gratis",
+        "ctaPricing": "Ver Planes",
+        "guestBadge": "100 Créditos Gratis Incluidos",
+        "feature1Title": "Producción IA Pro",
+        "feature1Desc": "Genera beats, melodías y canciones completas con nuestra tecnología V6.",
+        "feature2Title": "Ingeniero John",
+        "feature2Desc": "Tu ingeniero de mezcla personal disponible 24/7 para perfeccionar tu sonido.",
+        "feature3Title": "Studio Completo",
+        "feature3Desc": "Un DAW inmersivo con efectos, instrumentos y consola de mezcla profesional."
     }
 }

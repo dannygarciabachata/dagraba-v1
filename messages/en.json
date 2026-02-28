@@ -53,5 +53,19 @@
         "de": "Deutsch",
         "it": "Italiano",
         "ja": "日本語"
+    },
+    "Landing": {
+        "heroTitle1": "Create the Music You ",
+        "heroTitle2": "Imagine",
+        "heroSubtitle": "Professional AI-powered music production. Create hits, design sounds, and master your audio in seconds.",
+        "ctaStart": "Start for Free",
+        "ctaPricing": "View Plans",
+        "guestBadge": "100 Free Credits Included",
+        "feature1Title": "Pro AI Production",
+        "feature1Desc": "Generate beats, melodies, and full songs with our V6 technology.",
+        "feature2Title": "Engineer John",
+        "feature2Desc": "Your personal mix engineer available 24/7 to perfect your sound.",
+        "feature3Title": "Full Studio",
+        "feature3Desc": "An immersive DAW with professional effects, instruments, and mixing console."
     }
 }

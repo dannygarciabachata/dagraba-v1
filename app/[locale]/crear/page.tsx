@@ -12,6 +12,8 @@ import {
 import { useDAWStore } from '@/store/useDAWStore';
 import { useCreatorStore } from '@/store/useCreatorStore';
 import { Slider } from '@/components/ui/Slider';
+import { useUserStore } from '@/store/useUserStore';
+import { useAuth } from '@/context/AuthContext';
 
 const GENRES = [
     'Trap', 'Reggaeton', 'Drill', 'R&B', 'Pop Urbano',
@@ -25,6 +27,8 @@ export default function Crear() {
     const { currentPreviewTrack, setPreviewTrack } = useDAWStore();
     const { tracks, activeTrack, setTracks, setActiveTrack, updateTrack, removeTrack, addTrack } = useCreatorStore();
     const [isGenerating, setIsGenerating] = useState(false);
+    const { credits, deductCredits } = useUserStore();
+    const { user, setLoginModalOpen } = useAuth();
 
     // Track Menu State
     const [openMenuId, setOpenMenuId] = useState<string | null>(null);
@@ -171,7 +175,17 @@ export default function Crear() {
 
     const handleGenerate = async () => {
         if (!prompt) return;
+
+        if (credits < 10) {
+            alert("No tienes suficientes créditos de prueba. ¡Regístrate gratis para obtener más!");
+            setLoginModalOpen(true);
+            return;
+        }
+
         setIsGenerating(true);
+
+        // Deduct 10 credits for generation
+        deductCredits(10);
 
         try {
             let finalPrompt = '';

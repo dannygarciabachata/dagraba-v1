@@ -2,8 +2,10 @@
 
 import { useRouter } from 'next/navigation';
 import { Activity, Loader2, Sparkles, Music, Edit3, Compass, AudioWaveform, Mic2, Cpu, User } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { GenreSelector } from '@/components/daw/GenreSelector';
+import { useUserStore } from '@/store/useUserStore';
+import { useAuth } from '@/context/AuthContext';
 
 export default function Planer() {
     const router = useRouter();
@@ -17,6 +19,8 @@ export default function Planer() {
         { role: 'assistant', content: '¡Hola! Soy John, tu Ingeniero y Productor Musical de Da Graba. Vamos a planear este hit. ¿Qué estilo o referencia tienes en mente hoy?' }
     ]);
     const [isTyping, setIsTyping] = useState(false);
+    const { credits, deductCredits } = useUserStore();
+    const { user, setLoginModalOpen } = useAuth();
 
     const handleChatSubmit = async () => {
         if (!chatInput.trim() || isTyping) return;
@@ -29,13 +33,25 @@ export default function Planer() {
         setMessages(prev => [...prev, { role: 'user', content: chatInput }]);
 
         if (shouldRedirect) {
+            if (credits < 20) {
+                setMessages(prev => [...prev, { role: 'assistant', content: 'Parece que se te han acabado los créditos de prueba. ¡Regístrate gratis para obtener más y guardar tus proyectos!' }]);
+                setTimeout(() => setLoginModalOpen(true), 1500);
+                return;
+            }
+
             setIsTyping(true);
             // Simulate a brief AI "confirmation" before jumping
             setTimeout(() => {
-                setIsRedirecting(true);
-                setTimeout(() => {
-                    router.push('/studio?session=true');
-                }, 2000);
+                const deducted = deductCredits(20); // Deduct 20 credits to start a session
+                if (deducted) {
+                    setIsRedirecting(true);
+                    setTimeout(() => {
+                        router.push('/studio?session=true');
+                    }, 2000);
+                } else {
+                    setMessages(prev => [...prev, { role: 'assistant', content: 'No tienes suficientes créditos para esta acción. Por favor, regístrate.' }]);
+                    setLoginModalOpen(true);
+                }
             }, 600);
             return;
         }
