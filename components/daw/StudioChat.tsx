@@ -23,14 +23,14 @@ declare global {
     }
 }
 
-export function StudioChat({ 
-    embedded = false, 
-    songName, 
-    onExecuteMastering 
-}: { 
-    embedded?: boolean, 
-    songName?: string, 
-    onExecuteMastering?: () => void 
+export function StudioChat({
+    embedded = false,
+    songName,
+    onExecuteMastering
+}: {
+    embedded?: boolean,
+    songName?: string,
+    onExecuteMastering?: () => void
 }) {
     const addTrack = useDAWStore((state) => state.addTrack);
     const setTracks = useDAWStore((state) => state.setTracks);
@@ -42,10 +42,10 @@ export function StudioChat({
     const [messages, setMessages] = useState<{ role: 'user' | 'assistant', content: string }[]>([]);
 
     useEffect(() => {
-        const greeting = songName 
+        const greeting = songName
             ? `¿Necesitas ayuda con tu master de "${songName}"? Aquí estoy listo para ayudarte.`
             : '¡Estamos en el studio! El plan está listo. ¿Quieres que genere la primera mitad de los instrumentos o prefieres grabar algo tú primero?';
-        
+
         setMessages([{ role: 'assistant', content: greeting }]);
     }, [songName]);
     const [isTyping, setIsTyping] = useState(false);
@@ -127,11 +127,11 @@ export function StudioChat({
     const triggerGeneration = () => {
         setIsTyping(true);
         setTimeout(() => {
-            const demoTracks = [
-                { id: 't-beat', name: 'Dark Trap Beat (AI)', color: '#FF6B00' },
-                { id: 't-808', name: 'Heavy 808 Sub', color: '#B026FF' },
-                { id: 't-melody', name: 'Dark Piano Melody', color: '#00F0FF' },
-                { id: 't-perch', name: 'Percussion Loop', color: '#A4ECA1' }
+            const demoTracks: any[] = [
+                { id: 't-beat', name: 'Dark Trap Beat (AI)', color: '#FF6B00', trackType: 'stereo' },
+                { id: 't-808', name: 'Heavy 808 Sub', color: '#B026FF', trackType: 'stereo' },
+                { id: 't-melody', name: 'Dark Piano Melody', color: '#00F0FF', trackType: 'stereo' },
+                { id: 't-perch', name: 'Percussion Loop', color: '#A4ECA1', trackType: 'stereo' }
             ];
             setTracks(demoTracks);
             const msg = "¡Listo! He abierto los tracks en el espacio de trabajo como por arte de magia. He configurado la batería, el bajo y la melodía principal. ¿Escuchamos esta primera parte?";
