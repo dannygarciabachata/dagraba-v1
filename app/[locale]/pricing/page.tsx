@@ -65,6 +65,13 @@ export default function PricingPage() {
     const locale = useLocale();
     const { plan, setPlan } = useUserStore();
     const [acceptedTerms, setAcceptedTerms] = React.useState(false);
+    const [mounted, setMounted] = React.useState(false);
+
+    React.useEffect(() => {
+        setMounted(true);
+    }, []);
+
+    const isCurrentPlan = (id: string) => mounted && plan === id;
 
     return (
         <div className="flex flex-col h-full bg-[#050505] overflow-y-auto custom-scrollbar">
@@ -84,7 +91,7 @@ export default function PricingPage() {
                     {PLANS.map((p) => (
                         <div
                             key={p.id}
-                            className={`relative group flex flex-col p-8 rounded-3xl border transition-all duration-500 hover:scale-[1.02] ${p.border} ${p.bg} ${p.id === plan ? 'ring-2 ring-cyan-glow shadow-[0_0_40px_rgba(0,240,255,0.1)]' : 'hover:shadow-2xl'}`}
+                            className={`relative group flex flex-col p-8 rounded-3xl border transition-all duration-500 hover:scale-[1.02] ${p.border} ${p.bg} ${isCurrentPlan(p.id) ? 'ring-2 ring-cyan-glow shadow-[0_0_40px_rgba(0,240,255,0.1)]' : 'hover:shadow-2xl'}`}
                         >
                             {p.popular && (
                                 <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1 bg-gradient-to-r from-cyan-glow to-blue-600 rounded-full text-[10px] font-black uppercase tracking-widest text-black shadow-lg">
@@ -126,16 +133,16 @@ export default function PricingPage() {
                                     }
                                     setPlan(p.id as any);
                                 }}
-                                disabled={p.id === plan}
+                                disabled={isCurrentPlan(p.id)}
                                 className={`w-full py-4 rounded-2xl font-black uppercase tracking-widest text-xs transition-all flex items-center justify-center gap-2 ${p.id === 'pro'
                                     ? (acceptedTerms || (p.id as string) === 'free' ? 'bg-cyan-glow text-black hover:bg-white shadow-[0_10px_30px_rgba(0,240,255,0.3)]' : 'bg-white/10 text-white/30 cursor-not-allowed')
                                     : p.id === 'premium'
                                         ? (acceptedTerms || (p.id as string) === 'free' ? 'bg-orange-600 text-white hover:bg-orange-500 shadow-[0_10px_30px_rgba(234,88,12,0.3)]' : 'bg-white/10 text-white/30 cursor-not-allowed')
                                         : 'bg-white/5 text-white hover:bg-white/10'
-                                    } ${p.id === plan ? 'opacity-50 cursor-default' : ''}`}
+                                    } ${isCurrentPlan(p.id) ? 'opacity-50 cursor-default' : ''}`}
                             >
-                                {p.id === plan ? 'Current Plan' : `Get ${p.name}`}
-                                {p.id !== plan && <ArrowRight size={14} />}
+                                {isCurrentPlan(p.id) ? 'Current Plan' : `Get ${p.name}`}
+                                {!isCurrentPlan(p.id) && <ArrowRight size={14} />}
                             </button>
                         </div>
                     ))}

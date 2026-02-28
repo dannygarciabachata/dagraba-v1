@@ -45,6 +45,7 @@ interface DAWStore {
     masterLevel: number;
     currentPreviewTrack: any | null;
     isFullMixer: boolean;
+    trackHeights: Record<string, number>; // Global heights for each track id
 
     // Acciones para que la IA mueva los faders
     setFaderValue: (id: string, value: number) => void;
@@ -58,6 +59,8 @@ interface DAWStore {
     setMixerBank: (bank: 1 | 2) => void;
     setCloudStatus: (status: CloudStatus, message?: string) => void;
     setFullMixer: (status: boolean) => void;
+    setTrackHeight: (id: string, height: number) => void;
+    setAllTrackHeights: (delta: number, min: number, max: number) => void;
 
     // Track Management
     addTrack: (name?: string, color?: string, trackType?: TrackType, audioUrl?: string) => void;
@@ -97,6 +100,7 @@ export const useDAWStore = create<DAWStore>()(
             masterLevel: 0,
             currentPreviewTrack: null,
             isFullMixer: false,
+            trackHeights: {},
 
             setTracks: (tracks: DAWTrack[]) => set((state) => {
                 const newFaders: FaderState[] = tracks.map((track) => ({
@@ -129,16 +133,22 @@ export const useDAWStore = create<DAWStore>()(
 
                 return {
                     tracks: [...state.tracks, newTrack],
-                    faders: [...state.faders, newFader]
+                    faders: [...state.faders, newFader],
+                    trackHeights: { ...state.trackHeights, [newId]: 64 }
                 };
             }),
 
-            clearTracks: () => set({ tracks: [], faders: [] }),
+            clearTracks: () => set({ tracks: [], faders: [], trackHeights: {} }),
 
-            removeTrack: (id) => set((state) => ({
-                tracks: state.tracks.filter(t => t.id !== id),
-                faders: state.faders.filter(f => f.id !== id)
-            })),
+            removeTrack: (id) => set((state) => {
+                const newHeights = { ...state.trackHeights };
+                delete newHeights[id];
+                return {
+                    tracks: state.tracks.filter(t => t.id !== id),
+                    faders: state.faders.filter(f => f.id !== id),
+                    trackHeights: newHeights
+                };
+            }),
 
             toggleMetronome: () => set((state) => ({
                 isMetronomeOn: !state.isMetronomeOn
@@ -174,6 +184,19 @@ export const useDAWStore = create<DAWStore>()(
             setMasterLevel: (level) => set({ masterLevel: level }),
             setPreviewTrack: (track) => set({ currentPreviewTrack: track }),
             setFullMixer: (status) => set({ isFullMixer: status }),
+
+            setTrackHeight: (id, height) => set((state) => ({
+                trackHeights: { ...state.trackHeights, [id]: height }
+            })),
+
+            setAllTrackHeights: (delta, min, max) => set((state) => {
+                const newHeights = { ...state.trackHeights };
+                state.tracks.forEach(t => {
+                    const current = newHeights[t.id] ?? 64;
+                    newHeights[t.id] = Math.max(min, Math.min(max, current + delta));
+                });
+                return { trackHeights: newHeights };
+            }),
 
             // FX Insert Management
             addInsert: (trackId, pluginId) => set((state) => {
@@ -237,6 +260,7 @@ export const useDAWStore = create<DAWStore>()(
                 mixerBank: state.mixerBank,
                 isFullMixer: state.isFullMixer,
                 masterLevel: state.masterLevel,
+                trackHeights: state.trackHeights,
             }),
         }
     )

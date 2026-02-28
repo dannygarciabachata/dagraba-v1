@@ -11,6 +11,7 @@ interface DawTrackControlProps {
 
 export function DawTrackControl({ trackId, trackName, color }: DawTrackControlProps) {
     const fader = useDAWStore((state) => state.faders.find((f) => f.id === trackId));
+    const trackHeight = useDAWStore((state) => state.trackHeights[trackId] ?? 64);
     const setFaderValue = useDAWStore((state) => state.setFaderValue);
     const setPanStore = useDAWStore((state) => state.setPan);
     const toggleSoloStore = useDAWStore((state) => state.toggleSolo);
@@ -80,7 +81,10 @@ export function DawTrackControl({ trackId, trackName, color }: DawTrackControlPr
     };
 
     return (
-        <div className="w-[200px] h-[60px] bg-[#111] border-b border-[#222] flex items-center justify-between px-3 shadow-2xl shrink-0 z-30 group/trackControl hover:bg-[#151517] transition-colors">
+        <div
+            className="w-[200px] bg-[#111] border-b border-[#222] flex items-center justify-between px-3 shadow-2xl shrink-0 z-30 group/trackControl hover:bg-[#151517] transition-colors"
+            style={{ height: `${trackHeight}px` }}
+        >
             <div className="flex flex-col gap-1 w-24">
                 <div className="flex justify-between items-center">
                     <span className="text-[9px] font-bold truncate tracking-widest uppercase" style={{ color }}>{trackName}</span>
@@ -104,10 +108,13 @@ export function DawTrackControl({ trackId, trackName, color }: DawTrackControlPr
                 </div>
             </div>
 
-            <div className="flex gap-3 items-center">
-                {renderKnob(fader.pan, -100, 100, 'PAN', (v) => setPanStore(trackId, v), true)}
-                {renderKnob(fader.value, 0, 100, 'VOL', (v) => setFaderValue(trackId, v), false)}
-            </div>
+            {/* Hide knobs if track gets too short */}
+            {trackHeight >= 40 && (
+                <div className="flex gap-3 items-center">
+                    {renderKnob(fader.pan, -100, 100, 'PAN', (v) => setPanStore(trackId, v), true)}
+                    {renderKnob(fader.value, 0, 100, 'VOL', (v) => setFaderValue(trackId, v), false)}
+                </div>
+            )}
         </div>
     );
 }

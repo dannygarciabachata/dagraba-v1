@@ -56,7 +56,7 @@ export default function Studio() {
             <TransportBar />
 
             {/* CENTER: Audio Timeline & Track Control Column */}
-            <div className={`flex flex-1 w-full px-8 py-2 gap-4 z-20 max-w-[2000px] mx-auto overflow-hidden transition-all duration-300 ${isFullMixer ? 'hidden' : (activeBottomPanel !== 'closed' ? 'min-h-[250px]' : 'h-full pb-8')
+            <div className={`flex w-full px-8 py-2 gap-4 z-20 max-w-[2000px] mx-auto overflow-hidden transition-all duration-300 ${isFullMixer ? 'absolute -top-[9999px] opacity-0 h-0 pointer-events-none' : (activeBottomPanel !== 'closed' ? 'min-h-[250px] flex-1' : 'flex-1 h-full pb-8')
                 }`}>
                 {/* Left Column: Track Controls */}
                 <div className="w-[200px] bg-[#111113]/80 backdrop-blur-md border border-[#333] flex flex-col overflow-y-auto shadow-2xl rounded-md shrink-0 py-4 custom-scrollbar">

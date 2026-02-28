@@ -40,22 +40,18 @@ export function AudioTimeline() {
 
     /* ── Scale & track heights ────────────────────────────────────── */
     const [pps, setPps] = useState(60);           // pixels per second
-    const [trackHeights, setTrackHeights] = useState<Map<string, number>>(new Map());
+    const trackHeights = useDAWStore((state) => state.trackHeights);
+    const setTrackHeight = useDAWStore((state) => state.setTrackHeight);
+    const setAllTrackHeights = useDAWStore((state) => state.setAllTrackHeights);
 
     /* ── Tools & Selection ────────────────────────────────────────── */
     const [activeTool, setActiveTool] = useState<'select' | 'cut'>('select');
     const [selection, setSelection] = useState<{ start: number; end: number } | null>(null);
     const selectionRef = useRef<{ start: number; end: number } | null>(null);
 
-    const getH = (id: string) => trackHeights.get(id) ?? DEFAULT_TRACK_HEIGHT;
-    const setH = (id: string, h: number) =>
-        setTrackHeights(prev => new Map(prev).set(id, Math.max(MIN_TRACK_HEIGHT, Math.min(MAX_TRACK_HEIGHT, h))));
-    const setAllH = (delta: number) =>
-        setTrackHeights(prev => {
-            const m = new Map<string, number>();
-            tracks.forEach(t => m.set(t.id, Math.max(MIN_TRACK_HEIGHT, Math.min(MAX_TRACK_HEIGHT, (prev.get(t.id) ?? DEFAULT_TRACK_HEIGHT) + delta))));
-            return m;
-        });
+    const getH = (id: string) => trackHeights[id] ?? DEFAULT_TRACK_HEIGHT;
+    const setH = (id: string, h: number) => setTrackHeight(id, Math.max(MIN_TRACK_HEIGHT, Math.min(MAX_TRACK_HEIGHT, h)));
+    const setAllH = (delta: number) => setAllTrackHeights(delta, MIN_TRACK_HEIGHT, MAX_TRACK_HEIGHT);
 
     const timelineDuration = 240;
     const timelineWidth = timelineDuration * pps;

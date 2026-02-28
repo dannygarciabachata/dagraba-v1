@@ -16,14 +16,24 @@ import { useDAWStore } from '@/store/useDAWStore';
 
 import { useUserStore } from '@/store/useUserStore';
 import { PlanLock } from '@/components/ui/PlanLock';
+import { StemExtractModal } from '@/components/daw/StemExtractModal';
 
 export default function Mastering() {
     const plan = useUserStore((state) => state.plan);
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
+
     const params = useParams();
     const searchParams = useSearchParams();
     const router = useRouter();
     const locale = params.locale as string;
     const loadId = searchParams.get('load');
+
+    // Wait for hydration to avoid mismatch on plan-based guard
+    if (!mounted) return null;
 
     // PLAN GUARD: Mastering requires 'premium'
     if (plan !== 'premium') {
@@ -60,30 +70,6 @@ export default function Mastering() {
     const [settings, setSettings] = useState<MasteringSettings>(defaultSettings);
     const [menuOpen, setMenuOpen] = useState(false);
     const [stemsModalOpen, setStemsModalOpen] = useState(false);
-    const [stemsTrackId, setStemsTrackId] = useState<string | null>(null);
-    const [stemDownloading, setStemDownloading] = useState(false);
-
-    const downloadStem = async (src: string, name: string) => {
-        if (!src) {
-            alert('Esta pista aún no tiene audio disponible.');
-            return;
-        }
-        setStemDownloading(true);
-        try {
-            const res = await fetch(src);
-            const blob = await res.blob();
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `${name}.mp3`;
-            a.click();
-            URL.revokeObjectURL(url);
-        } catch {
-            alert('Error descargando. Intenta de nuevo.');
-        } finally {
-            setStemDownloading(false);
-        }
-    };
 
     const resetSettings = () => {
         setSettings(defaultSettings);
@@ -142,14 +128,6 @@ export default function Mastering() {
 
     const { history, currentModule, setCurrentModule, addToHistory, getProjectById, cleanupOldHistory } = useMasteringStore();
     const creatorTracks = useCreatorStore((state) => state.tracks);
-    const addTrackToDAW = useDAWStore((state) => state.addTrack);
-
-    const sendStemToStudio = (src: string | null | undefined, name: string) => {
-        if (!src) { alert('Esta pista aún no tiene audio disponible.'); return; }
-        addTrackToDAW(name, undefined, 'stereo', src);
-        setStemsModalOpen(false);
-        router.push(`/${locale}/studio`);
-    };
 
     useEffect(() => {
         cleanupOldHistory();
@@ -530,7 +508,7 @@ export default function Mastering() {
                 }
                 onTimeUpdate={handleTimeUpdate}
                 onEnded={() => setIsPlaying(false)}
-                crossOrigin="anonymous"
+                crossOrigin={audioUrl?.startsWith('blob:') ? undefined : "anonymous"}
             />
 
             {/* Background Studio Window Blur effect */}
@@ -615,7 +593,7 @@ export default function Mastering() {
                                 </button>
                                 <button
                                     title="Extraer stem de esta pista"
-                                    onClick={() => { setStemsTrackId(track.id); setStemsModalOpen(true); }}
+                                    onClick={() => setStemsModalOpen(true)}
                                     className="p-1 text-white/20 hover:text-green-400 hover:bg-green-500/10 rounded-lg transition-all"
                                 >
                                     <Layers size={12} />
@@ -626,7 +604,7 @@ export default function Mastering() {
                     {/* Extraer Stems button + Import */}
                     <div className="ml-auto flex items-center gap-2 shrink-0">
                         <button
-                            onClick={() => { setStemsTrackId(null); setStemsModalOpen(true); }}
+                            onClick={() => setStemsModalOpen(true)}
                             className="flex items-center gap-2 px-5 py-2 rounded-xl bg-green-600/20 hover:bg-green-600/40 border border-green-500/30 text-green-400 text-[10px] font-black tracking-widest uppercase transition-all shadow-[0_0_15px_rgba(34,197,94,0.1)]"
                         >
                             <Layers size={14} /> Extraer Stems
@@ -1035,95 +1013,7 @@ export default function Mastering() {
                 </button>
             </div>
             {/* STEMS MODAL */}
-            {stemsModalOpen && (
-                <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
-                    <div className="bg-[#0B1015] border border-white/10 rounded-2xl w-full max-w-lg shadow-2xl animate-in zoom-in-95 duration-200">
-                        <div className="flex items-center justify-between px-6 py-4 border-b border-white/5">
-                            <div className="flex items-center gap-3">
-                                <div className="p-2 bg-green-500/10 rounded-lg">
-                                    <Layers size={18} className="text-green-400" />
-                                </div>
-                                <div>
-                                    <h3 className="text-sm font-black text-white tracking-widest uppercase">Extraer Stem</h3>
-                                    <p className="text-[10px] text-white/40 mt-0.5">Selecciona la canción y descárgala</p>
-                                </div>
-                            </div>
-                            <button onClick={() => setStemsModalOpen(false)} className="p-2 text-white/20 hover:text-white hover:bg-white/5 rounded-full transition-all">
-                                <X size={18} />
-                            </button>
-                        </div>
-
-                        <div className="p-6 flex flex-col gap-3 max-h-[400px] overflow-y-auto custom-scrollbar">
-                            {/* Current loaded track */}
-                            {audioUrl && (
-                                <div className="flex flex-col gap-3 p-4 bg-white/5 border border-cyan-500/20 rounded-xl">
-                                    <div className="flex flex-col">
-                                        <span className="text-sm font-bold text-white">{selectedSong}</span>
-                                        <span className="text-[9px] text-cyan-400/60 uppercase tracking-widest mt-0.5">Pista actual en consola</span>
-                                    </div>
-                                    <div className="flex gap-2">
-                                        <button
-                                            onClick={() => downloadStem(audioUrl, selectedSong)}
-                                            disabled={stemDownloading}
-                                            className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-[#1A1A1A] hover:bg-[#222] border border-[#333] disabled:opacity-50 text-white/70 rounded-xl text-[10px] font-bold tracking-widest uppercase transition-all"
-                                        >
-                                            <Download size={12} /> Descargar
-                                        </button>
-                                        <button
-                                            onClick={() => sendStemToStudio(audioUrl, selectedSong)}
-                                            className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white rounded-xl text-[10px] font-black tracking-widest uppercase transition-all shadow-[0_0_15px_rgba(6,182,212,0.25)]"
-                                        >
-                                            <ArrowRight size={12} /> Abrir en Studio
-                                        </button>
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* Creator tracks */}
-                            {creatorTracks.length > 0 && (
-                                <>
-                                    <p className="text-[9px] font-bold text-white/30 uppercase tracking-widest px-1 mt-2">Canciones de IA Creator</p>
-                                    {creatorTracks.map(track => (
-                                        <div key={track.id} className={`flex flex-col gap-3 p-4 rounded-xl border transition-all ${stemsTrackId === track.id
-                                            ? 'bg-orange-500/10 border-orange-500/30'
-                                            : 'bg-white/3 border-white/5 hover:bg-white/5'
-                                            }`}>
-                                            <div className="flex flex-col">
-                                                <span className="text-sm font-bold text-white">{track.title}</span>
-                                                <span className="text-[9px] text-white/30 uppercase tracking-widest mt-0.5">{track.style || 'AI Generated'}</span>
-                                            </div>
-                                            <div className="flex gap-2">
-                                                <button
-                                                    onClick={() => downloadStem(track.streamAudioUrl || track.url, track.title)}
-                                                    disabled={stemDownloading || (!track.url && !track.streamAudioUrl)}
-                                                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-[#1A1A1A] hover:bg-[#222] border border-[#333] disabled:opacity-40 disabled:cursor-not-allowed text-white/70 rounded-xl text-[10px] font-bold tracking-widest uppercase transition-all"
-                                                >
-                                                    <Download size={12} /> {(!track.url && !track.streamAudioUrl) ? 'Procesando...' : 'Descargar'}
-                                                </button>
-                                                <button
-                                                    onClick={() => sendStemToStudio(track.streamAudioUrl || track.url, track.title)}
-                                                    disabled={!track.url && !track.streamAudioUrl}
-                                                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl text-[10px] font-black tracking-widest uppercase transition-all shadow-[0_0_15px_rgba(6,182,212,0.25)]"
-                                                >
-                                                    <ArrowRight size={12} /> Abrir en Studio
-                                                </button>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </>
-                            )}
-
-                            {!audioUrl && creatorTracks.length === 0 && (
-                                <div className="text-center py-8 text-white/20">
-                                    <Layers size={40} className="mx-auto mb-3 opacity-30" />
-                                    <p className="text-xs font-bold tracking-widest uppercase">No hay canciones disponibles</p>
-                                    <p className="text-[10px] mt-1">Importa una canción o genera una en Crear</p>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                </div>
-            )}
+            {stemsModalOpen && <StemExtractModal onClose={() => setStemsModalOpen(false)} />}
 
         </div>
     );

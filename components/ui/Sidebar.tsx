@@ -1,5 +1,6 @@
 'use client';
 
+import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Mic2, LayoutDashboard, SlidersHorizontal, User, Settings, Wand2, Compass, Languages, LogIn, LogOut } from 'lucide-react';
@@ -29,6 +30,13 @@ export function Sidebar() {
     const currentLocale = useLocale();
 
     const { user, logout, setLoginModalOpen } = useAuth();
+    const [mounted, setMounted] = React.useState(false);
+    const credits = useUserStore(state => state.credits);
+    const plan = useUserStore(state => state.plan);
+
+    React.useEffect(() => {
+        setMounted(true);
+    }, []);
 
     // Helper to get localized href
     const getLocalizedHref = (href: string) => `/${currentLocale}${href}`;
@@ -121,12 +129,12 @@ export function Sidebar() {
                                 <span className="text-[10px] font-black tracking-widest text-[#555] uppercase">Balance</span>
                             </div>
                             <span className="text-[10px] font-black text-white px-2 py-0.5 bg-white/5 rounded border border-white/5 uppercase tracking-tighter">
-                                {useUserStore.getState().plan}
+                                {mounted ? plan : '...'}
                             </span>
                         </div>
                         <div className="flex items-baseline gap-1">
                             <span className="text-xl font-black text-white tracking-tighter tabular-nums drop-shadow-[0_0_8px_rgba(255,255,255,0.2)]">
-                                {useUserStore(state => state.credits)}
+                                {mounted ? credits : '...'}
                             </span>
                             <span className="text-[9px] font-black text-[#444] uppercase tracking-widest">créditos</span>
                         </div>
@@ -149,7 +157,7 @@ export function Sidebar() {
                             className="flex items-center justify-start gap-3 px-3 lg:px-4 py-3 mb-2 rounded-lg w-full transition-all duration-300 group border text-red-500/80 hover:text-red-400 hover:bg-red-500/10 border-transparent cursor-pointer"
                         >
                             <LogOut size={20} className="group-hover:-translate-x-1 transition-transform duration-300" />
-                            <span className="hidden lg:block text-sm font-medium tracking-wide uppercase text-[10px]">Log Out</span>
+                            <span className="hidden lg:block text-sm font-medium tracking-wide uppercase text-[10px]">Sign Out</span>
                         </button>
                     ) : (
                         <button

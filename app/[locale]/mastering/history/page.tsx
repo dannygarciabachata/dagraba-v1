@@ -62,9 +62,14 @@ export default function MasteringHistory() {
         // Stop current
         audio.pause();
 
-        const blob = await AudioStorage.getAudio(project.id);
+        let url = project.audioUrl;
+        const audioId = project.audioId || project.id;
+        const blob = await AudioStorage.getAudio(audioId);
         if (blob) {
-            const url = URL.createObjectURL(blob);
+            url = URL.createObjectURL(blob);
+        }
+
+        if (url) {
             setPreviewUrl(url);
             setPlayingId(project.id);
 
@@ -81,6 +86,8 @@ export default function MasteringHistory() {
                 audio.removeEventListener('canplay', onCanPlay);
             };
             audio.addEventListener('canplay', onCanPlay);
+        } else {
+            alert("El archivo de audio original no está disponible.");
         }
     };
 
@@ -99,9 +106,16 @@ export default function MasteringHistory() {
         <div className="flex flex-col w-full h-full bg-[#050505] text-white p-12 overflow-y-auto custom-scrollbar">
             <audio
                 ref={audioRef}
-                src={previewUrl || undefined}
+                src={
+                    previewUrl
+                        ? (previewUrl.startsWith('blob:') || previewUrl.startsWith('data:'))
+                            ? previewUrl
+                            : `/api/audio-proxy?url=${encodeURIComponent(previewUrl)}`
+                        : undefined
+                }
                 onEnded={() => setPlayingId(null)}
                 className="hidden"
+                crossOrigin={previewUrl?.startsWith('blob:') ? undefined : "anonymous"}
             />
             {/* Header */}
             <div className="flex items-center justify-between mb-12">
