@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Link from 'next/link';
 import { useTranslations, useLocale } from 'next-intl';
 import { Check, Zap, Crown, Star, ShieldCheck, ArrowRight } from 'lucide-react';
 import { useUserStore } from '@/store/useUserStore';
@@ -63,6 +64,7 @@ const PLANS = [
 export default function PricingPage() {
     const locale = useLocale();
     const { plan, setPlan } = useUserStore();
+    const [acceptedTerms, setAcceptedTerms] = React.useState(false);
 
     return (
         <div className="flex flex-col h-full bg-[#050505] overflow-y-auto custom-scrollbar">
@@ -117,19 +119,39 @@ export default function PricingPage() {
                             </ul>
 
                             <button
-                                onClick={() => setPlan(p.id as any)}
+                                onClick={() => {
+                                    if (p.id !== 'free' && !acceptedTerms) {
+                                        alert('Please accept the Terms of Service and Privacy Policy to continue.');
+                                        return;
+                                    }
+                                    setPlan(p.id as any);
+                                }}
+                                disabled={p.id === plan}
                                 className={`w-full py-4 rounded-2xl font-black uppercase tracking-widest text-xs transition-all flex items-center justify-center gap-2 ${p.id === 'pro'
-                                    ? 'bg-cyan-glow text-black hover:bg-white'
+                                    ? (acceptedTerms || (p.id as string) === 'free' ? 'bg-cyan-glow text-black hover:bg-white shadow-[0_10px_30px_rgba(0,240,255,0.3)]' : 'bg-white/10 text-white/30 cursor-not-allowed')
                                     : p.id === 'premium'
-                                        ? 'bg-orange-600 text-white hover:bg-orange-500'
+                                        ? (acceptedTerms || (p.id as string) === 'free' ? 'bg-orange-600 text-white hover:bg-orange-500 shadow-[0_10px_30px_rgba(234,88,12,0.3)]' : 'bg-white/10 text-white/30 cursor-not-allowed')
                                         : 'bg-white/5 text-white hover:bg-white/10'
-                                    }`}
+                                    } ${p.id === plan ? 'opacity-50 cursor-default' : ''}`}
                             >
                                 {p.id === plan ? 'Current Plan' : `Get ${p.name}`}
                                 {p.id !== plan && <ArrowRight size={14} />}
                             </button>
                         </div>
                     ))}
+                </div>
+
+                {/* Terms Acceptance */}
+                <div className="mt-12 flex items-center justify-center gap-3 py-6 px-8 rounded-2xl bg-white/[0.02] border border-white/5 max-w-2xl mx-auto shadow-inner">
+                    <div
+                        onClick={() => setAcceptedTerms(!acceptedTerms)}
+                        className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center cursor-pointer transition-all duration-300 ${acceptedTerms ? 'bg-cyan-glow border-cyan-glow shadow-[0_0_15px_rgba(0,240,255,0.5)]' : 'border-white/20 hover:border-white/40'}`}
+                    >
+                        {acceptedTerms && <Check size={14} className="text-black font-black" />}
+                    </div>
+                    <p className="text-xs text-silver-dark font-medium cursor-pointer select-none" onClick={() => setAcceptedTerms(!acceptedTerms)}>
+                        I accept the <Link href={`/${locale}/terms`} className="text-white hover:text-cyan-glow underline underline-offset-4 decoration-white/20">Terms of Service</Link> and <Link href={`/${locale}/privacy`} className="text-white hover:text-cyan-glow underline underline-offset-4 decoration-white/20">Privacy Policy</Link> for iHOSTcast Ltd.
+                    </p>
                 </div>
 
                 {/* Trust Footer */}

@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useTranslations, useLocale } from 'next-intl';
 import { Sparkles, Play, Music, Mic2, Cpu, ArrowRight, Star, Users, CheckCircle2 } from 'lucide-react';
 import { useUserStore } from '@/store/useUserStore';
+import { Footer } from '@/components/ui/Footer';
 
 export default function LandingPage() {
   const t = useTranslations('Landing');
@@ -61,7 +62,7 @@ export default function LandingPage() {
               <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
             </Link>
             <Link
-              href={`/${locale}/planer`} // Redirect to pricing later
+              href={`/${locale}/pricing`}
               className="px-10 py-5 bg-white/5 border border-white/10 hover:bg-white/10 transition-all font-black uppercase tracking-widest text-xs rounded-2xl backdrop-blur-sm"
             >
               {t('ctaPricing')}
@@ -152,13 +153,15 @@ export default function LandingPage() {
           <h2 className="text-5xl md:text-7xl font-black tracking-tighter mb-8 max-w-2xl leading-[0.95]">Ready to Create Your Masterpiece?</h2>
           <p className="text-silver-dark text-xl mb-12 max-w-lg">Get 100 free credits today and join the future of music production.</p>
           <Link
-            href={`/${locale}/planer`}
+            href={`/${locale}/crear`}
             className="px-16 py-6 bg-white text-black font-black uppercase tracking-widest text-sm rounded-2xl hover:scale-105 transition-all shadow-2xl hover:shadow-white/20"
           >
             Join Now
           </Link>
         </div>
       </section>
+
+      <Footer />
     </div>
   );
 }
