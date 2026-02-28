@@ -32,14 +32,6 @@ export default function Mastering() {
     const locale = params.locale as string;
     const loadId = searchParams.get('load');
 
-    // Wait for hydration to avoid mismatch on plan-based guard
-    if (!mounted) return null;
-
-    // PLAN GUARD: Mastering requires 'premium'
-    if (plan !== 'premium') {
-        return <PlanLock requiredPlan="premium" featureName="Pro Mastering Suite" />;
-    }
-
     // UI State
     const [isOn, setIsOn] = useState(true);
     const [isComparing, setIsComparing] = useState(false);
@@ -133,6 +125,12 @@ export default function Mastering() {
         cleanupOldHistory();
     }, []);
     const audioRef = useRef<HTMLAudioElement | null>(null);
+
+    // Guard rendering
+    if (!mounted) return null;
+    if (plan !== 'premium') {
+        return <PlanLock requiredPlan="premium" featureName="Pro Mastering Suite" />;
+    }
 
     // Load project from history if requested or recover last session
     useEffect(() => {
