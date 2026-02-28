@@ -1,0 +1,7 @@
+module.exports = [
+"[project]/development/Da Graba_Studio/messages/fr.json (json)", ((__turbopack_context__) => {
+
+__turbopack_context__.v({"Explorer":{"title":"Explorateur","unlimitedStreaming":"Streaming Illimité","freeDownloads":"Téléchargements Gratuits","noCopyright":"Sans Problèmes de Copyright","royaltyFree":"Libre de Droits","radioTitle":"Écoutez avec DA GRABA Radio","trending":"Tendances","updatedToday":"Mis à jour aujourd'hui","beats":"Beats","filmTv":"Ciné, Jeux & TV","sfx":"Effets Sonores","live":"EN DIRECT","listeners":"Auditio","likes":"J'aime"},"Player":{"untitled":"Sans titre","aiGenerated":"Généré par IA"},"Playlist":{"addToPlaylist":"Ajouter à la playlist","selectPlaylist":"Sélectionnez une playlist pour \"{track}\"","noPlaylists":"Aucune playlist trouvée","createNew":"Créer une nouvelle playlist","namePlaceholder":"Nom de la playlist","create":"Créer","creating":"Création...","cancel":"Annuler","added":"Ajouté à la playlist!","error":"Erreur lors de l'ajout"},"Common":{"play":"Jouer","pause":"Pause"},"Navigation":{"dashboard":"Tableau de bord","explorer":"Explorateur","planer":"Planificateur","crear":"Créer","studio":"Studio","mastering":"Mastering","profile":"Profil","settings":"Paramètres"},"Languages":{"en":"English","es":"Español","pt":"Português","fr":"Français","de":"Deutsch","it":"Italiano","ja":"日本語"}});}),
+];
+
+//# sourceMappingURL=development_Da%20Graba_Studio_messages_fr_json_72cf05fe._.js.map

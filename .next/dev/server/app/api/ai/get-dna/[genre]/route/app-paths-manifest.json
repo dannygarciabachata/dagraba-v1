@@ -1,0 +1,3 @@
+{
+  "/api/ai/get-dna/[genre]/route": "app/api/ai/get-dna/[genre]/route.js"
+}

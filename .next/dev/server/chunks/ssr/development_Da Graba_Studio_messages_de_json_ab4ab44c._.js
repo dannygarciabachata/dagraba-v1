@@ -1,0 +1,7 @@
+module.exports = [
+"[project]/development/Da Graba_Studio/messages/de.json (json)", ((__turbopack_context__) => {
+
+__turbopack_context__.v({"Explorer":{"title":"Entdecker","unlimitedStreaming":"Unbegrenztes Streaming","freeDownloads":"Kostenlose Downloads","noCopyright":"Keine Copyright-Probleme","royaltyFree":"Lizenzfrei","radioTitle":"Hören mit DA GRABA Radio","trending":"Angesagt","updatedToday":"Heute aktualisiert","beats":"Beats","filmTv":"Film, Spiel & TV","sfx":"Soundeffekte","live":"LIVE","listeners":"Zuhörer","likes":"Likes"},"Player":{"untitled":"Ohne Titel","aiGenerated":"KI Generiert"},"Playlist":{"addToPlaylist":"Zur Playlist hinzufügen","selectPlaylist":"Wähle eine Playlist für \"{track}\"","noPlaylists":"Keine Playlists gefunden","createNew":"Neue Playlist erstellen","namePlaceholder":"Playlist Name","create":"Erstellen","creating":"Wird erstellt...","cancel":"Abbrechen","added":"Zur Playlist hinzugefügt!","error":"Fehler beim Hinzufügen"},"Common":{"play":"Abspielen","pause":"Pause"},"Navigation":{"dashboard":"Dashboard","explorer":"Entdecker","planer":"Planer","crear":"Erstellen","studio":"Studio","mastering":"Mastering","profile":"Profil","settings":"Einstellungen"},"Languages":{"en":"English","es":"Español","pt":"Português","fr":"Français","de":"Deutsch","it":"Italiano","ja":"日本語"}});}),
+];
+
+//# sourceMappingURL=development_Da%20Graba_Studio_messages_de_json_ab4ab44c._.js.map

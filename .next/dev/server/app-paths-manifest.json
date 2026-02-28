@@ -1,0 +1,11 @@
+{
+  "/[locale]/admin/page": "app/[locale]/admin/page.js",
+  "/[locale]/dashboard/page": "app/[locale]/dashboard/page.js",
+  "/[locale]/mastering/page": "app/[locale]/mastering/page.js",
+  "/[locale]/page": "app/[locale]/page.js",
+  "/[locale]/pricing/page": "app/[locale]/pricing/page.js",
+  "/[locale]/profile/page": "app/[locale]/profile/page.js",
+  "/_not-found/page": "app/_not-found/page.js",
+  "/api/admin/settings/route": "app/api/admin/settings/route.js",
+  "/api/ai/train/sao/route": "app/api/ai/train/sao/route.js"
+}

@@ -1,0 +1,84 @@
+[00:00:03.945] Server  WARN    ⚠ The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+[00:00:04.176] Server  LOG     ✓ Ready in 3.7s
+[00:00:13.490] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:00:15.739] Server  WARN    The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+[00:00:15.959] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:00:16.201] Browser WARN    The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+[00:00:16.201] Browser WARN    The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+[00:10:35.643] Server  WARN    The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+[00:10:35.818] Browser INFO    %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+[00:10:36.010] Browser WARN    The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+[00:10:36.010] Browser WARN    The width(-1) and height(-1) of chart should be greater than 0,
+       please check the style of container, or the props width(100%) and height(100%),
+       or add a minWidth(0) or minHeight(undefined) or use aspect(undefined) to control the
+       height and width.
+[00:11:17.705] Browser ERROR   React has detected a change in the order of Hooks called by %s. This will lead to bugs and errors if not fixed. For more information, read the Rules of Hooks: https://react.dev/link/rules-of-hooks
+
+   Previous render            Next render
+   ------------------------------------------------------
+%s   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ Mastering 1. useCallback                useCallback
+2. useCallback                useCallback
+3. useSyncExternalStore       useSyncExternalStore
+4. useDebugValue              useDebugValue
+5. useState                   useState
+6. useEffect                  useEffect
+7. useContext                 useContext
+8. useContext                 useContext
+9. useMemo                    useMemo
+10. useContext                useContext
+11. useState                  useState
+12. useState                  useState
+13. useState                  useState
+14. useState                  useState
+15. useState                  useState
+16. useState                  useState
+17. useState                  useState
+18. useState                  useState
+19. useState                  useState
+20. useState                  useState
+21. useState                  useState
+22. useState                  useState
+23. useState                  useState
+24. useState                  useState
+25. useState                  useState
+26. useState                  useState
+27. useState                  useState
+28. useCallback               useCallback
+29. useCallback               useCallback
+30. useSyncExternalStore      useSyncExternalStore
+31. useDebugValue             useDebugValue
+32. useCallback               useCallback
+33. useCallback               useCallback
+34. useSyncExternalStore      useSyncExternalStore
+35. useDebugValue             useDebugValue
+36. useEffect                 useEffect
+37. useRef                    useRef
+38. undefined                 useEffect
+
+[00:11:17.705] Browser ERROR   uncaughtError: Error: Rendered more hooks than during the previous render.
+[01:37:35.765] Server  ERROR   ⨯ PageNotFoundError: Cannot find module for page: route not found /_not-found/page
+[01:37:35.787] Server  ERROR   ⨯ PageNotFoundError: Cannot find module for page: route not found /_not-found/page
+[01:37:35.804] Server  ERROR   ⨯ PageNotFoundError: Cannot find module for page: route not found /_not-found/page
+[01:37:35.818] Server  ERROR   ⨯ PageNotFoundError: Cannot find module for page: route not found /_not-found/page
+[01:37:35.841] Server  ERROR   Error: ENOENT: no such file or directory, scandir '/Users/odgmusic/development/Da Graba_Studio/app'
+[01:37:35.842] Server  ERROR   ⨯ "unhandledRejection:" Error: ENOENT: no such file or directory, scandir '/Users/odgmusic/development/Da Graba_Studio/app'
+[01:37:35.843] Server  ERROR   ⨯ "unhandledRejection: " Error: ENOENT: no such file or directory, scandir '/Users/odgmusic/development/Da Graba_Studio/app'
+[01:37:36.642] Browser ERROR   uncaughtError: PageNotFoundError: Cannot find module for page: route not found /_not-found/page
+[01:37:36.645] Server  ERROR   Error: ENOENT: no such file or directory, scandir '/Users/odgmusic/development/Da Graba_Studio/app'
+[01:37:36.646] Server  ERROR   Error: ENOENT: no such file or directory, scandir '/Users/odgmusic/development/Da Graba_Studio/app'
