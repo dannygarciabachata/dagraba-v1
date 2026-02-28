@@ -48,36 +48,35 @@ export default function Studio() {
             <TransportBar />
 
             {/* CENTER: Audio Timeline & Track Control Column */}
-            {!isFullMixer && (
-                <div className={`flex flex-1 w-full px-8 py-2 gap-4 z-20 max-w-[2000px] mx-auto overflow-hidden transition-all duration-300 ${activeBottomPanel !== 'closed' ? 'min-h-[250px]' : 'h-full pb-8'}`}>
-                    {/* Left Column: Track Controls */}
-                    <div className="w-[200px] bg-[#111113]/80 backdrop-blur-md border border-[#333] flex flex-col overflow-y-auto shadow-2xl rounded-md shrink-0 py-4 custom-scrollbar">
-                        {tracks.map((track) => (
-                            <DawTrackControl key={track.id} trackId={track.id} trackName={track.name} color={track.color} />
-                        ))}
+            <div className={`flex flex-1 w-full px-8 py-2 gap-4 z-20 max-w-[2000px] mx-auto overflow-hidden transition-all duration-300 ${isFullMixer ? 'hidden' : (activeBottomPanel !== 'closed' ? 'min-h-[250px]' : 'h-full pb-8')
+                }`}>
+                {/* Left Column: Track Controls */}
+                <div className="w-[200px] bg-[#111113]/80 backdrop-blur-md border border-[#333] flex flex-col overflow-y-auto shadow-2xl rounded-md shrink-0 py-4 custom-scrollbar">
+                    {tracks.map((track) => (
+                        <DawTrackControl key={track.id} trackId={track.id} trackName={track.name} color={track.color} />
+                    ))}
 
-                        {/* Extract Stems button */}
-                        <button
-                            onClick={() => setShowStemModal(true)}
-                            className="mt-4 mx-4 py-2 rounded bg-gradient-to-r from-cyan-600/20 to-blue-600/20 border border-cyan-500/30 text-cyan-400 hover:from-cyan-600/30 hover:to-blue-600/30 hover:border-cyan-400/50 transition-all text-[10px] font-black tracking-widest flex items-center justify-center gap-2"
-                        >
-                            <Layers size={12} /> EXTRAER STEMS
-                        </button>
+                    {/* Extract Stems button */}
+                    <button
+                        onClick={() => setShowStemModal(true)}
+                        className="mt-4 mx-4 py-2 rounded bg-gradient-to-r from-cyan-600/20 to-blue-600/20 border border-cyan-500/30 text-cyan-400 hover:from-cyan-600/30 hover:to-blue-600/30 hover:border-cyan-400/50 transition-all text-[10px] font-black tracking-widest flex items-center justify-center gap-2"
+                    >
+                        <Layers size={12} /> EXTRAER STEMS
+                    </button>
 
-                        <button
-                            onClick={() => setShowTrackModal(true)}
-                            className="mt-2 mx-4 py-2 border border-dashed border-[#444] rounded text-[#888] hover:text-white hover:border-[#888] transition-colors text-xs font-bold tracking-widest flex items-center justify-center gap-2"
-                        >
-                            + NEW TRACK
-                        </button>
-                    </div>
-
-                    {/* Main Timeline Canvas */}
-                    <div className="flex-1 bg-[#1A1A1C]/90 backdrop-blur-md relative border border-[#333] shadow-2xl rounded-md overflow-hidden">
-                        <AudioTimeline />
-                    </div>
+                    <button
+                        onClick={() => setShowTrackModal(true)}
+                        className="mt-2 mx-4 py-2 border border-dashed border-[#444] rounded text-[#888] hover:text-white hover:border-[#888] transition-colors text-xs font-bold tracking-widest flex items-center justify-center gap-2"
+                    >
+                        + NEW TRACK
+                    </button>
                 </div>
-            )}
+
+                {/* Main Timeline Canvas */}
+                <div className="flex-1 bg-[#1A1A1C]/90 backdrop-blur-md relative border border-[#333] shadow-2xl rounded-md overflow-hidden">
+                    <AudioTimeline />
+                </div>
+            </div>
 
             {/* BOTTOM: Conditional Workspace Panel */}
             {activeBottomPanel !== 'closed' && (

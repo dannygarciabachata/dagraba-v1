@@ -109,8 +109,8 @@ export function Sidebar() {
                     <Link
                         href={getLocalizedHref('/settings')}
                         className={`flex items-center gap-3 px-3 lg:px-4 py-3 rounded-lg w-full transition-all duration-300 group border ${pathname.startsWith(getLocalizedHref('/settings'))
-                                ? 'bg-cyan-glow/10 border-cyan-glow/30 text-cyan-glow'
-                                : 'text-silver-dark hover:text-white hover:bg-white/5 border-transparent'
+                            ? 'bg-cyan-glow/10 border-cyan-glow/30 text-cyan-glow'
+                            : 'text-silver-dark hover:text-white hover:bg-white/5 border-transparent'
                             }`}
                     >
                         <Settings size={20} className="group-hover:rotate-90 transition-transform duration-500" />
@@ -122,6 +122,15 @@ export function Sidebar() {
                 <div className="w-full px-2 lg:px-4 flex items-center gap-3 px-3 lg:px-5 py-2">
                     <span className="hidden lg:block text-[10px] font-bold uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>Tema</span>
                     <ThemeToggle />
+                </div>
+
+                {/* Legal Links Footer */}
+                <div className="hidden lg:flex flex-col items-center gap-2 mt-4 text-[9px] text-white/40 font-mono tracking-widest uppercase pb-2">
+                    <div className="flex gap-3">
+                        <Link href={getLocalizedHref('/terms')} className="hover:text-cyan-400 transition-colors">Términos</Link>
+                        <Link href={getLocalizedHref('/privacy')} className="hover:text-cyan-400 transition-colors">Privacidad</Link>
+                    </div>
+                    <Link href={getLocalizedHref('/cookies')} className="hover:text-cyan-400 transition-colors">Cookies</Link>
                 </div>
             </div>
         </aside>

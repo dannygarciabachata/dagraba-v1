@@ -47,7 +47,7 @@ export default async function RootLayout({
             <Sidebar />
 
             {/* Fullscreen App Container */}
-            <main className="relative z-10 flex-1 h-full flex flex-col overflow-hidden">
+            <main className="relative z-10 flex-1 h-full flex flex-col overflow-y-auto overflow-x-hidden">
               {children}
             </main>
 
