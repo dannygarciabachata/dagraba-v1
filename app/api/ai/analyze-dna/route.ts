@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+export const dynamic = 'force-dynamic';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import path from 'path';
@@ -19,7 +20,7 @@ export async function POST(req: Request) {
 
         // In a real browser environment, rawAudio and masteredAudio would be Base64 or Blob
         // For this implementation, we expect Base64 strings for simplicity in the prototype
-        
+
         const tempDir = path.join(process.cwd(), 'tmp', 'dna-analysis');
         await fs.mkdir(tempDir, { recursive: true });
 
@@ -37,12 +38,12 @@ export async function POST(req: Request) {
         await saveAudio(masteredAudio, masteredPath);
 
         const scriptPath = path.join(process.cwd(), 'sao-instrumental-finetune', 'dataset-creator', 'analyze_mastering_dna.py');
-        
+
         // Execute Python script
         // Note: Assumes python3 and required libs (librosa, numpy, pyloudnorm) are installed
         try {
             const { stdout, stderr } = await execPromise(`python3 "${scriptPath}" "${rawPath}" "${masteredPath}"`);
-            
+
             if (stderr && !stdout) {
                 console.error('Python Error:', stderr);
                 return NextResponse.json({ error: 'Analysis script failed' }, { status: 500 });

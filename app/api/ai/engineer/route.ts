@@ -2,12 +2,18 @@ import { NextResponse } from 'next/server';
 import OpenAI from 'openai';
 import { MASTERING_ENGINEER_PROMPT } from '@/lib/ai/prompts/mastering-engineer';
 
-const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
-});
+export const dynamic = 'force-dynamic';
 
 export async function POST(req: Request) {
     try {
+        const apiKey = process.env.OPENAI_API_KEY;
+
+        if (!apiKey) {
+            console.error('Missing OPENAI_API_KEY environment variable');
+            return NextResponse.json({ error: 'AI Service currently unavailable' }, { status: 503 });
+        }
+
+        const openai = new OpenAI({ apiKey });
         const { message, history } = await req.json();
 
         if (!message) {

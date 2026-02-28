@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+export const dynamic = 'force-dynamic';
 import { KieService } from '@/lib/ai/services/kie-service';
 import { MusicGptService } from '@/lib/ai/services/musicgpt-service';
 import { BaseMusicService, MusicGenerationRequest } from '@/lib/ai/types';

@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+export const dynamic = "force-dynamic";
 import { SAOClient } from '@/lib/ai/sao-client';
 
 export async function POST(req: Request) {
