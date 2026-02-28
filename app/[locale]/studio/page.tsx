@@ -14,9 +14,12 @@ import { TrackTypeModal } from '@/components/daw/TrackTypeModal';
 import { StemExtractModal } from '@/components/daw/StemExtractModal';
 import { DrumPadMidi } from '@/components/daw/DrumPadMidi';
 import { MidiKeyboardComponent } from '@/components/daw/MidiKeyboardComponent';
+import { useUserStore } from '@/store/useUserStore';
+import { PlanLock } from '@/components/ui/PlanLock';
 import { useState, useEffect } from 'react';
 
 export default function Studio() {
+    const plan = useUserStore((state) => state.plan);
     const faders = useDAWStore((state) => state.faders);
     const tracks = useDAWStore((state) => state.tracks);
     const addTrack = useDAWStore((state) => state.addTrack);
@@ -37,6 +40,11 @@ export default function Studio() {
     const closePlugin = useDAWStore((state) => state.closePlugin);
 
     if (!hasHydrated) return null;
+
+    // PLAN GUARD: Studio requires at least 'pro'
+    if (plan === 'free') {
+        return <PlanLock requiredPlan="pro" featureName="AI Production Studio" />;
+    }
 
     // Every track has a corresponding fader with same ID
     const activeFaders = faders;

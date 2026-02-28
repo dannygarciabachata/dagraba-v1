@@ -14,12 +14,21 @@ import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import { useCreatorStore } from '@/store/useCreatorStore';
 import { useDAWStore } from '@/store/useDAWStore';
 
+import { useUserStore } from '@/store/useUserStore';
+import { PlanLock } from '@/components/ui/PlanLock';
+
 export default function Mastering() {
+    const plan = useUserStore((state) => state.plan);
     const params = useParams();
     const searchParams = useSearchParams();
     const router = useRouter();
     const locale = params.locale as string;
     const loadId = searchParams.get('load');
+
+    // PLAN GUARD: Mastering requires 'premium'
+    if (plan !== 'premium') {
+        return <PlanLock requiredPlan="premium" featureName="Pro Mastering Suite" />;
+    }
 
     // UI State
     const [isOn, setIsOn] = useState(true);
