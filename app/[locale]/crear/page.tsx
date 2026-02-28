@@ -641,16 +641,18 @@ export default function Crear() {
                         {/* Cover Splash */}
                         <div className="relative aspect-square w-full">
                             <img src={activeTrack.image} alt="" className="w-full h-full object-cover" />
-                            <div className="absolute inset-0 bg-gradient-to-t from-[#08080A] via-transparent to-transparent" />
-                            <div className="absolute bottom-6 left-8 right-8">
-                                <h3 className="text-3xl font-black text-white tracking-tighter mb-2 leading-none">{activeTrack.title}</h3>
-                                <div className="flex flex-wrap gap-2">
-                                    {activeTrack.tags.map((tag: string) => (
-                                        <span key={tag} className="px-2 py-0.5 bg-white/10 backdrop-blur-md rounded text-[9px] font-black uppercase tracking-widest text-[#AAA]">
-                                            {tag}
-                                        </span>
-                                    ))}
-                                </div>
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent pointer-events-none" />
+                        </div>
+
+                        {/* Track Title & Tags (below cover, clean) */}
+                        <div className="px-8 pt-5 pb-2">
+                            <h3 className="text-2xl font-black text-white tracking-tighter mb-3 leading-none">{activeTrack.title}</h3>
+                            <div className="flex flex-wrap gap-2">
+                                {activeTrack.tags.map((tag: string) => (
+                                    <span key={tag} className="px-2 py-0.5 bg-white/5 border border-white/10 rounded text-[9px] font-black uppercase tracking-widest text-[#888]">
+                                        {tag}
+                                    </span>
+                                ))}
                             </div>
                         </div>
 

@@ -9,6 +9,12 @@ import { CompressorModule } from './plugins/CompressorModule';
 import { MultibandModule } from './plugins/MultibandModule';
 import { LimiterModule } from './plugins/LimiterModule';
 import { LevelerModule } from './plugins/LevelerModule';
+import { ReverbModule } from './plugins/ReverbModule';
+import { DelayModule } from './plugins/DelayModule';
+import { ChorusModule } from './plugins/ChorusModule';
+import { DistortionModule } from './plugins/DistortionModule';
+import { SaturatorModule } from './plugins/SaturatorModule';
+import { VirtualInstrumentPlugin } from './plugins/VirtualInstrumentPlugin';
 import { audioEngine } from '@/lib/audio-engine-bridge';
 
 interface PluginWindowProps {
@@ -53,6 +59,16 @@ export function PluginWindow({ trackId, insert, onClose }: PluginWindowProps) {
                     loaded  // use WASM if it loaded successfully
                 );
             });
+        } else if (insert.pluginId === 'saturator') {
+            // Route through C++ WASM Saturator
+            audioEngine.insertWasmPlugin(trackId, 'saturator').then(node => {
+                if (node) {
+                    node.port.postMessage({ type: 'param', key: 'drive', value: (insert.settings.satDrive ?? 30) / 100 * 5 });
+                    node.port.postMessage({ type: 'param', key: 'mix', value: (insert.settings.satMix ?? 50) / 100 });
+                    node.port.postMessage({ type: 'param', key: 'outputGain', value: (insert.settings.satOutput ?? 50) / 50 });
+                    node.port.postMessage({ type: 'param', key: 'bias', value: (insert.settings.satBias ?? 10) / 100 });
+                }
+            });
         }
     }, [trackId, insert.settings, insert.bypass, insert.pluginId]);
 
@@ -70,6 +86,12 @@ export function PluginWindow({ trackId, insert, onClose }: PluginWindowProps) {
             case 'multiband': return <MultibandModule {...props} />;
             case 'limiter': return <LimiterModule {...props} />;
             case 'leveler': return <LevelerModule {...props} />;
+            case 'reverb': return <ReverbModule {...props} />;
+            case 'delay': return <DelayModule {...props} />;
+            case 'chorus': return <ChorusModule {...props} />;
+            case 'distortion': return <DistortionModule {...props} />;
+            case 'saturator': return <SaturatorModule {...props} />;
+            case 'virtual_instrument': return <VirtualInstrumentPlugin insert={insert} onSettingsChange={(s) => updateInsertSettings(trackId, insert.id, s)} />;
             default: return null;
         }
     };

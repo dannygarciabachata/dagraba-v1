@@ -1,9 +1,12 @@
+
 import React, { useState, useEffect } from 'react';
 import {
-    Play, Square, Circle, SkipBack, SkipForward,
-    Repeat, Settings2, Activity, Music, ActivitySquare, Upload, Download
+    Play, Pause, Square, SkipBack, SkipForward, Mic, Volume2,
+    Settings2, Upload, Download, Layers, Music, Drum, Keyboard, ActivitySquare,
+    Activity, Circle, Repeat
 } from 'lucide-react';
 import { useDAWStore } from '@/store/useDAWStore';
+import { MidiInputSelector } from './MidiKeyboardComponent';
 import { modalClient } from '@/lib/modal-client';
 import { audioEngine } from '@/lib/audio-engine-bridge';
 
@@ -95,10 +98,23 @@ export function TransportBar() {
 
                 {/* Transport Buttons */}
                 <div className="flex items-center gap-1 bg-[#111] p-1 rounded-md border border-[#333] shadow-inner">
-                    <button className="p-1.5 text-[#AAA] hover:text-white transition-colors rounded hover:bg-[#222]">
+                    <button
+                        onClick={() => {
+                            setPlayhead(0);
+                            audioEngine.pause();
+                            setIsPlayingStore(false);
+                            setIsPlaying(false);
+                        }}
+                        className="p-1.5 text-[#AAA] hover:text-white transition-colors rounded hover:bg-[#222]"
+                    >
                         <SkipBack size={16} />
                     </button>
-                    <button className="p-1.5 text-[#AAA] hover:text-white transition-colors rounded hover:bg-[#222]">
+                    <button
+                        onClick={() => {
+                            setPlayhead(240); // End of standard timeline
+                        }}
+                        className="p-1.5 text-[#AAA] hover:text-white transition-colors rounded hover:bg-[#222]"
+                    >
                         <SkipForward size={16} />
                     </button>
                     <button className={`p-1.5 transition-colors rounded hover:bg-[#222] ${isPlaying ? 'text-white' : 'text-[#AAA] hover:text-white'}`} onClick={handleTogglePlay}>
@@ -160,7 +176,7 @@ export function TransportBar() {
             {/* RIGHT: Panel Toggles & Settings */}
             <div className="flex items-center gap-4 w-1/3 justify-end">
                 {/* Console Navigation Toggles */}
-                <div className="flex bg-[#111] p-1 border border-white/5 rounded-lg shadow-xl ring-1 ring-black/50">
+                <div className="flex bg-[#111] p-1 border border-white/5 rounded-lg shadow-xl ring-1 ring-black/50 gap-1">
                     <button
                         onClick={() => {
                             setFullMixer(true);
@@ -183,7 +199,7 @@ export function TransportBar() {
 
                 <div className="w-[1px] h-6 bg-white/5 mx-2" />
 
-                <div className="flex bg-[#111] p-1 border border-[#333] rounded shadow-sm">
+                <div className="flex bg-[#111] p-1 border border-[#333] rounded shadow-sm gap-1">
                     <button
                         onClick={() => {
                             setFullMixer(false);
@@ -208,14 +224,14 @@ export function TransportBar() {
                 </div>
 
                 <div className="flex items-center gap-2 ml-2">
-                    <button 
+                    <button
                         onClick={() => {
                             const input = document.createElement('input');
                             input.type = 'file';
                             input.accept = 'audio/*';
                             input.onchange = (e) => {
                                 const file = (e.target as HTMLInputElement).files?.[0];
-                                if (file) alert(`Audio importado al Studio: ${file.name}`);
+                                if (file) alert(`Audio importado al Studio: ${file.name} `);
                             };
                             input.click();
                         }}
@@ -223,7 +239,7 @@ export function TransportBar() {
                     >
                         <Upload size={16} />
                     </button>
-                    <button 
+                    <button
                         onClick={() => alert('Mezcla final exportada correctamente.')}
                         className="p-1.5 text-[#AAA] hover:text-[#A4ECA1] transition-colors rounded hover:bg-[#222]" title="Exportar Mezcla"
                     >

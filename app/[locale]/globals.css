@@ -1,8 +1,11 @@
 @import "tailwindcss";
 
+/* ─────────────────────────────────────────
+   Tailwind theme tokens
+───────────────────────────────────────── */
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-background: var(--bg-base);
+  --color-foreground: var(--text-primary);
   --color-carbon: #080808;
   --color-primary: #FF6B00;
   --color-cyan-glow: #00F0FF;
@@ -13,31 +16,217 @@
   --font-mono: var(--font-geist-mono);
 }
 
+/* ─────────────────────────────────────────
+   DARK MODE (default)
+───────────────────────────────────────── */
 :root {
-  --background: #050505;
-  --foreground: #F0F0F0;
+  color-scheme: dark;
+
+  /* Backgrounds */
+  --bg-base: #050505;
+  --bg-surface: #0A0A0C;
+  --bg-elevated: #111113;
+  --bg-overlay: #1A1A1E;
+  --bg-card: #0F0F12;
+  --bg-hover: rgba(255, 255, 255, 0.04);
+  --bg-active: rgba(255, 255, 255, 0.08);
+
+  /* Borders */
+  --border-subtle: rgba(255, 255, 255, 0.06);
+  --border-default: rgba(255, 255, 255, 0.10);
+  --border-strong: rgba(255, 255, 255, 0.18);
+  --border-dashed: #3A3A3A;
+
+  /* Text */
+  --text-primary: #F0F0F0;
+  --text-secondary: #999999;
+  --text-muted: #555555;
+  --text-disabled: #333333;
+  --text-inverse: #050505;
+
+  /* Accent */
+  --accent-orange: #FF6B00;
+  --accent-cyan: #00F0FF;
+  --accent-purple: #A855F7;
+  --accent-green: #10B981;
+  --accent-red: #EF4444;
+
+  /* Glow / Shadow */
+  --glow-cyan: 0 0 20px rgba(0, 240, 255, 0.4), inset 0 0 10px rgba(0, 240, 255, 0.2);
+  --glow-orange: 0 0 20px rgba(249, 115, 22, 0.3);
+  --shadow-card: 0 8px 32px rgba(0, 0, 0, 0.8);
+
+  /* Sidebar */
+  --sidebar-bg: #080808;
+  --sidebar-border: rgba(255, 255, 255, 0.06);
+
+  /* Scrollbar */
+  --scrollbar-thumb: #2A2A2A;
+  --scrollbar-track: transparent;
+
+  /* Input */
+  --input-bg: #0A0A0C;
+  --input-border: #2A2A2A;
+  --input-border-focus: #444444;
 }
 
+/* ─────────────────────────────────────────
+   LIGHT MODE  ← applied when html has class="light"
+───────────────────────────────────────── */
+html.light {
+  color-scheme: light;
+
+  --bg-base: #F4F4F6;
+  --bg-surface: #FFFFFF;
+  --bg-elevated: #EFEFEF;
+  --bg-overlay: #E8E8EC;
+  --bg-card: #FAFAFA;
+  --bg-hover: rgba(0, 0, 0, 0.04);
+  --bg-active: rgba(0, 0, 0, 0.08);
+
+  --border-subtle: rgba(0, 0, 0, 0.07);
+  --border-default: rgba(0, 0, 0, 0.12);
+  --border-strong: rgba(0, 0, 0, 0.22);
+  --border-dashed: #CCCCCC;
+
+  --text-primary: #111111;
+  --text-secondary: #555555;
+  --text-muted: #888888;
+  --text-disabled: #BBBBBB;
+  --text-inverse: #F4F4F6;
+
+  --accent-orange: #F05000;
+  --accent-cyan: #0099CC;
+  --accent-purple: #7C3AED;
+  --accent-green: #059669;
+  --accent-red: #DC2626;
+
+  --glow-cyan: 0 0 16px rgba(0, 153, 204, 0.25);
+  --glow-orange: 0 0 16px rgba(240, 80, 0, 0.2);
+  --shadow-card: 0 4px 24px rgba(0, 0, 0, 0.12);
+
+  --sidebar-bg: #1A1A2E;
+  --sidebar-border: rgba(255, 255, 255, 0.08);
+
+  --scrollbar-thumb: #CCCCCC;
+  --scrollbar-track: transparent;
+
+  --input-bg: #FFFFFF;
+  --input-border: #DDDDDD;
+  --input-border-focus: #AAAAAA;
+}
+
+/* ─────────────────────────────────────────
+   Semantic utility classes
+───────────────────────────────────────── */
+.theme-bg {
+  background: var(--bg-base);
+}
+
+.theme-surface {
+  background: var(--bg-surface);
+}
+
+.theme-elevated {
+  background: var(--bg-elevated);
+}
+
+.theme-overlay {
+  background: var(--bg-overlay);
+}
+
+.theme-card {
+  background: var(--bg-card);
+}
+
+.theme-text {
+  color: var(--text-primary);
+}
+
+.theme-text-muted {
+  color: var(--text-secondary);
+}
+
+.theme-text-dim {
+  color: var(--text-muted);
+}
+
+.theme-border {
+  border-color: var(--border-default);
+}
+
+.theme-border-subtle {
+  border-color: var(--border-subtle);
+}
+
+.theme-border-strong {
+  border-color: var(--border-strong);
+}
+
+.theme-input {
+  background: var(--input-bg);
+  border-color: var(--input-border);
+  color: var(--text-primary);
+}
+
+.theme-input:focus {
+  border-color: var(--input-border-focus);
+  outline: none;
+}
+
+/* ─────────────────────────────────────────
+   Base body
+───────────────────────────────────────── */
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background: var(--bg-base);
+  color: var(--text-primary);
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
   margin: 0;
   padding: 0;
   overflow: hidden;
-  /* Fullscreen immersive app */
+  transition: background 0.3s ease, color 0.3s ease;
 }
 
-/* Glassmorphism utilities */
+/* ─────────────────────────────────────────
+   Scrollbar
+───────────────────────────────────────── */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 2px;
+}
+
+/* ─────────────────────────────────────────
+   Glassmorphism (adapts to theme)
+───────────────────────────────────────── */
 .glass-panel {
-  @apply bg-[#0D1117]/60 backdrop-blur-xl border border-white/10 shadow-[0_8px_32px_#000000cc];
+  background: var(--bg-surface);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--border-default);
+  box-shadow: var(--shadow-card);
+}
+
+html.light .glass-panel {
+  background: rgba(255, 255, 255, 0.7);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.1);
 }
 
 .luxury-gradient {
   @apply bg-gradient-to-br from-carbon to-neutral-900;
 }
 
-/* 3D Perspective Utilities */
+/* ─────────────────────────────────────────
+   3D Perspective
+───────────────────────────────────────── */
 .perspective-container {
   perspective: 1200px;
 }
@@ -48,15 +237,17 @@ body {
   box-shadow: 0 -20px 50px rgba(0, 0, 0, 0.9);
 }
 
-/* Glowing Elements */
+/* ─────────────────────────────────────────
+   Glow helpers (use CSS vars)
+───────────────────────────────────────── */
 .glow-cyan {
-  box-shadow: 0 0 20px rgba(0, 240, 255, 0.4), inset 0 0 10px rgba(0, 240, 255, 0.2);
-  border-color: rgba(0, 240, 255, 0.5);
+  box-shadow: var(--glow-cyan);
+  border-color: var(--accent-cyan);
 }
 
 .glow-cyan-active {
   box-shadow: 0 0 40px rgba(0, 240, 255, 0.8), inset 0 0 20px rgba(0, 240, 255, 0.6);
-  border-color: rgba(0, 240, 255, 1);
+  border-color: var(--accent-cyan);
 }
 
 .glow-red {
@@ -65,4 +256,265 @@ body {
 
 .glow-green {
   box-shadow: 0 0 30px rgba(50, 255, 100, 0.6);
+}
+
+/* ─────────────────────────────────────────
+   Theme transition helper (smooth switch)
+───────────────────────────────────────── */
+*,
+*::before,
+*::after {
+  transition-property: background-color, border-color, color, box-shadow;
+  transition-duration: 200ms;
+  transition-timing-function: ease;
+}
+
+/* Disable transition on interactive pseudo states to keep them snappy */
+button:active,
+a:active {
+  transition-duration: 0ms;
+}
+
+/* ─────────────────────────────────────────
+   LIGHT MODE: Global overrides for hardcoded dark Tailwind classes
+   These reassign every dark palette class to light equivalents
+   so components need no individual changes.
+───────────────────────────────────────── */
+html.light {
+
+  /* === Background overrides === */
+  .bg-\[\#050505\] {
+    background-color: #F4F4F6 !important;
+  }
+
+  .bg-\[\#080808\] {
+    background-color: #F0F0F2 !important;
+  }
+
+  .bg-\[\#0A0A0C\] {
+    background-color: #FFFFFF !important;
+  }
+
+  .bg-\[\#0B1015\]\/80 {
+    background-color: rgba(26, 26, 46, 0.95) !important;
+  }
+
+  /* sidebar stays dark */
+  .bg-\[\#0F0F12\] {
+    background-color: #FAFAFA !important;
+  }
+
+  .bg-\[\#111\] {
+    background-color: #F0F0F2 !important;
+  }
+
+  .bg-\[\#111113\] {
+    background-color: #EFEFEF !important;
+  }
+
+  .bg-\[\#111113\]\/80 {
+    background-color: rgba(239, 239, 239, 0.9) !important;
+  }
+
+  .bg-\[\#1A1A1A\] {
+    background-color: #E8E8EC !important;
+  }
+
+  .bg-\[\#1A1A1C\]\/90 {
+    background-color: rgba(240, 240, 242, 0.9) !important;
+  }
+
+  .bg-\[\#1A1A1E\] {
+    background-color: #E4E4E8 !important;
+  }
+
+  .bg-\[\#222\] {
+    background-color: #E0E0E4 !important;
+  }
+
+  .bg-\[\#2A2A2A\] {
+    background-color: #D8D8DC !important;
+  }
+
+  .bg-\[\#2B2B2B\] {
+    background-color: #EFEFEF !important;
+  }
+
+  .bg-\[\#333\] {
+    background-color: #D0D0D4 !important;
+  }
+
+  /* Gradient adjustments */
+  .from-\[\#111\] {
+    --tw-gradient-from: #EFEFEF !important;
+    --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to) !important;
+  }
+
+  .to-\[\#0A0A0C\] {
+    --tw-gradient-to: #FFFFFF !important;
+  }
+
+  /* === Text overrides === */
+  .text-white {
+    color: #111111 !important;
+  }
+
+  .text-silver-dark {
+    color: #777777 !important;
+  }
+
+  .text-silver-light {
+    color: #222222 !important;
+  }
+
+  .text-\[\#888\] {
+    color: #666666 !important;
+  }
+
+  .text-\[\#777\] {
+    color: #666666 !important;
+  }
+
+  .text-\[\#666\] {
+    color: #555555 !important;
+  }
+
+  .text-\[\#555\] {
+    color: #444444 !important;
+  }
+
+  .text-\[\#444\] {
+    color: #666666 !important;
+  }
+
+  .text-\[\#333\] {
+    color: #888888 !important;
+  }
+
+  .text-\[\#222\] {
+    color: #AAAAAA !important;
+  }
+
+  /* === Border overrides === */
+  .border-white\/5 {
+    border-color: rgba(0, 0, 0, 0.06) !important;
+  }
+
+  .border-white\/10 {
+    border-color: rgba(0, 0, 0, 0.10) !important;
+  }
+
+  .border-white\/20 {
+    border-color: rgba(0, 0, 0, 0.16) !important;
+  }
+
+  .border-\[\#1A1A1A\] {
+    border-color: #D8D8DC !important;
+  }
+
+  .border-\[\#222\] {
+    border-color: #D8D8DC !important;
+  }
+
+  .border-\[\#2A2A2A\] {
+    border-color: #CCCCCC !important;
+  }
+
+  .border-\[\#333\] {
+    border-color: #C8C8CC !important;
+  }
+
+  .border-\[\#3A3A3A\] {
+    border-color: #CCCCCC !important;
+  }
+
+  .border-\[\#444\] {
+    border-color: #BBBBBB !important;
+  }
+
+  /* Dashed borders */
+  .border-dashed.border-\[\#444\] {
+    border-color: #BBBBBB !important;
+  }
+
+  /* === Divide lines === */
+  .divide-\[\#222\]>*+* {
+    border-color: #E0E0E4 !important;
+  }
+
+  .divide-y.divide-\[\#222\]>*+* {
+    border-top-color: #E0E0E4 !important;
+  }
+
+  /* === Hover states === */
+  .hover\:bg-\[\#111\]:hover {
+    background-color: #EFEFEF !important;
+  }
+
+  .hover\:bg-\[\#1A1A1A\]:hover {
+    background-color: #E8E8EC !important;
+  }
+
+  .hover\:bg-white\/5:hover {
+    background-color: rgba(0, 0, 0, 0.04) !important;
+  }
+
+  .hover\:text-white:hover {
+    color: #000000 !important;
+  }
+
+  /* === Input overrides === */
+  input,
+  textarea,
+  select {
+    background-color: #FFFFFF !important;
+    border-color: #DDDDDD !important;
+    color: #111111 !important;
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: #BBBBBB !important;
+  }
+
+  /* === Body gradient / radial override === */
+  body {
+    background-image: radial-gradient(ellipse at top, rgba(200, 210, 240, 0.3), #F4F4F6, #E8E8EC) !important;
+  }
+
+  /* === GlobalFooterPlayer === */
+  .global-footer-player {
+    background: rgba(255, 255, 255, 0.95) !important;
+    border-top-color: rgba(0, 0, 0, 0.10) !important;
+  }
+
+  /* === Plugin Windows === */
+  .bg-\[\#2B2B2B\] {
+    background-color: #FAFAFA !important;
+  }
+
+  .bg-\[\#1A1A1A\] {
+    background-color: #F0F0F2 !important;
+  }
+
+  .bg-\[\#141414\] {
+    background-color: #EBEBEB !important;
+  }
+
+  /* === Noise texture subtlety === */
+  .bg-\[url\(\'\/noise\.png\'\)\] {
+    opacity: 0.03 !important;
+  }
+
+  /* Keep accent / gradient colors on buttons unchanged */
+  .bg-orange-600,
+  .bg-purple-600,
+  .bg-blue-600,
+  .bg-green-600,
+  .bg-red-600,
+  .from-orange-600,
+  .to-red-600 {
+    /* Leave brand colors unchanged in light mode */
+    filter: none !important;
+  }
 }

@@ -20,8 +20,8 @@ export function DawTrackControl({ trackId, trackName, color }: DawTrackControlPr
     if (!fader) return null;
 
     // Communication with Bridge
-    useEffect(() => { audioEngine.setTrackVolume(trackId, fader.value / 100); }, [fader.value, trackId]);
-    useEffect(() => { audioEngine.setTrackPan(trackId, fader.pan / 100); }, [fader.pan, trackId]);
+    useEffect(() => { audioEngine.setTrackVolume(trackId, fader.value); }, [fader.value, trackId]);
+    useEffect(() => { audioEngine.setTrackPan(trackId, fader.pan); }, [fader.pan, trackId]);
     useEffect(() => { audioEngine.setTrackMute(trackId, fader.isMuted); }, [fader.isMuted, trackId]);
     useEffect(() => { audioEngine.setTrackSolo(trackId, fader.isSoloed); }, [fader.isSoloed, trackId]);
 

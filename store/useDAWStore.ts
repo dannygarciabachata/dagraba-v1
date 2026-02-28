@@ -1,14 +1,19 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
+
+export type TrackType = 'mono' | 'stereo' | 'aux' | 'master' | 'midi' | 'virtual_instrument';
 
 export interface DAWTrack {
     id: string;
     name: string;
     color: string;
+    trackType: TrackType;
+    audioUrl?: string; // Optional audio source for the track (e.g. from stems or import)
 }
 
 export interface FXInsert {
     id: string;
-    pluginId: 'gate' | 'eq' | 'leveler' | 'compressor' | 'multiband' | 'limiter';
+    pluginId: 'gate' | 'eq' | 'leveler' | 'compressor' | 'multiband' | 'limiter' | 'reverb' | 'delay' | 'chorus' | 'distortion' | 'saturator' | 'virtual_instrument';
     bypass: boolean;
     settings: any;
 }
@@ -23,7 +28,7 @@ export interface FaderState {
     inserts: FXInsert[];
 }
 
-export type BottomPanelState = 'mixer' | 'piano_roll' | 'closed';
+export type BottomPanelState = 'mixer' | 'piano_roll' | 'drums' | 'keys' | 'closed';
 export type CloudStatus = 'disconnected' | 'connecting' | 'connected';
 
 interface DAWStore {
@@ -55,7 +60,7 @@ interface DAWStore {
     setFullMixer: (status: boolean) => void;
 
     // Track Management
-    addTrack: (name?: string, color?: string) => void;
+    addTrack: (name?: string, color?: string, trackType?: TrackType, audioUrl?: string) => void;
     setTracks: (tracks: DAWTrack[]) => void;
     clearTracks: () => void;
     removeTrack: (id: string) => void;
@@ -76,164 +81,163 @@ interface DAWStore {
     closePlugin: (insertId: string) => void;
 }
 
-// Generate 32 default faders
-const defaultFaders: FaderState[] = Array.from({ length: 32 }, (_, i) => ({
-    id: `ch-${i + 1}`,
-    label: i < 16 ? `CH ${i + 1}` : (i < 24 ? `AUX ${i - 15}` : (i < 30 ? `BUS ${i - 23}` : `MTR L/R`)),
-    value: 75,
-    isMuted: false,
-    pan: 0,
-    isSoloed: false,
-    inserts: [],
-}));
+export const useDAWStore = create<DAWStore>()(
+    persist(
+        (set) => ({
+            faders: [], // Faders are created dynamically per track
+            tracks: [],
+            isTraining: false,
+            activeArtistId: null,
+            activeBottomPanel: 'mixer', // Mixer opens by default
+            mixerBank: 1,
+            cloudStatus: 'disconnected',
+            systemMessage: '',
+            isMetronomeOn: false,
+            isPlaying: false,
+            masterLevel: 0,
+            currentPreviewTrack: null,
+            isFullMixer: false,
 
-// Set explicit labels for the first 4 for backwards compatibility with the Auto-mix Modal logic
-defaultFaders[0] = { ...defaultFaders[0], id: 'vocal', label: 'VOCAL' };
-defaultFaders[1] = { ...defaultFaders[1], id: 'beat', label: 'BEAT' };
-defaultFaders[2] = { ...defaultFaders[2], id: 'bass', label: 'BASS' };
-defaultFaders[3] = { ...defaultFaders[3], id: 'fx', label: 'FX' };
+            setTracks: (tracks: DAWTrack[]) => set((state) => {
+                const newFaders: FaderState[] = tracks.map((track) => ({
+                    id: track.id,
+                    label: track.name.toUpperCase(),
+                    value: 75,
+                    isMuted: false,
+                    pan: 0,
+                    isSoloed: false,
+                    inserts: []
+                }));
+                return { tracks, faders: newFaders };
+            }),
 
-export const useDAWStore = create<DAWStore>((set) => ({
-    faders: defaultFaders,
-    tracks: [],
-    isTraining: false,
-    activeArtistId: null,
-    activeBottomPanel: 'mixer', // Mixer opens by default
-    mixerBank: 1,
-    cloudStatus: 'disconnected',
-    systemMessage: '',
-    isMetronomeOn: false,
-    isPlaying: false,
-    masterLevel: 0,
-    currentPreviewTrack: null,
-    isFullMixer: false,
+            addTrack: (name, color, trackType = 'mono', audioUrl) => set((state) => {
+                const newId = `t${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+                const trackColor = color || ['#00F0FF', '#FF6B00', '#A4ECA1', '#E2A04A', '#D94AE2', '#FF0055', '#55FF00'][Math.floor(Math.random() * 7)];
+                const trackName = name || `Audio Track ${state.tracks.length + 1}`;
 
-    setTracks: (tracks: DAWTrack[]) => set((state) => {
-        const newFaders: FaderState[] = tracks.map((track, i) => ({
-            id: track.id,
-            label: track.name.toUpperCase(),
-            value: 75,
-            isMuted: false,
-            pan: 0,
-            isSoloed: false,
-            inserts: []
-        }));
-        return { tracks, faders: newFaders };
-    }),
+                const newTrack: DAWTrack = { id: newId, name: trackName, color: trackColor, trackType, audioUrl };
+                const newFader: FaderState = {
+                    id: newId,
+                    label: trackName.toUpperCase(),
+                    value: 75,
+                    isMuted: false,
+                    pan: 0,
+                    isSoloed: false,
+                    inserts: []
+                };
 
-    addTrack: (name, color) => set((state) => {
-        const newId = `t${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-        const trackColor = color || ['#00F0FF', '#FF6B00', '#A4ECA1', '#E2A04A', '#D94AE2', '#FF0055', '#55FF00'][Math.floor(Math.random() * 7)];
-        const trackName = name || `Audio Track ${state.tracks.length + 1}`;
+                return {
+                    tracks: [...state.tracks, newTrack],
+                    faders: [...state.faders, newFader]
+                };
+            }),
 
-        const newTrack: DAWTrack = { id: newId, name: trackName, color: trackColor };
-        const newFader: FaderState = {
-            id: newId,
-            label: trackName.toUpperCase(),
-            value: 75,
-            isMuted: false,
-            pan: 0,
-            isSoloed: false,
-            inserts: []
-        };
+            clearTracks: () => set({ tracks: [], faders: [] }),
 
-        return {
-            tracks: [...state.tracks, newTrack],
-            faders: [...state.faders, newFader]
-        };
-    }),
+            removeTrack: (id) => set((state) => ({
+                tracks: state.tracks.filter(t => t.id !== id),
+                faders: state.faders.filter(f => f.id !== id)
+            })),
 
-    clearTracks: () => set({ tracks: [], faders: [] }),
+            toggleMetronome: () => set((state) => ({
+                isMetronomeOn: !state.isMetronomeOn
+            })),
 
-    removeTrack: (id) => set((state) => ({
-        tracks: state.tracks.filter(t => t.id !== id),
-        faders: state.faders.filter(f => f.id !== id)
-    })),
+            setActiveBottomPanel: (panel) => set({ activeBottomPanel: panel }),
+            setMixerBank: (bank) => set({ mixerBank: bank }),
 
-    toggleMetronome: () => set((state) => ({
-        isMetronomeOn: !state.isMetronomeOn
-    })),
+            setFaderValue: (id, value) => set((state) => ({
+                faders: state.faders.map((f) => f.id === id ? { ...f, value } : f)
+            })),
 
-    setActiveBottomPanel: (panel) => set({ activeBottomPanel: panel }),
-    setMixerBank: (bank) => set({ mixerBank: bank }),
+            setTrainingStatus: (status) => set({ isTraining: status }),
 
-    setFaderValue: (id, value) => set((state) => ({
-        faders: state.faders.map((f) => f.id === id ? { ...f, value } : f)
-    })),
+            resetConsole: () => set((state) => ({
+                faders: state.faders.map((f) => ({ ...f, value: 0 }))
+            })),
 
-    setTrainingStatus: (status) => set({ isTraining: status }),
+            setPan: (id, pan) => set((state) => ({
+                faders: state.faders.map((f) => f.id === id ? { ...f, pan } : f)
+            })),
 
-    resetConsole: () => set((state) => ({
-        faders: state.faders.map((f) => ({ ...f, value: 0 }))
-    })),
+            toggleSolo: (id) => set((state) => ({
+                faders: state.faders.map((f) => f.id === id ? { ...f, isSoloed: !f.isSoloed } : f)
+            })),
 
-    setPan: (id, pan) => set((state) => ({
-        faders: state.faders.map((f) => f.id === id ? { ...f, pan } : f)
-    })),
+            toggleMute: (id) => set((state) => ({
+                faders: state.faders.map((f) => f.id === id ? { ...f, isMuted: !f.isMuted } : f)
+            })),
 
-    toggleSolo: (id) => set((state) => ({
-        faders: state.faders.map((f) => f.id === id ? { ...f, isSoloed: !f.isSoloed } : f)
-    })),
+            setCloudStatus: (status, message = '') => set({ cloudStatus: status, systemMessage: message }),
+            setIsPlaying: (playing) => set({ isPlaying: playing }),
+            setMasterLevel: (level) => set({ masterLevel: level }),
+            setPreviewTrack: (track) => set({ currentPreviewTrack: track }),
+            setFullMixer: (status) => set({ isFullMixer: status }),
 
-    toggleMute: (id) => set((state) => ({
-        faders: state.faders.map((f) => f.id === id ? { ...f, isMuted: !f.isMuted } : f)
-    })),
+            // FX Insert Management
+            addInsert: (trackId, pluginId) => set((state) => {
+                const defaultSettings: any = {
+                    gate: { gateThreshold: 10, gateAttack: 5, gateRelease: 100 },
+                    eq: { eqHighpass: 30, eqTilt: 0, eqSideGain: 20, eqSideFreq: 4000 },
+                    leveler: { levelerTarget: -14, levelerBrake: -60, levelerMaxPlus: 6, levelerMaxMinus: 12 },
+                    compressor: { compStrength: 30, compAttack: 20, compRelease: 200, compMakeup: 0 },
+                    multiband: { mbStrengthLow: 20, mbStrengthHigh: 40, mbCrossoverLow: 200, mbCrossoverHigh: 5000 },
+                    limiter: { limStrength: 50, limAttack: 2, limRelease: 100, limCeiling: -0.1 }
+                };
 
-    setCloudStatus: (status, message = '') => set({ cloudStatus: status, systemMessage: message }),
-    setIsPlaying: (playing) => set({ isPlaying: playing }),
-    setMasterLevel: (level) => set({ masterLevel: level }),
-    setPreviewTrack: (track) => set({ currentPreviewTrack: track }),
-    setFullMixer: (status) => set({ isFullMixer: status }),
+                const newInsert: FXInsert = {
+                    id: `fx-${pluginId}-${Date.now()}`,
+                    pluginId,
+                    bypass: false,
+                    settings: defaultSettings[pluginId] || {}
+                };
 
-    // FX Insert Management
-    addInsert: (trackId, pluginId) => set((state) => {
-        const defaultSettings: any = {
-            gate: { gateThreshold: 10, gateAttack: 5, gateRelease: 100 },
-            eq: { eqHighpass: 30, eqTilt: 0, eqSideGain: 20, eqSideFreq: 4000 },
-            leveler: { levelerTarget: -14, levelerBrake: -60, levelerMaxPlus: 6, levelerMaxMinus: 12 },
-            compressor: { compStrength: 30, compAttack: 20, compRelease: 200, compMakeup: 0 },
-            multiband: { mbStrengthLow: 20, mbStrengthHigh: 40, mbCrossoverLow: 200, mbCrossoverHigh: 5000 },
-            limiter: { limStrength: 50, limAttack: 2, limRelease: 100, limCeiling: -0.1 }
-        };
+                return {
+                    faders: state.faders.map(f => f.id === trackId
+                        ? { ...f, inserts: [...f.inserts, newInsert].slice(0, 4) } // Limit to 4 slots
+                        : f)
+                };
+            }),
 
-        const newInsert: FXInsert = {
-            id: `fx-${pluginId}-${Date.now()}`,
-            pluginId,
-            bypass: false,
-            settings: defaultSettings[pluginId] || {}
-        };
+            removeInsert: (trackId, insertId) => set((state) => ({
+                faders: state.faders.map(f => f.id === trackId
+                    ? { ...f, inserts: f.inserts.filter(i => i.id !== insertId) }
+                    : f)
+            })),
 
-        return {
-            faders: state.faders.map(f => f.id === trackId 
-                ? { ...f, inserts: [...f.inserts, newInsert].slice(0, 4) } // Limit to 4 slots
-                : f)
-        };
-    }),
+            updateInsertSettings: (trackId, insertId, newSettings) => set((state) => ({
+                faders: state.faders.map(f => f.id === trackId
+                    ? { ...f, inserts: f.inserts.map(i => i.id === insertId ? { ...i, settings: { ...i.settings, ...newSettings } } : i) }
+                    : f)
+            })),
 
-    removeInsert: (trackId, insertId) => set((state) => ({
-        faders: state.faders.map(f => f.id === trackId 
-            ? { ...f, inserts: f.inserts.filter(i => i.id !== insertId) } 
-            : f)
-    })),
+            toggleInsertBypass: (trackId, insertId) => set((state) => ({
+                faders: state.faders.map(f => f.id === trackId
+                    ? { ...f, inserts: f.inserts.map(i => i.id === insertId ? { ...i, bypass: !i.bypass } : i) }
+                    : f)
+            })),
 
-    updateInsertSettings: (trackId, insertId, newSettings) => set((state) => ({
-        faders: state.faders.map(f => f.id === trackId 
-            ? { ...f, inserts: f.inserts.map(i => i.id === insertId ? { ...i, settings: { ...i.settings, ...newSettings } } : i) } 
-            : f)
-    })),
-
-    toggleInsertBypass: (trackId, insertId) => set((state) => ({
-        faders: state.faders.map(f => f.id === trackId 
-            ? { ...f, inserts: f.inserts.map(i => i.id === insertId ? { ...i, bypass: !i.bypass } : i) } 
-            : f)
-    })),
-
-    // Plugin Window Management
-    openPluginIds: [],
-    openPlugin: (insertId) => set((state) => ({
-        openPluginIds: state.openPluginIds.includes(insertId) ? state.openPluginIds : [...state.openPluginIds, insertId]
-    })),
-    closePlugin: (insertId) => set((state) => ({
-        openPluginIds: state.openPluginIds.filter(id => id !== insertId)
-    })),
-}));
+            // Plugin Window Management
+            openPluginIds: [],
+            openPlugin: (insertId) => set((state) => ({
+                openPluginIds: state.openPluginIds.includes(insertId) ? state.openPluginIds : [...state.openPluginIds, insertId]
+            })),
+            closePlugin: (insertId) => set((state) => ({
+                openPluginIds: state.openPluginIds.filter(id => id !== insertId)
+            })),
+        }),
+        {
+            name: 'daw-session-storage',
+            // Only persist tracks, faders, and basic state. Avoid persisting playback state.
+            partialize: (state) => ({
+                tracks: state.tracks,
+                faders: state.faders,
+                activeBottomPanel: state.activeBottomPanel,
+                mixerBank: state.mixerBank,
+                isFullMixer: state.isFullMixer,
+                masterLevel: state.masterLevel,
+            }),
+        }
+    )
+);

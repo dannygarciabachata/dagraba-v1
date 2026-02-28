@@ -7,10 +7,20 @@ export interface TrackChain {
     makeup?: GainNode;
     limiter?: DynamicsCompressorNode;
     wasmLimiter?: AudioWorkletNode;
+    muteGain: GainNode; // Dedicated node for Mute/Solo
     output: GainNode;
     panner: StereoPannerNode;
     analyser: AnalyserNode;
+    stemDSP?: {
+        splitter: ChannelSplitterNode;
+        merger: ChannelMergerNode;
+        midGain: GainNode;
+        sideGain: GainNode;
+        filters: BiquadFilterNode[];
+    };
     source?: MediaElementAudioSourceNode | AudioBufferSourceNode;
+    isMuted: boolean;
+    isSoloed: boolean;
 }
 
 class WebAudioEngine {
@@ -21,6 +31,8 @@ class WebAudioEngine {
     private isPlaying = false;
     private playhead = 0;
     private startTime = 0;
+    private soloedTracks: Set<string> = new Set();
+    private dspWorkletReady = false;
 
     constructor() {
         // We delay context creation until a user interaction (play)
@@ -42,19 +54,30 @@ class WebAudioEngine {
         if (!this.trackChains.has(trackId)) {
             const ctx = this.ctx!;
             const input = ctx.createGain();
+            const muteGain = ctx.createGain();
             const output = ctx.createGain();
             const panner = ctx.createStereoPanner();
             const analyser = ctx.createAnalyser();
 
             analyser.fftSize = 256;
 
-            // Initial chain: Input -> Pan -> Output -> Analyser -> Master
+            // Initial chain: Input -> Pan -> MuteGain -> Output -> Analyser -> Master
             input.connect(panner);
-            panner.connect(output);
+            panner.connect(muteGain);
+            muteGain.connect(output);
             output.connect(analyser);
             analyser.connect(this.masterGain!);
 
-            this.trackChains.set(trackId, { input, output, panner, analyser, inserts: [] });
+            this.trackChains.set(trackId, {
+                input,
+                muteGain,
+                output,
+                panner,
+                analyser,
+                inserts: [],
+                isMuted: false,
+                isSoloed: false
+            });
         }
         return this.trackChains.get(trackId)!;
     }
@@ -80,7 +103,56 @@ class WebAudioEngine {
         }
     }
 
+    /**
+     * Loads the Da Graba professional DSP suite (Compressor, Saturator, EQ).
+     * Call once on user interaction. The worklet runs C++ WASM on the audio thread.
+     */
+    async loadDaGrabaDSP(): Promise<boolean> {
+        if (this.dspWorkletReady) return true;
+        this.initContext();
+        try {
+            await this.ctx!.audioWorklet.addModule('/wasm/dagraba-dsp-worklet.js');
+            this.dspWorkletReady = true;
+            console.log('[WebAudioEngine] Da Graba DSP WASM worklet loaded.');
+            return true;
+        } catch (error) {
+            console.error('[WebAudioEngine] Failed to load Da Graba DSP worklet:', error);
+            return false;
+        }
+    }
+
+    /**
+     * Insert a WASM DSP plugin on a track.
+     * plugin: 'compressor' | 'saturator' | 'eq'
+     * Returns the AudioWorkletNode for parameter control.
+     */
+    async insertWasmPlugin(trackId: string, plugin: 'compressor' | 'saturator' | 'eq'): Promise<AudioWorkletNode | null> {
+        await this.loadDaGrabaDSP();
+        if (!this.dspWorkletReady || !this.ctx) return null;
+
+        const chain = this.getOrCreateTrack(trackId);
+
+        const node = new AudioWorkletNode(this.ctx, 'dagraba-dsp-processor', {
+            processorOptions: { plugin },
+            numberOfInputs: 1,
+            numberOfOutputs: 1,
+            outputChannelCount: [2]
+        });
+
+        // Insert into chain: after input, before panner
+        // For simplicity, chain the worklet between input and panner
+        const prevLast = chain.inserts.length > 0 ? chain.inserts[chain.inserts.length - 1] : chain.input;
+        try { prevLast.disconnect(chain.panner); } catch (e) { }
+        prevLast.connect(node);
+        node.connect(chain.panner);
+        chain.inserts.push(node);
+
+        console.log(`[WebAudioEngine] Inserted WASM ${plugin} on track ${trackId}`);
+        return node;
+    }
+
     play() {
+        if (this.isPlaying) return;
         this.initContext();
         this.isPlaying = true;
         this.startTime = this.ctx!.currentTime - this.playhead;
@@ -131,13 +203,32 @@ class WebAudioEngine {
 
     setTrackMute(trackId: string, isMuted: boolean) {
         const chain = this.getOrCreateTrack(trackId);
-        const gainValue = isMuted ? 0 : 1; // This should ideally be multiplied by the fader value
-        // For simplicity, we'll store the target gain elsewhere or just use 0/1 for now
-        // A better way is to have another GainNode for mute
+        chain.isMuted = isMuted;
+        this.updateRoutingLevels();
     }
 
     setTrackSolo(trackId: string, isSolo: boolean) {
-        // Dummy implementation for compilation
+        const chain = this.getOrCreateTrack(trackId);
+        chain.isSoloed = isSolo;
+
+        if (isSolo) {
+            this.soloedTracks.add(trackId);
+        } else {
+            this.soloedTracks.delete(trackId);
+        }
+
+        this.updateRoutingLevels();
+    }
+
+    private updateRoutingLevels() {
+        // A track is audible IF (no tracks are soloed OR it is soloed) AND (it is not muted)
+        const hasSolo = this.soloedTracks.size > 0;
+
+        this.trackChains.forEach((chain, id) => {
+            const shouldBeHeard = (hasSolo ? chain.isSoloed : true) && !chain.isMuted;
+            const targetGain = shouldBeHeard ? 1 : 0;
+            chain.muteGain.gain.setTargetAtTime(targetGain, this.ctx!.currentTime, 0.05);
+        });
     }
 
     moveAudioClip(clipId: string, newTime: number) {
@@ -154,6 +245,10 @@ class WebAudioEngine {
         this.initContext();
         const chain = this.getOrCreateTrack(trackId);
 
+        // Disconnect previous source associated with this track chain to prevent accumulation
+        if (chain.source) {
+            try { chain.source.disconnect(); } catch (e) { }
+        }
 
         let source = this.sourceNodeMap.get(element);
         if (!source) {
@@ -169,6 +264,121 @@ class WebAudioEngine {
         try { source.disconnect(); } catch (e) { }
         source.connect(chain.input);
         chain.source = source;
+
+        // Apply automatic stem separation if URL contains stem parameter
+        const url = new URL(element.src, window.location.href);
+        let stemType = url.searchParams.get('stem');
+
+        // Handle proxy URL case where stem parameter is encoded inside the 'url' parameter
+        if (!stemType) {
+            const innerUrlStr = url.searchParams.get('url');
+            if (innerUrlStr) {
+                try {
+                    // Try to parse as URL
+                    const innerUrl = new URL(innerUrlStr, window.location.href);
+                    stemType = innerUrl.searchParams.get('stem');
+                } catch (e) {
+                    // Fallback to simple query string parsing if it's just a path
+                    const match = innerUrlStr.match(/[?&]stem=([^&]+)/);
+                    if (match) stemType = match[1];
+                }
+            }
+        }
+
+        if (stemType) {
+            this.applyStemSeparation(trackId, stemType);
+        }
+    }
+
+    private applyStemSeparation(trackId: string, type: string) {
+        const chain = this.getOrCreateTrack(trackId);
+        const ctx = this.ctx!;
+
+        // Clean up previous stem DSP if any
+        if (chain.stemDSP) {
+            try {
+                chain.input.disconnect(chain.stemDSP.splitter);
+                chain.stemDSP.merger.disconnect();
+                chain.stemDSP.filters.forEach(f => f.disconnect());
+            } catch (e) { }
+        }
+
+        const splitter = ctx.createChannelSplitter(2);
+        const merger = ctx.createChannelMerger(2);
+        const midGain = ctx.createGain();
+        const sideGain = ctx.createGain();
+        const filters: BiquadFilterNode[] = [];
+
+        // Mid-Side Logic for Separation
+        // Mid = (L + R) / 2
+        // Side = (L - R) / 2
+        const midInverter = ctx.createGain();
+        midInverter.gain.value = -1;
+
+        splitter.connect(midGain, 0); // L
+        splitter.connect(midGain, 1); // R
+        midGain.gain.value = 0.5;
+
+        splitter.connect(sideGain, 0); // L
+        splitter.connect(midInverter, 1); // -R
+        midInverter.connect(sideGain);
+        sideGain.gain.value = 0.5;
+
+        // Routing based on Stem Type
+        const dspOutput = ctx.createGain();
+
+        if (type === 'vocal') {
+            // Vocals are usually centered (Mid channel)
+            const hp = ctx.createBiquadFilter();
+            hp.type = 'highpass';
+            hp.frequency.value = 250;
+
+            const lp = ctx.createBiquadFilter();
+            lp.type = 'lowpass';
+            lp.frequency.value = 4000;
+
+            const peak = ctx.createBiquadFilter();
+            peak.type = 'peaking';
+            peak.frequency.value = 3000;
+            peak.gain.value = 3;
+
+            midGain.connect(hp);
+            hp.connect(lp);
+            lp.connect(peak);
+            peak.connect(dspOutput);
+            filters.push(hp, lp, peak);
+
+            // Kill sides for isolation
+            sideGain.gain.value = 0;
+        } else if (type === 'beat' || type === 'bajo') {
+            // Beat/Bass are Mid heavy but need different EQ
+            const lp = ctx.createBiquadFilter();
+            lp.type = 'lowpass';
+            lp.frequency.value = type === 'bajo' ? 200 : 800;
+
+            midGain.connect(lp);
+            lp.connect(dspOutput);
+            filters.push(lp);
+            sideGain.gain.value = 0.1; // Minimal sides
+        } else {
+            // Melody/FX are often panned or wide (Sides)
+            const hp = ctx.createBiquadFilter();
+            hp.type = 'highpass';
+            hp.frequency.value = 400;
+
+            sideGain.connect(hp);
+            hp.connect(dspOutput);
+            filters.push(hp);
+            midGain.gain.value = 0.3; // Low mid to avoid echo
+        }
+
+        // Connect chain: Input -> Splitter -> (Mid/Side processing) -> dspOutput -> Panner
+        chain.input.disconnect();
+        chain.input.connect(splitter);
+        dspOutput.connect(chain.panner);
+
+        chain.stemDSP = { splitter, merger, midGain, sideGain, filters };
+        console.log(`[WebAudioEngine] Applied SSE separation for stem: ${type} on track: ${trackId}`);
     }
 
     /**

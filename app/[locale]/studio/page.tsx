@@ -8,8 +8,13 @@ import { PianoRoll } from '@/components/daw/PianoRoll';
 import { TransportBar } from '@/components/daw/TransportBar';
 import { SpectrumAnalyzer } from '@/components/daw/SpectrumAnalyzer';
 import { StudioChat } from '@/components/daw/StudioChat';
-import { Activity } from 'lucide-react';
+import { Activity, Layers } from 'lucide-react';
 import { PluginWindow } from '@/components/daw/PluginWindow';
+import { TrackTypeModal } from '@/components/daw/TrackTypeModal';
+import { StemExtractModal } from '@/components/daw/StemExtractModal';
+import { DrumPadMidi } from '@/components/daw/DrumPadMidi';
+import { MidiKeyboardComponent } from '@/components/daw/MidiKeyboardComponent';
+import { useState, useEffect } from 'react';
 
 export default function Studio() {
     const faders = useDAWStore((state) => state.faders);
@@ -20,12 +25,21 @@ export default function Studio() {
     const mixerBank = useDAWStore((state) => state.mixerBank);
     const setMixerBank = useDAWStore((state) => state.setMixerBank);
     const isFullMixer = useDAWStore((state) => state.isFullMixer);
+    const [showTrackModal, setShowTrackModal] = useState(false);
+    const [showStemModal, setShowStemModal] = useState(false);
+    const [hasHydrated, setHasHydrated] = useState(false);
 
-    // Every track has a corresponding fader with same ID
-    const activeFaders = faders;
+    useEffect(() => {
+        setHasHydrated(true);
+    }, []);
 
     const openPluginIds = useDAWStore((state) => state.openPluginIds);
     const closePlugin = useDAWStore((state) => state.closePlugin);
+
+    if (!hasHydrated) return null;
+
+    // Every track has a corresponding fader with same ID
+    const activeFaders = faders;
 
     return (
         <div className="flex flex-col h-full w-full pointer-events-auto bg-[#0A0A0C]">
@@ -41,9 +55,18 @@ export default function Studio() {
                         {tracks.map((track) => (
                             <DawTrackControl key={track.id} trackId={track.id} trackName={track.name} color={track.color} />
                         ))}
+
+                        {/* Extract Stems button */}
                         <button
-                            onClick={() => addTrack()}
-                            className="mt-4 mx-4 py-2 border border-dashed border-[#444] rounded text-[#888] hover:text-white hover:border-[#888] transition-colors text-xs font-bold tracking-widest flex items-center justify-center gap-2"
+                            onClick={() => setShowStemModal(true)}
+                            className="mt-4 mx-4 py-2 rounded bg-gradient-to-r from-cyan-600/20 to-blue-600/20 border border-cyan-500/30 text-cyan-400 hover:from-cyan-600/30 hover:to-blue-600/30 hover:border-cyan-400/50 transition-all text-[10px] font-black tracking-widest flex items-center justify-center gap-2"
+                        >
+                            <Layers size={12} /> EXTRAER STEMS
+                        </button>
+
+                        <button
+                            onClick={() => setShowTrackModal(true)}
+                            className="mt-2 mx-4 py-2 border border-dashed border-[#444] rounded text-[#888] hover:text-white hover:border-[#888] transition-colors text-xs font-bold tracking-widest flex items-center justify-center gap-2"
                         >
                             + NEW TRACK
                         </button>
@@ -61,50 +84,32 @@ export default function Studio() {
                 <div className={`w-full mt-auto flex flex-col items-center justify-end z-10 pb-0 overflow-hidden transition-all duration-300 ${isFullMixer ? 'h-full' : (activeBottomPanel === 'piano_roll' ? 'h-[60vh]' : 'h-[400px]')
                     }`}>
 
-                    {/* MIXER VIEW */}
+                    {/* MIXER VIEW - RESTORED AND SYNCED */}
                     {activeBottomPanel === 'mixer' && (
                         <div className="flex flex-col items-center w-full z-20">
-                            {/* Spectrum Analyzer in High-End Glass Frame */}
-                            <div className="w-full max-w-5xl h-[120px] mb-4 px-8 relative z-30 group">
-                                <div className="absolute inset-x-8 inset-y-0 bg-black/40 backdrop-blur-2xl border border-white/5 rounded-xl shadow-[0_0_50px_rgba(0,0,0,0.5)] overflow-hidden">
-                                    <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-cyan-400/20 to-transparent" />
+                            {/* Fast Feedback: Spectrum Analyzer */}
+                            <div className="w-full max-w-5xl h-[100px] mb-2 px-8 relative z-30">
+                                <div className="absolute inset-0 bg-black/40 backdrop-blur-xl border border-white/5 rounded-xl overflow-hidden">
                                     <SpectrumAnalyzer />
                                 </div>
                             </div>
 
-                            {/* Mixer Toolbar (Modern Bank Switch) */}
-                            <div className="w-full max-w-7xl px-8 flex justify-between items-center mb-4 relative z-20">
-                                <div className="flex flex-col">
-                                    <h4 className="text-[10px] font-black tracking-[0.3em] text-[#444] uppercase mb-1">Mixing Console</h4>
-                                    <div className="h-0.5 w-12 bg-orange-600/50" />
-                                </div>
-
-                                <div className="flex bg-[#0A0A0C] p-1 border border-white/5 rounded-lg shadow-2xl ring-1 ring-black/80">
-                                    <button
-                                        onClick={() => setMixerBank(1)}
-                                        className={`px-6 py-1.5 text-[10px] font-black tracking-widest rounded-md transition-all ${mixerBank === 1 ? 'bg-gradient-to-b from-[#444] to-[#222] text-white shadow-lg border border-white/10' : 'text-[#444] hover:text-[#888]'}`}
-                                    >
-                                        CH 1-16
-                                    </button>
-                                    <button
-                                        onClick={() => setMixerBank(2)}
-                                        className={`px-6 py-1.5 text-[10px] font-black tracking-widest rounded-md transition-all ${mixerBank === 2 ? 'bg-gradient-to-b from-[#444] to-[#222] text-white shadow-lg border border-white/10' : 'text-[#444] hover:text-[#888]'}`}
-                                    >
-                                        CH 17-32
-                                    </button>
-                                </div>
-                            </div>
-
-                            <div className="w-full bg-[#111] border-t-2 border-black relative overflow-x-auto custom-scrollbar shadow-[0_-20px_60px_rgba(0,0,0,0.8)]">
-                                <div className="absolute inset-0 bg-transparent opacity-10 mix-blend-overlay pointer-events-none" />
-
-                                <div className="min-w-fit mx-auto flex justify-center py-10 px-12 relative z-10 bg-gradient-to-b from-[#151517] to-[#0A0A0C]">
-                                    <div className="flex gap-1 w-full justify-center">
-                                        {activeFaders.slice((mixerBank - 1) * 16, mixerBank * 16).map((fader) => (
-                                            <Fader key={fader.id} id={fader.id} />
-                                        ))}
+                            {/* Mixer Strip */}
+                            <div className="w-full bg-[#111] border-t border-[#333] relative overflow-x-auto custom-scrollbar shadow-[0_-10px_40px_rgba(0,0,0,0.6)]">
+                                {faders.length === 0 ? (
+                                    <div className="flex flex-col items-center justify-center py-10 opacity-30 gap-2">
+                                        <Layers size={20} />
+                                        <p className="text-[10px] font-bold tracking-widest uppercase">Console Empty</p>
                                     </div>
-                                </div>
+                                ) : (
+                                    <div className="min-w-fit mx-auto flex justify-center py-6 px-10 relative z-10 bg-gradient-to-b from-[#151517] to-[#0A0A0C]">
+                                        <div className="flex gap-2 w-full justify-center">
+                                            {activeFaders.map((fader) => (
+                                                <Fader key={fader.id} id={fader.id} />
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     )}
@@ -113,6 +118,20 @@ export default function Studio() {
                     {activeBottomPanel === 'piano_roll' && (
                         <div className="w-full h-full relative z-20 transform-none">
                             <PianoRoll />
+                        </div>
+                    )}
+
+                    {/* DRUM PAD MIDI VIEW */}
+                    {activeBottomPanel === 'drums' && (
+                        <div className="w-full h-full relative z-20 p-4">
+                            <DrumPadMidi />
+                        </div>
+                    )}
+
+                    {/* VIRTUAL KEYBOARD (KEYS) VIEW */}
+                    {activeBottomPanel === 'keys' && (
+                        <div className="w-full h-full relative z-20 p-4 flex justify-center">
+                            <MidiKeyboardComponent />
                         </div>
                     )}
                 </div>
@@ -148,11 +167,11 @@ export default function Studio() {
                 // Find which fader/track this insert belongs to
                 const fader = faders.find(f => f.inserts.some(i => i.id === insertId));
                 const insert = fader?.inserts.find(i => i.id === insertId);
-                
+
                 if (!fader || !insert) return null;
 
                 return (
-                    <PluginWindow 
+                    <PluginWindow
                         key={insertId}
                         trackId={fader.id}
                         insert={insert}
@@ -160,6 +179,22 @@ export default function Studio() {
                     />
                 );
             })}
+
+            {/* TRACK TYPE MODAL */}
+            {showTrackModal && (
+                <TrackTypeModal
+                    onSelect={(type, name) => {
+                        addTrack(name, undefined, type);
+                        setShowTrackModal(false);
+                    }}
+                    onClose={() => setShowTrackModal(false)}
+                />
+            )}
+
+            {/* STEM EXTRACT MODAL */}
+            {showStemModal && (
+                <StemExtractModal onClose={() => setShowStemModal(false)} />
+            )}
         </div>
     );
 }

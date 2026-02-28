@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Mic2, LayoutDashboard, SlidersHorizontal, User, Settings, Wand2, Compass, Languages } from 'lucide-react';
 import { CloudStatusPanel } from './CloudStatusPanel';
+import { ThemeToggle } from './ThemeToggle';
 import { useTranslations, useLocale } from 'next-intl';
 
 const navItems = [
@@ -36,7 +37,9 @@ export function Sidebar() {
     };
 
     return (
-        <aside className="w-16 lg:w-48 h-full bg-[#0B1015]/80 backdrop-blur-xl border-r border-white/10 flex flex-col justify-between py-6 z-50 shadow-[10px_0_30px_rgba(0,0,0,0.8)] relative">
+        <aside className="w-16 lg:w-48 h-full flex flex-col justify-between py-6 z-50 relative"
+            style={{ background: 'var(--sidebar-bg)', borderRight: '1px solid var(--sidebar-border)', boxShadow: '10px 0 30px rgba(0,0,0,0.6)' }}
+        >
             <div className="flex flex-col items-center lg:items-start w-full">
                 {/* Logo Text/Icon */}
                 <div className="w-full px-0 lg:px-6 mb-12 flex justify-center lg:justify-start">
@@ -103,10 +106,22 @@ export function Sidebar() {
                 </div>
 
                 <div className="w-full px-2 lg:px-4">
-                    <button className="flex items-center gap-3 px-3 lg:px-4 py-3 rounded-lg w-full text-silver-dark hover:text-white hover:bg-white/5 transition-all group">
+                    <Link
+                        href={getLocalizedHref('/settings')}
+                        className={`flex items-center gap-3 px-3 lg:px-4 py-3 rounded-lg w-full transition-all duration-300 group border ${pathname.startsWith(getLocalizedHref('/settings'))
+                                ? 'bg-cyan-glow/10 border-cyan-glow/30 text-cyan-glow'
+                                : 'text-silver-dark hover:text-white hover:bg-white/5 border-transparent'
+                            }`}
+                    >
                         <Settings size={20} className="group-hover:rotate-90 transition-transform duration-500" />
                         <span className="hidden lg:block text-sm font-medium tracking-wide">{t('settings')}</span>
-                    </button>
+                    </Link>
+                </div>
+
+                {/* Theme Toggle */}
+                <div className="w-full px-2 lg:px-4 flex items-center gap-3 px-3 lg:px-5 py-2">
+                    <span className="hidden lg:block text-[10px] font-bold uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>Tema</span>
+                    <ThemeToggle />
                 </div>
             </div>
         </aside>

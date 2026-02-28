@@ -59,8 +59,10 @@ export function GlobalFooterPlayer() {
         if (audioRef.current) {
             const current = audioRef.current.currentTime;
             const dur = audioRef.current.duration;
-            setProgress((current / dur) * 100);
-            setDuration(dur);
+            if (isFinite(dur) && dur > 0) {
+                setProgress((current / dur) * 100);
+                setDuration(dur);
+            }
         }
     };
 
@@ -121,10 +123,12 @@ export function GlobalFooterPlayer() {
                     </span>
                     <input
                         type="range"
-                        value={progress}
+                        value={isFinite(progress) ? progress : 0}
                         onChange={handleSeek}
+                        min={0}
+                        max={100}
                         className="flex-1 h-1 bg-white/10 rounded-full appearance-none cursor-pointer accent-white"
-                        style={{ background: `linear-gradient(to right, white ${progress}%, rgba(255,255,255,0.1) ${progress}%)` }}
+                        style={{ background: `linear-gradient(to right, white ${isFinite(progress) ? progress : 0}%, rgba(255,255,255,0.1) ${isFinite(progress) ? progress : 0}%)` }}
                     />
                     <span className="text-[10px] font-mono text-white/40 w-10">
                         {Math.floor(duration / 60)}:

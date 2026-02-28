@@ -19,8 +19,9 @@ export function Fader({ id }: FaderProps) {
     const setFaderValue = useDAWStore((state) => state.setFaderValue);
     const toggleSolo = useDAWStore((state) => state.toggleSolo);
     const toggleMute = useDAWStore((state) => state.toggleMute);
+    const setPan = useDAWStore((state) => state.setPan);
     const isFullMixer = useDAWStore((state) => state.isFullMixer);
-    
+
     const addInsert = useDAWStore((state) => state.addInsert);
     const openPlugin = useDAWStore((state) => state.openPlugin);
     const toggleInsertBypass = useDAWStore((state) => state.toggleInsertBypass);
@@ -101,7 +102,7 @@ export function Fader({ id }: FaderProps) {
                 })}
 
                 {pickerOpen && (
-                    <PluginPicker 
+                    <PluginPicker
                         onSelect={(pluginId) => addInsert(id, pluginId)}
                         onClose={() => setPickerOpen(false)}
                     />
@@ -134,6 +135,35 @@ export function Fader({ id }: FaderProps) {
                     >
                         M
                     </button>
+                </div>
+
+                {/* Pan Knob */}
+                <div className="flex flex-col items-center gap-1 w-full mt-1">
+                    <div className="flex items-center justify-between w-full px-1">
+                        <span className="text-[7px] font-black text-white/20">L</span>
+                        <span className={`text-[9px] font-mono font-black ${fader.pan === 0 ? 'text-cyan-400' : 'text-orange-400'}`}>
+                            {fader.pan === 0 ? 'C' : fader.pan > 0 ? `R${fader.pan}` : `L${Math.abs(fader.pan)}`}
+                        </span>
+                        <span className="text-[7px] font-black text-white/20">R</span>
+                    </div>
+                    <input
+                        type="range"
+                        min={-100}
+                        max={100}
+                        step={1}
+                        value={fader.pan}
+                        onChange={(e) => setPan(id, parseInt(e.target.value))}
+                        onDoubleClick={() => setPan(id, 0)}
+                        className="w-full h-1 accent-cyan-400 cursor-pointer"
+                        style={{
+                            background: fader.pan === 0
+                                ? 'rgba(255,255,255,0.1)'
+                                : fader.pan > 0
+                                    ? `linear-gradient(to right, rgba(255,255,255,0.1) 50%, rgb(249,115,22) ${50 + fader.pan / 2}%, rgba(255,255,255,0.05) ${50 + fader.pan / 2}%)`
+                                    : `linear-gradient(to right, rgba(255,255,255,0.05) ${50 + fader.pan / 2}%, rgb(6,182,212) ${50 + fader.pan / 2}%, rgba(255,255,255,0.1) 50%)`
+                        }}
+                    />
+                    <span className="text-[6px] font-black text-white/10 uppercase tracking-widest">Pan  ·  dbl-click reset</span>
                 </div>
             </div>
 

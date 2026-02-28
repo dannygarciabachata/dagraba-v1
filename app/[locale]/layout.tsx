@@ -6,6 +6,7 @@ import { notFound } from 'next/navigation';
 
 import { Sidebar } from "@/components/ui/Sidebar";
 import { GlobalFooterPlayer } from "@/components/ui/GlobalFooterPlayer";
+import { ThemeProvider } from "@/components/ui/ThemeProvider";
 
 export const metadata: Metadata = {
   title: "DA GRABA STUDIO V1",
@@ -30,27 +31,29 @@ export default async function RootLayout({
   const messages = await getMessages();
 
   return (
-    <html lang={locale} className="dark">
-      <body className="antialiased h-screen w-screen overflow-hidden flex bg-[#050505] text-silver-light selection:bg-cyan-glow/30 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-neutral-800/20 via-[#050505] to-black">
+    <html lang={locale}>
+      <body className="antialiased h-screen w-screen overflow-hidden flex text-silver-light selection:bg-cyan-glow/30"
+        style={{ background: 'var(--bg-base)', color: 'var(--text-primary)' }}
+      >
         <NextIntlClientProvider messages={messages}>
-          {/* Immersive Background Image/Texture layer */}
-          <div className="absolute inset-0 pointer-events-none z-0">
-            {/* Ambient noise for texture */}
-            <div className="absolute inset-0 bg-[url('/noise.png')] opacity-20 mix-blend-overlay" />
-            {/* Fake studio window glow reflection at the top */}
-            <div className="absolute top-0 inset-x-0 h-96 bg-gradient-to-b from-cyan-glow/5 to-transparent blur-3xl opacity-50" />
-          </div>
+          <ThemeProvider>
+            {/* Ambient background layer */}
+            <div className="absolute inset-0 pointer-events-none z-0">
+              <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.08] mix-blend-overlay" />
+              <div className="absolute top-0 inset-x-0 h-96 bg-gradient-to-b from-cyan-glow/5 to-transparent blur-3xl opacity-40" />
+            </div>
 
-          {/* Sidebar Navigation */}
-          <Sidebar />
+            {/* Sidebar Navigation */}
+            <Sidebar />
 
-          {/* Fullscreen App Container without sidebars */}
-          <main className="relative z-10 flex-1 h-full flex flex-col overflow-hidden">
-            {children}
-          </main>
+            {/* Fullscreen App Container */}
+            <main className="relative z-10 flex-1 h-full flex flex-col overflow-hidden">
+              {children}
+            </main>
 
-          {/* Persistent Audio Player */}
-          <GlobalFooterPlayer />
+            {/* Persistent Audio Player */}
+            <GlobalFooterPlayer />
+          </ThemeProvider>
         </NextIntlClientProvider>
       </body>
     </html>

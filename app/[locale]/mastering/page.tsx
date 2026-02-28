@@ -3,19 +3,21 @@
 import { useState, useRef, useEffect } from 'react';
 import { StudioMonitor } from '@/components/daw/StudioMonitor';
 import { MasteringKnob } from '@/components/daw/MasteringKnob';
-import { Activity, Power, SlidersHorizontal, Upload, Download, Play, Pause, Volume2, Repeat, Music, History, Save, ChevronLeft, MessageSquare, Sparkles, MoreHorizontal, Layers, Trash2, X } from 'lucide-react';
+import { Activity, Power, SlidersHorizontal, Upload, Download, Play, Pause, Volume2, Repeat, Music, History, Save, ChevronLeft, MessageSquare, Sparkles, MoreHorizontal, Layers, Trash2, X, ArrowRight } from 'lucide-react';
 import { useMasteringStore, MasteringSettings } from '@/store/useMasteringStore';
 import { audioEngine } from '@/lib/audio-engine-bridge';
 import { StudioChat } from '@/components/daw/StudioChat';
 import { SpectrumAnalyzer } from '@/components/daw/SpectrumAnalyzer';
 import { AudioStorage } from '@/lib/audio/AudioStorage';
 import Link from 'next/link';
-import { useParams, useSearchParams } from 'next/navigation';
+import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import { useCreatorStore } from '@/store/useCreatorStore';
+import { useDAWStore } from '@/store/useDAWStore';
 
 export default function Mastering() {
     const params = useParams();
     const searchParams = useSearchParams();
+    const router = useRouter();
     const locale = params.locale as string;
     const loadId = searchParams.get('load');
 
@@ -131,6 +133,14 @@ export default function Mastering() {
 
     const { history, currentModule, setCurrentModule, addToHistory, getProjectById, cleanupOldHistory } = useMasteringStore();
     const creatorTracks = useCreatorStore((state) => state.tracks);
+    const addTrackToDAW = useDAWStore((state) => state.addTrack);
+
+    const sendStemToStudio = (src: string | null | undefined, name: string) => {
+        if (!src) { alert('Esta pista aún no tiene audio disponible.'); return; }
+        addTrackToDAW(name, undefined, 'stereo', src);
+        setStemsModalOpen(false);
+        router.push(`/${locale}/studio`);
+    };
 
     useEffect(() => {
         cleanupOldHistory();
@@ -502,9 +512,16 @@ export default function Mastering() {
         <div className="flex flex-col w-full h-full items-center justify-start px-4 md:px-12 lg:px-24 py-4 relative overflow-y-auto overflow-x-hidden pb-32 pointer-events-auto custom-scrollbar">
             <audio
                 ref={audioRef}
-                src={audioUrl || undefined}
+                src={
+                    audioUrl
+                        ? (audioUrl.startsWith('blob:') || audioUrl.startsWith('data:'))
+                            ? audioUrl
+                            : `/api/audio-proxy?url=${encodeURIComponent(audioUrl)}`
+                        : undefined
+                }
                 onTimeUpdate={handleTimeUpdate}
                 onEnded={() => setIsPlaying(false)}
+                crossOrigin="anonymous"
             />
 
             {/* Background Studio Window Blur effect */}
@@ -544,8 +561,8 @@ export default function Mastering() {
                                         if (audioRef.current) audioRef.current.currentTime = 0;
                                     }}
                                     className={`flex flex-col min-w-[140px] px-4 py-2 rounded-xl transition-all border ${selectedSong === project.name
-                                            ? 'bg-cyan-500/10 border-cyan-500/30 text-white shadow-[0_0_15px_rgba(6,182,212,0.1)]'
-                                            : 'bg-white/5 border-transparent text-white/40 hover:bg-white/10'
+                                        ? 'bg-cyan-500/10 border-cyan-500/30 text-white shadow-[0_0_15px_rgba(6,182,212,0.1)]'
+                                        : 'bg-white/5 border-transparent text-white/40 hover:bg-white/10'
                                         }`}
                                 >
                                     <span className="text-[10px] font-bold truncate">{project.name}</span>
@@ -580,8 +597,8 @@ export default function Mastering() {
                                         if (audioRef.current) audioRef.current.currentTime = 0;
                                     }}
                                     className={`flex flex-col min-w-[140px] px-4 py-2 rounded-xl transition-all border ${selectedSong === track.title
-                                            ? 'bg-orange-500/10 border-orange-500/30 text-white shadow-[0_0_15px_rgba(255,107,0,0.1)]'
-                                            : 'bg-white/5 border-transparent text-white/40 hover:bg-white/10'
+                                        ? 'bg-orange-500/10 border-orange-500/30 text-white shadow-[0_0_15px_rgba(255,107,0,0.1)]'
+                                        : 'bg-white/5 border-transparent text-white/40 hover:bg-white/10'
                                         }`}
                                 >
                                     <span className="text-[10px] font-bold truncate">{track.title}</span>
@@ -662,8 +679,8 @@ export default function Mastering() {
                                     onClick={startAIMastering}
                                     disabled={isAIMastering}
                                     className={`px-3 py-1 rounded border flex items-center gap-2 text-xs font-bold tracking-widest transition-all ${isAIMastering
-                                            ? 'bg-orange-500/20 border-orange-500 text-orange-400 animate-pulse'
-                                            : 'bg-indigo-500/20 border-indigo-500/50 text-indigo-300 hover:bg-indigo-500/40 hover:text-white shadow-[0_0_15px_rgba(99,102,241,0.2)]'
+                                        ? 'bg-orange-500/20 border-orange-500 text-orange-400 animate-pulse'
+                                        : 'bg-indigo-500/20 border-indigo-500/50 text-indigo-300 hover:bg-indigo-500/40 hover:text-white shadow-[0_0_15px_rgba(99,102,241,0.2)]'
                                         }`}
                                 >
                                     <Sparkles size={12} /> {isAIMastering ? 'AI WORKING' : 'AI MASTER'}
@@ -751,8 +768,8 @@ export default function Mastering() {
                                                 }
                                             }}
                                             className={`px-8 py-1.5 rounded-full text-xs font-medium tracking-wide transition-all ${selectedGenre === genre
-                                                    ? 'bg-blue-600 shadow-[0_0_15px_rgba(37,99,235,0.6)] text-white'
-                                                    : 'text-white/40 hover:text-white/80'
+                                                ? 'bg-blue-600 shadow-[0_0_15px_rgba(37,99,235,0.6)] text-white'
+                                                : 'text-white/40 hover:text-white/80'
                                                 }`}
                                         >
                                             {genre === 'DGB_BOLERO' ? 'Warm' : genre === 'DGB_BACHATA' ? 'Balanced' : 'Open'}
@@ -904,8 +921,8 @@ export default function Mastering() {
                                                 <div
                                                     key={i}
                                                     className={`w-1 h-3 rounded-full transition-all duration-300 ${isPlaying && i < (isPlaying ? 5 + Math.random() * 6 : 0) ? 'bg-green-500/80 shadow-[0_0_5px_rgba(34,197,94,0.3)]' :
-                                                            isPlaying && i < 10 ? 'bg-yellow-500/80' :
-                                                                'bg-white/5'
+                                                        isPlaying && i < 10 ? 'bg-yellow-500/80' :
+                                                            'bg-white/5'
                                                         }`}
                                                 />
                                             ))}
@@ -919,7 +936,7 @@ export default function Mastering() {
                                                 <div
                                                     key={i}
                                                     className={`w-1 h-3 rounded-full transition-all duration-300 ${isPlaying && i < (isPlaying ? 4 + Math.random() * 8 : 0) ? 'bg-green-500/80 shadow-[0_0_5px_rgba(34,197,94,0.3)]' :
-                                                            'bg-white/5'
+                                                        'bg-white/5'
                                                         }`}
                                                 />
                                             ))}
@@ -993,8 +1010,8 @@ export default function Mastering() {
                 <button
                     onClick={() => setChatOpen(!chatOpen)}
                     className={`group flex items-center gap-4 px-8 py-4 rounded-full border transition-all duration-700 shadow-[0_20px_60px_rgba(0,0,0,0.6)] hover:shadow-[0_25px_80px_rgba(6,182,212,0.3)] ${chatOpen
-                            ? 'bg-orange-600 border-orange-400/50 scale-95'
-                            : 'bg-gradient-to-r from-cyan-600 to-blue-700 border-white/20 hover:scale-110 active:scale-95'
+                        ? 'bg-orange-600 border-orange-400/50 scale-95'
+                        : 'bg-gradient-to-r from-cyan-600 to-blue-700 border-white/20 hover:scale-110 active:scale-95'
                         }`}
                 >
                     <div className="relative">
@@ -1030,18 +1047,26 @@ export default function Mastering() {
                         <div className="p-6 flex flex-col gap-3 max-h-[400px] overflow-y-auto custom-scrollbar">
                             {/* Current loaded track */}
                             {audioUrl && (
-                                <div className="flex items-center justify-between p-4 bg-white/5 border border-cyan-500/20 rounded-xl">
+                                <div className="flex flex-col gap-3 p-4 bg-white/5 border border-cyan-500/20 rounded-xl">
                                     <div className="flex flex-col">
                                         <span className="text-sm font-bold text-white">{selectedSong}</span>
                                         <span className="text-[9px] text-cyan-400/60 uppercase tracking-widest mt-0.5">Pista actual en consola</span>
                                     </div>
-                                    <button
-                                        onClick={() => downloadStem(audioUrl, selectedSong)}
-                                        disabled={stemDownloading}
-                                        className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-500 disabled:opacity-50 text-white rounded-xl text-[10px] font-black tracking-widest uppercase transition-all"
-                                    >
-                                        <Download size={12} /> Descargar
-                                    </button>
+                                    <div className="flex gap-2">
+                                        <button
+                                            onClick={() => downloadStem(audioUrl, selectedSong)}
+                                            disabled={stemDownloading}
+                                            className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-[#1A1A1A] hover:bg-[#222] border border-[#333] disabled:opacity-50 text-white/70 rounded-xl text-[10px] font-bold tracking-widest uppercase transition-all"
+                                        >
+                                            <Download size={12} /> Descargar
+                                        </button>
+                                        <button
+                                            onClick={() => sendStemToStudio(audioUrl, selectedSong)}
+                                            className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white rounded-xl text-[10px] font-black tracking-widest uppercase transition-all shadow-[0_0_15px_rgba(6,182,212,0.25)]"
+                                        >
+                                            <ArrowRight size={12} /> Abrir en Studio
+                                        </button>
+                                    </div>
                                 </div>
                             )}
 
@@ -1050,21 +1075,30 @@ export default function Mastering() {
                                 <>
                                     <p className="text-[9px] font-bold text-white/30 uppercase tracking-widest px-1 mt-2">Canciones de IA Creator</p>
                                     {creatorTracks.map(track => (
-                                        <div key={track.id} className={`flex items-center justify-between p-4 rounded-xl border transition-all ${stemsTrackId === track.id
-                                                ? 'bg-orange-500/10 border-orange-500/30'
-                                                : 'bg-white/3 border-white/5 hover:bg-white/5'
+                                        <div key={track.id} className={`flex flex-col gap-3 p-4 rounded-xl border transition-all ${stemsTrackId === track.id
+                                            ? 'bg-orange-500/10 border-orange-500/30'
+                                            : 'bg-white/3 border-white/5 hover:bg-white/5'
                                             }`}>
                                             <div className="flex flex-col">
                                                 <span className="text-sm font-bold text-white">{track.title}</span>
                                                 <span className="text-[9px] text-white/30 uppercase tracking-widest mt-0.5">{track.style || 'AI Generated'}</span>
                                             </div>
-                                            <button
-                                                onClick={() => downloadStem(track.streamAudioUrl || track.url, track.title)}
-                                                disabled={stemDownloading || (!track.url && !track.streamAudioUrl)}
-                                                className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-500 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl text-[10px] font-black tracking-widest uppercase transition-all"
-                                            >
-                                                <Download size={12} /> {(!track.url && !track.streamAudioUrl) ? 'Procesando...' : 'Descargar'}
-                                            </button>
+                                            <div className="flex gap-2">
+                                                <button
+                                                    onClick={() => downloadStem(track.streamAudioUrl || track.url, track.title)}
+                                                    disabled={stemDownloading || (!track.url && !track.streamAudioUrl)}
+                                                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-[#1A1A1A] hover:bg-[#222] border border-[#333] disabled:opacity-40 disabled:cursor-not-allowed text-white/70 rounded-xl text-[10px] font-bold tracking-widest uppercase transition-all"
+                                                >
+                                                    <Download size={12} /> {(!track.url && !track.streamAudioUrl) ? 'Procesando...' : 'Descargar'}
+                                                </button>
+                                                <button
+                                                    onClick={() => sendStemToStudio(track.streamAudioUrl || track.url, track.title)}
+                                                    disabled={!track.url && !track.streamAudioUrl}
+                                                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl text-[10px] font-black tracking-widest uppercase transition-all shadow-[0_0_15px_rgba(6,182,212,0.25)]"
+                                                >
+                                                    <ArrowRight size={12} /> Abrir en Studio
+                                                </button>
+                                            </div>
                                         </div>
                                     ))}
                                 </>
