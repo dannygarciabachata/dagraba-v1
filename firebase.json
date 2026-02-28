@@ -1,0 +1,10 @@
+{
+  "auth": {
+    "providers": {
+      "googleSignIn": {
+        "oAuthBrandDisplayName": "Da Graba Studio",
+        "supportEmail": "dagrabastudio@gmail.com"
+      }
+    }
+  }
+}

@@ -354,6 +354,73 @@ html.light {
     --tw-gradient-to: #FFFFFF !important;
   }
 
+  /* === Additional background fixes === */
+  .bg-black {
+    background-color: #F8F8FA !important;
+  }
+
+  .bg-black\/10 {
+    background-color: rgba(0, 0, 0, 0.05) !important;
+  }
+
+  .bg-black\/20 {
+    background-color: rgba(0, 0, 0, 0.1) !important;
+  }
+
+  .bg-black\/30 {
+    background-color: rgba(0, 0, 0, 0.15) !important;
+  }
+
+  .bg-black\/40 {
+    background-color: rgba(0, 0, 0, 0.2) !important;
+  }
+
+  .bg-black\/50 {
+    background-color: rgba(0, 0, 0, 0.25) !important;
+  }
+
+  .bg-black\/60 {
+    background-color: rgba(0, 0, 0, 0.3) !important;
+  }
+
+  .bg-black\/80 {
+    background-color: rgba(0, 0, 0, 0.4) !important;
+  }
+
+  .bg-black\/90 {
+    background-color: rgba(0, 0, 0, 0.45) !important;
+  }
+
+  /* Protect solid buttons and gradients from having black text */
+  .bg-orange-600 .text-white,
+  .bg-orange-600.text-white,
+  .bg-orange-500 .text-white,
+  .bg-orange-500.text-white,
+  .bg-blue-600 .text-white,
+  .bg-blue-600.text-white,
+  .bg-blue-500 .text-white,
+  .bg-blue-500.text-white,
+  .bg-purple-600 .text-white,
+  .bg-purple-600.text-white,
+  .bg-green-600 .text-white,
+  .bg-green-600.text-white,
+  .bg-red-600 .text-white,
+  .bg-red-600.text-white,
+  [class*="from-orange-"] .text-white,
+  [class*="from-orange-"].text-white,
+  [class*="from-blue-"] .text-white,
+  [class*="from-blue-"].text-white,
+  [class*="from-indigo-"] .text-white,
+  [class*="from-indigo-"].text-white,
+  [class*="from-purple-"] .text-white,
+  [class*="from-purple-"].text-white,
+  [class*="from-cyan-"] .text-white,
+  [class*="from-cyan-"].text-white,
+  [class*="bg-gradient-to"] .text-white,
+  [class*="bg-gradient-to"].text-white {
+    color: #FFFFFF !important;
+  }
+
   /* === Text overrides === */
   .text-white {
     color: #111111 !important;

@@ -2,10 +2,11 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Mic2, LayoutDashboard, SlidersHorizontal, User, Settings, Wand2, Compass, Languages } from 'lucide-react';
+import { Mic2, LayoutDashboard, SlidersHorizontal, User, Settings, Wand2, Compass, Languages, LogIn, LogOut } from 'lucide-react';
 import { CloudStatusPanel } from './CloudStatusPanel';
 import { ThemeToggle } from './ThemeToggle';
 import { useTranslations, useLocale } from 'next-intl';
+import { useAuth } from '@/context/AuthContext';
 
 const navItems = [
     { id: 'dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -24,6 +25,8 @@ export function Sidebar() {
     const tl = useTranslations('Languages');
     const pathname = usePathname();
     const currentLocale = useLocale();
+
+    const { user, logout, setLoginModalOpen } = useAuth();
 
     // Helper to get localized href
     const getLocalizedHref = (href: string) => `/${currentLocale}${href}`;
@@ -105,7 +108,7 @@ export function Sidebar() {
                     </div>
                 </div>
 
-                <div className="w-full px-2 lg:px-4">
+                <div className="w-full px-2 lg:px-4 flex flex-col gap-2">
                     <Link
                         href={getLocalizedHref('/settings')}
                         className={`flex items-center gap-3 px-3 lg:px-4 py-3 rounded-lg w-full transition-all duration-300 group border ${pathname.startsWith(getLocalizedHref('/settings'))
@@ -116,6 +119,24 @@ export function Sidebar() {
                         <Settings size={20} className="group-hover:rotate-90 transition-transform duration-500" />
                         <span className="hidden lg:block text-sm font-medium tracking-wide">{t('settings')}</span>
                     </Link>
+
+                    {user ? (
+                        <button
+                            onClick={() => logout()}
+                            className="flex items-center justify-start gap-3 px-3 lg:px-4 py-3 mb-2 rounded-lg w-full transition-all duration-300 group border text-red-500/80 hover:text-red-400 hover:bg-red-500/10 border-transparent cursor-pointer"
+                        >
+                            <LogOut size={20} className="group-hover:-translate-x-1 transition-transform duration-300" />
+                            <span className="hidden lg:block text-sm font-medium tracking-wide uppercase text-[10px]">Log Out</span>
+                        </button>
+                    ) : (
+                        <button
+                            onClick={() => setLoginModalOpen(true)}
+                            className="flex items-center justify-start gap-3 px-3 lg:px-4 py-3 mb-2 rounded-lg w-full transition-all duration-300 group border text-orange-500 hover:text-orange-400 hover:bg-orange-500/10 border-transparent cursor-pointer"
+                        >
+                            <LogIn size={20} className="group-hover:translate-x-1 transition-transform duration-300" />
+                            <span className="hidden lg:block text-sm font-medium tracking-wide uppercase text-[10px]">Sign In</span>
+                        </button>
+                    )}
                 </div>
 
                 {/* Theme Toggle */}
