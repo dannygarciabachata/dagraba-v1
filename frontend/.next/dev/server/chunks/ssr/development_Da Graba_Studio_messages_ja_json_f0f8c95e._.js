@@ -1,7 +1,0 @@
-module.exports = [
-"[project]/development/Da Graba_Studio/messages/ja.json (json)", ((__turbopack_context__) => {
-
-__turbopack_context__.v({"Explorer":{"title":"エクスプローラー","unlimitedStreaming":"無制限ストリーミング","freeDownloads":"無料ダウンロード","noCopyright":"著作権フリー","royaltyFree":"ロイヤリティフリー","radioTitle":"DA GRABAラジオで聴く","trending":"トレンド","updatedToday":"今日更新","beats":"ビーツ","filmTv":"映画・ゲーム・TV","sfx":"効果音","live":"ライブ","listeners":"視聴中","likes":"いいね"},"Player":{"untitled":"無題","aiGenerated":"AI生成"},"Playlist":{"addToPlaylist":"プレイリストに追加","selectPlaylist":"\"{track}\" のプレイリストを選択","noPlaylists":"プレイリストが見つかりません","createNew":"新しいプレイリストを作成","namePlaceholder":"プレイリスト名","create":"作成","creating":"作成中...","cancel":"キャンセル","added":"プレイリストに追加しました！","error":"追加エラー"},"Common":{"play":"再生","pause":"一時停止"},"Navigation":{"dashboard":"ダッシュボード","explorer":"エクスプローラー","planer":"プランナー","crear":"作成","studio":"スタジオ","mastering":"マスタリング","profile":"プロフィール","settings":"設定"},"Languages":{"en":"English","es":"Español","pt":"Português","fr":"Français","de":"Deutsch","it":"Italiano","ja":"日本語"}});}),
-];
-
-//# sourceMappingURL=development_Da%20Graba_Studio_messages_ja_json_f0f8c95e._.js.map

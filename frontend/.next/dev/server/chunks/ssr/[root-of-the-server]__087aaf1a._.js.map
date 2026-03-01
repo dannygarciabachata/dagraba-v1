@@ -1,6 +1,0 @@
-{
-  "version": 3,
-  "sources": [],
-  "sections": [
-    {"offset": {"line": 18, "column": 0}, "map": {"version":3,"sources":["file:///Users/odgmusic/development/Da%20Graba_Studio/app/dashboard/page.tsx"],"sourcesContent":["export default function Dashboard() {\n    return (\n        <div className=\"flex flex-col gap-6\">\n            <header>\n                <h1 className=\"text-3xl font-bold tracking-tight\">Dashboard</h1>\n                <p className=\"text-silver-dark mt-1\">Overview of your recent sessions and AI tasks.</p>\n            </header>\n            <div className=\"flex-1 glass-panel rounded-xl flex items-center justify-center min-h-[500px]\">\n                <p className=\"text-silver-dark\">Dashboard content pending...</p>\n            </div>\n        </div>\n    );\n}\n"],"names":[],"mappings":";;;;;;AAAe,SAAS;IACpB,qBACI,iRAAC;QAAI,WAAU;;0BACX,iRAAC;;kCACG,iRAAC;wBAAG,WAAU;kCAAoC;;;;;;kCAClD,iRAAC;wBAAE,WAAU;kCAAwB;;;;;;;;;;;;0BAEzC,iRAAC;gBAAI,WAAU;0BACX,cAAA,iRAAC;oBAAE,WAAU;8BAAmB;;;;;;;;;;;;;;;;;AAIhD"}}]
-}
