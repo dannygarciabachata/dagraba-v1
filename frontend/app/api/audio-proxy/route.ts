@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+export const runtime = 'edge';
+
 export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const audioUrl = searchParams.get('url');
@@ -21,10 +23,9 @@ export async function GET(req: NextRequest) {
             throw new Error(`Failed to fetch audio: ${response.statusText}`);
         }
 
-        const audioData = await response.arrayBuffer();
-
-        // Return the audio data with appropriate headers to bypass CORS in the browser
-        return new NextResponse(audioData, {
+        // Return the readable stream directly instead of buffering in memory
+        // This prevents Vercel Serverless Function 4.5MB limits and timeouts
+        return new NextResponse(response.body, {
             headers: {
                 'Content-Type': response.headers.get('Content-Type') || 'audio/mpeg',
                 'Access-Control-Allow-Origin': '*',
