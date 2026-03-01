@@ -3,7 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Mic2, LayoutDashboard, SlidersHorizontal, User, Settings, Wand2, Compass, Languages, LogIn, LogOut } from 'lucide-react';
+import { Mic2, LayoutDashboard, SlidersHorizontal, User, Settings, Wand2, Compass, Languages, LogIn, LogOut, Library, Bell } from 'lucide-react';
 import { CloudStatusPanel } from './CloudStatusPanel';
 import { ThemeToggle } from './ThemeToggle';
 import { useTranslations, useLocale } from 'next-intl';
@@ -18,6 +18,8 @@ const navItems = [
     { id: 'crear', href: '/crear', icon: Wand2 },
     { id: 'studio', href: '/studio', icon: SlidersHorizontal },
     { id: 'mastering', href: '/mastering', icon: SlidersHorizontal },
+    { id: 'library', href: '/library', icon: Library },
+    { id: 'notifications', href: '/notifications', icon: Bell },
     { id: 'profile', href: '/profile', icon: User },
 ];
 
@@ -177,12 +179,15 @@ export function Sidebar() {
                 </div>
 
                 {/* Legal Links Footer */}
-                <div className="hidden lg:flex flex-col items-center gap-2 mt-4 text-[9px] text-white/40 font-mono tracking-widest uppercase pb-2">
+                <div className="hidden lg:flex flex-col items-center gap-2 mt-4 text-[9px] text-gray-300 font-mono tracking-widest uppercase pb-2 text-center">
                     <div className="flex gap-3">
                         <Link href={getLocalizedHref('/terms')} className="hover:text-cyan-400 transition-colors">Términos</Link>
                         <Link href={getLocalizedHref('/privacy')} className="hover:text-cyan-400 transition-colors">Privacidad</Link>
+                        <Link href={getLocalizedHref('/cookies')} className="hover:text-cyan-400 transition-colors">Cookies</Link>
                     </div>
-                    <Link href={getLocalizedHref('/cookies')} className="hover:text-cyan-400 transition-colors">Cookies</Link>
+                    <div className="mt-1 opacity-80">
+                        © 2026 Da Graba LLC by iHOSTcast Ltd. All Rights Reserved.
+                    </div>
                 </div>
             </div>
         </aside>

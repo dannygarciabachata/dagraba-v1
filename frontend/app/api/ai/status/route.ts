@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
 import { KieService } from '@/lib/ai/services/kie-service';
 import { MusicGptService } from '@/lib/ai/services/musicgpt-service';
+import { DagrabaService } from '@/lib/ai/services/dagraba-service';
 import { BaseMusicService } from '@/lib/ai/types';
 
 export async function GET(request: Request) {
@@ -18,6 +19,9 @@ export async function GET(request: Request) {
         let service: BaseMusicService;
 
         switch (provider.toLowerCase()) {
+            case 'dagraba':
+                service = new DagrabaService();
+                break;
             case 'musicgpt':
                 service = new MusicGptService();
                 break;

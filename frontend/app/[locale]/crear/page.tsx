@@ -1,13 +1,14 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import {
     Play, Pause, Disc3, ArrowRight, Activity,
     Music, Heart, Eye, Share2, MessageSquare,
     Plus, Sparkles, Send, Mic2, Wand2, ChevronDown,
     Settings2, FileAudio, Type, Music4, Zap, RefreshCw, Scissors, ArrowUpRight,
-    MoreVertical, Globe, Trash2, Layers, Bot, Loader2
+    MoreVertical, Globe, Trash2, Layers, Bot, Loader2,
+    History, FastForward, SkipBack, Repeat, Shuffle, Volume2, Maximize2, X, Download, Command, Disc, Flame, HelpCircle, ListPlus, Copy, Pencil
 } from 'lucide-react';
 import { useDAWStore } from '@/store/useDAWStore';
 import { useCreatorStore } from '@/store/useCreatorStore';
@@ -24,6 +25,8 @@ const GENRES = [
 
 export default function Crear() {
     const router = useRouter();
+    const params = useParams();
+    const locale = params?.locale || 'es';
     const { currentPreviewTrack, setPreviewTrack } = useDAWStore();
     const { tracks, activeTrack, setTracks, setActiveTrack, updateTrack, removeTrack, addTrack } = useCreatorStore();
     const [isGenerating, setIsGenerating] = useState(false);
@@ -42,6 +45,7 @@ export default function Crear() {
     const [isEditing, setIsEditing] = useState(false);
 
     // Advanced UI State
+    const [creationMode, setCreationMode] = useState<'easy' | 'custom'>('easy');
     const [prompt, setPrompt] = useState("");
     const [title, setTitle] = useState("");
     const [isInstrumental, setIsInstrumental] = useState(false);
@@ -174,7 +178,7 @@ export default function Crear() {
     };
 
     const handleGenerate = async () => {
-        if (!prompt) return;
+        if (!prompt && (creationMode === 'easy' || (creationMode === 'custom' && !isInstrumental && !lyrics))) return;
 
         if (credits < 10) {
             alert("No tienes suficientes créditos de prueba. ¡Regístrate gratis para obtener más!");
@@ -193,18 +197,23 @@ export default function Crear() {
             let finalCustomMode = false;
 
             const genreTag = selectedGenre || '';
-            if (isInstrumental) {
-                finalCustomMode = true;
-                finalPrompt = "";
-                finalStyle = [prompt, genreTag, selectedTool !== 'Create Anything' ? selectedTool : '', promptIntensity > 50 ? 'intense' : ''].filter(Boolean).join(', ');
-            } else if (lyrics.trim().length > 0) {
-                finalCustomMode = true;
-                finalPrompt = lyrics;
-                finalStyle = [prompt, genreTag, selectedTool !== 'Create Anything' ? selectedTool : '', promptIntensity > 50 ? 'intense' : ''].filter(Boolean).join(', ');
-            } else {
+
+            if (creationMode === 'easy') {
                 finalCustomMode = false;
-                // For customMode: false, prompt is a single text description
-                finalPrompt = [prompt, genreTag ? `en estilo ${genreTag}` : '', selectedTool !== 'Create Anything' ? `al estilo de ${selectedTool}` : '', promptIntensity > 50 ? 'con mucha intensidad' : ''].filter(Boolean).join(' ');
+                finalPrompt = [prompt, genreTag ? `en estilo ${genreTag}` : ''].filter(Boolean).join(' ');
+            } else {
+                if (isInstrumental) {
+                    finalCustomMode = true;
+                    finalPrompt = "";
+                    finalStyle = [prompt, genreTag, selectedTool !== 'Create Anything' ? selectedTool : '', promptIntensity > 50 ? 'intense' : ''].filter(Boolean).join(', ');
+                } else if (lyrics.trim().length > 0) {
+                    finalCustomMode = true;
+                    finalPrompt = lyrics;
+                    finalStyle = [prompt, genreTag, selectedTool !== 'Create Anything' ? selectedTool : '', promptIntensity > 50 ? 'intense' : ''].filter(Boolean).join(', ');
+                } else {
+                    finalCustomMode = false;
+                    finalPrompt = [prompt, genreTag ? `en estilo ${genreTag}` : '', selectedTool !== 'Create Anything' ? `al estilo de ${selectedTool}` : '', promptIntensity > 50 ? 'con mucha intensidad' : ''].filter(Boolean).join(' ');
+                }
             }
 
             const payload = {
@@ -289,49 +298,66 @@ export default function Crear() {
                 </div>
 
                 <div className="flex flex-col gap-4">
-                    {/* Tools Dropdown */}
-                    <div className="relative">
+                    {/* Mode Tabs */}
+                    <div className="bg-[#111] p-1 rounded-xl flex gap-1 border border-[#222]">
                         <button
-                            onClick={() => setShowToolsMenu(!showToolsMenu)}
-                            className="w-full flex items-center justify-between p-3 bg-[#111] border border-[#222] rounded-xl text-sm font-bold text-white hover:bg-[#1A1A1A] transition-all"
+                            onClick={() => setCreationMode('easy')}
+                            className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all ${creationMode === 'easy' ? 'bg-[#222] text-white shadow-sm' : 'text-[#888] hover:text-[#AAA]'}`}
                         >
-                            <div className="flex items-center gap-2">
-                                <Sparkles size={16} className="text-orange-500" />
-                                {selectedTool}
-                            </div>
-                            <ChevronDown size={16} className={`text-[#666] transition-transform ${showToolsMenu ? 'rotate-180' : ''}`} />
+                            Easy
                         </button>
-
-                        {showToolsMenu && (
-                            <div className="absolute top-full left-0 right-0 mt-2 bg-[#111] border border-[#222] rounded-xl shadow-2xl z-50 overflow-hidden flex flex-col">
-                                {[
-                                    { name: 'Create Anything', desc: 'A simple text prompt to create it all', icon: <Wand2 size={14} /> },
-                                    { name: 'Sound generator', desc: 'Create sound effects and samples', icon: <Music4 size={14} />, tag: 'Plus' },
-                                    { name: 'Text to Speech', desc: 'Speak text in any voice', icon: <Mic2 size={14} />, tag: 'Pro' },
-                                    { name: 'Remix', desc: 'Remix a song with custom style or lyrics', icon: <RefreshCw size={14} />, tag: 'Pro' },
-                                    { name: 'Replace', desc: 'Replace a part of a song', icon: <Scissors size={14} />, tag: 'Pro' },
-                                    { name: 'Extend', desc: 'Continue a track beyond the original', icon: <ArrowUpRight size={14} />, tag: 'Pro' },
-                                    { name: 'Add Vocals', desc: 'Add vocals to existing instrumental', icon: <Type size={14} />, tag: 'Pro' },
-                                    { name: 'Add Instrumental', desc: 'Add instrumental to existing vocals', icon: <Music size={14} />, tag: 'Pro' }
-                                ].map(tool => (
-                                    <button
-                                        key={tool.name}
-                                        onClick={() => { setSelectedTool(tool.name); setShowToolsMenu(false); }}
-                                        className="flex items-start gap-3 p-3 hover:bg-[#1A1A1A] transition-all text-left"
-                                    >
-                                        <div className="mt-0.5 text-[#888]">{tool.icon}</div>
-                                        <div className="flex-1">
-                                            <div className="flex items-center gap-2">
-                                                <span className="text-sm font-bold text-white">{tool.name}</span>
-                                                {tool.tag && <span className="text-[9px] px-1.5 py-0.5 bg-orange-600/20 text-orange-500 rounded font-black tracking-widest uppercase">{tool.tag}</span>}
-                                            </div>
-                                            <span className="text-xs text-[#666]">{tool.desc}</span>
-                                        </div>
-                                    </button>
-                                ))}
-                            </div>
-                        )}
+                        <button
+                            onClick={() => setCreationMode('custom')}
+                            className={`flex-1 py-1.5 text-xs font-bold rounded-lg transition-all ${creationMode === 'custom' ? 'bg-[#222] text-white shadow-sm' : 'text-[#888] hover:text-[#AAA]'}`}
+                        >
+                            Custom
+                        </button>
                     </div>
+
+                    {creationMode === 'custom' && (
+                        <div className="relative">
+                            <button
+                                onClick={() => setShowToolsMenu(!showToolsMenu)}
+                                className="w-full flex items-center justify-between p-3 bg-[#111] border border-[#222] rounded-xl text-sm font-bold text-white hover:bg-[#1A1A1A] transition-all"
+                            >
+                                <div className="flex items-center gap-2">
+                                    <Sparkles size={16} className="text-orange-500" />
+                                    {selectedTool}
+                                </div>
+                                <ChevronDown size={16} className={`text-[#666] transition-transform ${showToolsMenu ? 'rotate-180' : ''}`} />
+                            </button>
+
+                            {showToolsMenu && (
+                                <div className="absolute top-full left-0 right-0 mt-2 bg-[#111] border border-[#222] rounded-xl shadow-2xl z-50 overflow-hidden flex flex-col">
+                                    {[
+                                        { name: 'Create Anything', desc: 'A simple text prompt to create it all', icon: <Wand2 size={14} /> },
+                                        { name: 'Sound generator', desc: 'Create sound effects and samples', icon: <Music4 size={14} />, tag: 'Plus' },
+                                        { name: 'Text to Speech', desc: 'Speak text in any voice', icon: <Mic2 size={14} />, tag: 'Pro' },
+                                        { name: 'Remix', desc: 'Remix a song with custom style or lyrics', icon: <RefreshCw size={14} />, tag: 'Pro' },
+                                        { name: 'Replace', desc: 'Replace a part of a song', icon: <Scissors size={14} />, tag: 'Pro' },
+                                        { name: 'Extend', desc: 'Continue a track beyond the original', icon: <ArrowUpRight size={14} />, tag: 'Pro' },
+                                        { name: 'Add Vocals', desc: 'Add vocals to existing instrumental', icon: <Type size={14} />, tag: 'Pro' },
+                                        { name: 'Add Instrumental', desc: 'Add instrumental to existing vocals', icon: <Music size={14} />, tag: 'Pro' }
+                                    ].map(tool => (
+                                        <button
+                                            key={tool.name}
+                                            onClick={() => { setSelectedTool(tool.name); setShowToolsMenu(false); }}
+                                            className="flex items-start gap-3 p-3 hover:bg-[#1A1A1A] transition-all text-left"
+                                        >
+                                            <div className="mt-0.5 text-[#888]">{tool.icon}</div>
+                                            <div className="flex-1">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-sm font-bold text-white">{tool.name}</span>
+                                                    {tool.tag && <span className="text-[9px] px-1.5 py-0.5 bg-orange-600/20 text-orange-500 rounded font-black tracking-widest uppercase">{tool.tag}</span>}
+                                                </div>
+                                                <span className="text-xs text-[#666]">{tool.desc}</span>
+                                            </div>
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    )}
 
                     {/* Title Input */}
                     <input
@@ -342,19 +368,67 @@ export default function Crear() {
                         className="w-full bg-[#111] border border-[#222] rounded-xl p-3 text-sm text-silver-light focus:border-orange-500/50 outline-none transition-all placeholder:text-[#444]"
                     />
 
+                    {creationMode === 'custom' && (
+                        <div className="flex gap-2">
+                            <button
+                                onClick={() => setIsInstrumental(false)}
+                                className={`flex-1 py-2 flex flex-col items-center justify-center gap-1 rounded-xl border transition-all ${!isInstrumental ? 'bg-orange-600/10 border-orange-500/50 text-orange-500 shadow-[0_0_10px_rgba(255,107,0,0.2)]' : 'bg-[#111] border-[#222] text-[#666] hover:bg-[#1A1A1A]'}`}
+                            >
+                                <Type size={16} />
+                                <span className="text-[10px] font-bold tracking-widest uppercase">Lyrics</span>
+                            </button>
+                            <button
+                                onClick={() => setIsInstrumental(true)}
+                                className={`flex-1 py-2 flex flex-col items-center justify-center gap-1 rounded-xl border transition-all ${isInstrumental ? 'bg-orange-600/10 border-orange-500/50 text-orange-500 shadow-[0_0_10px_rgba(255,107,0,0.2)]' : 'bg-[#111] border-[#222] text-[#666] hover:bg-[#1A1A1A]'}`}
+                            >
+                                <Music size={16} />
+                                <span className="text-[10px] font-bold tracking-widest uppercase">Instrumental</span>
+                            </button>
+                        </div>
+                    )}
+
+                    {/* AI Lyrics Box (Only visible when Words/Lyrics mode is active in Custom mode) */}
+                    {creationMode === 'custom' && !isInstrumental && (
+                        <div className="flex flex-col gap-2 relative">
+                            <div className="flex items-center justify-between mb-1">
+                                <span className="text-xs font-bold text-[#888] uppercase tracking-wider">Letras</span>
+                                <button
+                                    onClick={generateAILyrics}
+                                    disabled={isGeneratingLyrics || (!prompt.trim() && !lyrics.trim())}
+                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-orange-500/20 to-yellow-500/10 hover:from-orange-500/30 hover:to-yellow-500/20 border border-orange-500/30 text-orange-400 rounded-lg text-[10px] font-bold tracking-widest uppercase transition-all disabled:opacity-50 relative overflow-hidden group"
+                                >
+                                    <div className="absolute inset-0 w-full h-full bg-orange-400/20 blur-md opacity-0 group-hover:opacity-100 transition-opacity" />
+                                    {isGeneratingLyrics ? <Loader2 size={12} className="animate-spin" /> : <Bot size={12} />}
+                                    AI Co-writer
+                                </button>
+                            </div>
+                            <textarea
+                                value={lyrics}
+                                onChange={(e) => setLyrics(e.target.value)}
+                                placeholder="Escribe tus letras aquí, o usa nuestro AI Co-writer para generarlas..."
+                                className="w-full h-40 bg-[#111] border border-[#222] rounded-xl p-4 text-sm text-silver-light focus:border-orange-500/50 outline-none resize-none transition-all placeholder:text-[#444] custom-scrollbar"
+                            />
+                        </div>
+                    )}
+
                     {/* Main Prompt */}
                     <div className="relative">
+                        {creationMode === 'custom' && (
+                            <span className="text-xs font-bold text-[#888] uppercase tracking-wider mb-2 block">Estilo Musical</span>
+                        )}
                         <textarea
                             value={prompt}
                             onChange={(e) => setPrompt(e.target.value)}
-                            placeholder="Cover song of Jingle Bells with Drake's voice..."
-                            className="w-full h-32 bg-[#111] border border-[#222] rounded-xl p-4 text-sm text-silver-light focus:border-orange-500/50 outline-none resize-none transition-all placeholder:text-[#444]"
+                            placeholder={creationMode === 'easy' ? "Describe una canción... ej: Un pop acústico cantado por una mujer sobre las estrellas" : "Describe el estilo musical (Ej. trap beat pesado)..."}
+                            className={`${creationMode === 'custom' ? 'h-24' : 'h-32'} w-full bg-[#111] border border-[#222] rounded-xl p-4 text-sm text-silver-light focus:border-orange-500/50 outline-none resize-none transition-all placeholder:text-[#444] custom-scrollbar`}
                         />
-                        <div className="absolute bottom-3 left-3 flex gap-2">
-                            <button className="flex items-center gap-1.5 px-3 py-1.5 bg-[#222] hover:bg-[#333] rounded-lg text-xs font-bold text-[#888] hover:text-white transition-all">
-                                <FileAudio size={14} /> Attach file
-                            </button>
-                        </div>
+                        {creationMode === 'easy' && (
+                            <div className="absolute bottom-3 left-3 flex gap-2">
+                                <button className="flex items-center gap-1.5 px-3 py-1.5 bg-[#222] hover:bg-[#333] rounded-lg text-xs font-bold text-[#888] hover:text-white transition-all">
+                                    <FileAudio size={14} /> Attach file
+                                </button>
+                            </div>
+                        )}
                     </div>
 
                     {/* Genres Carousel */}
@@ -373,87 +447,49 @@ export default function Crear() {
                         ))}
                     </div>
 
-                    {/* Toggles */}
-                    <div className="flex gap-2">
-                        <button
-                            onClick={() => setIsInstrumental(true)}
-                            className={`flex-1 py-2 flex flex-col items-center justify-center gap-1 rounded-xl border transition-all ${isInstrumental ? 'bg-orange-600/10 border-orange-500/50 text-orange-500 shadow-[0_0_10px_rgba(255,107,0,0.2)]' : 'bg-[#111] border-[#222] text-[#666] hover:bg-[#1A1A1A]'}`}
-                        >
-                            <Music size={16} />
-                            <span className="text-[10px] font-bold tracking-widest uppercase">Instrumental</span>
-                        </button>
-                        <button
-                            onClick={() => setIsInstrumental(false)}
-                            className={`flex-1 py-2 flex flex-col items-center justify-center gap-1 rounded-xl border transition-all ${!isInstrumental ? 'bg-orange-600/10 border-orange-500/50 text-orange-500 shadow-[0_0_10px_rgba(255,107,0,0.2)]' : 'bg-[#111] border-[#222] text-[#666] hover:bg-[#1A1A1A]'}`}
-                        >
-                            <Type size={16} />
-                            <span className="text-[10px] font-bold tracking-widest uppercase">Lyrics</span>
-                        </button>
-                    </div>
-
-                    {/* AI Lyrics Box (Only visible when Words/Lyrics mode is active) */}
-                    {!isInstrumental && (
-                        <div className="flex flex-col gap-2 mt-2 animate-in fade-in slide-in-from-top-2 duration-300 relative">
-                            <div className="flex items-center justify-between mb-1">
-                                <span className="text-xs font-bold text-[#888] uppercase tracking-wider">Letras</span>
-                                <button
-                                    onClick={generateAILyrics}
-                                    disabled={isGeneratingLyrics || !prompt.trim()}
-                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-orange-500/20 to-yellow-500/10 hover:from-orange-500/30 hover:to-yellow-500/20 border border-orange-500/30 text-orange-400 rounded-lg text-[10px] font-bold tracking-widest uppercase transition-all disabled:opacity-50 relative overflow-hidden group"
-                                >
-                                    <div className="absolute inset-0 w-full h-full bg-orange-400/20 blur-md opacity-0 group-hover:opacity-100 transition-opacity" />
-                                    {isGeneratingLyrics ? <Loader2 size={12} className="animate-spin" /> : <Bot size={12} />}
-                                    AI Co-writer
-                                </button>
-                            </div>
-                            <textarea
-                                value={lyrics}
-                                onChange={(e) => setLyrics(e.target.value)}
-                                placeholder="Escribe tus letras aquí, o usa nuestro AI Co-writer para generarlas basadas en tu prompt..."
-                                className="w-full h-40 bg-[#111] border border-[#222] rounded-xl p-4 text-sm text-silver-light focus:border-orange-500/50 outline-none resize-none transition-all placeholder:text-[#444] custom-scrollbar"
-                            />
-                        </div>
-                    )}
-
-                    {/* Pro Controls Toggle */}
-                    <button
-                        onClick={() => setShowProControls(!showProControls)}
-                        className="flex items-center justify-between p-3 bg-[#111] border border-[#222] rounded-xl text-sm font-bold text-[#888] hover:text-white transition-all"
-                    >
-                        <div className="flex items-center gap-2">
-                            <Settings2 size={16} />
-                            Pro controls
-                        </div>
-                        <ChevronDown size={16} className={`transition-transform ${showProControls ? 'rotate-180' : ''}`} />
-                    </button>
-
-                    {/* Pro Controls Panel */}
-                    {showProControls && (
-                        <div className="bg-[#111] border border-[#222] rounded-xl p-4 flex flex-col gap-4">
-                            <div className="flex flex-col gap-2">
-                                <div className="flex items-center justify-between text-xs font-bold text-[#888]">
-                                    <span className="flex items-center gap-1">Prompt intensity <span className="w-3 h-3 rounded-full bg-[#222] text-[#666] flex items-center justify-center text-[8px]">i</span></span>
-                                    <span className="text-white">{promptIntensity}</span>
+                    {creationMode === 'custom' && (
+                        <div className="flex flex-col gap-2">
+                            {/* Pro Controls Toggle */}
+                            <button
+                                onClick={() => setShowProControls(!showProControls)}
+                                className="flex items-center justify-between p-3 bg-[#111] border border-[#222] rounded-xl text-sm font-bold text-[#888] hover:text-white transition-all"
+                            >
+                                <div className="flex items-center gap-2">
+                                    <Settings2 size={16} />
+                                    Pro controls
                                 </div>
-                                <Slider
-                                    value={promptIntensity}
-                                    onChange={(e) => setPromptIntensity(Number(e.target.value))}
-                                    min={0} max={100}
-                                    className="w-full"
-                                />
-                            </div>
-                            {!isInstrumental && (
-                                <div className="flex flex-col gap-2">
-                                    <div className="flex items-center justify-between text-xs font-bold text-[#888]">
-                                        <span className="flex items-center gap-1">Lyrics intensity <span className="w-3 h-3 rounded-full bg-[#222] text-[#666] flex items-center justify-center text-[8px]">i</span></span>
-                                        <span className="text-white">{lyricsIntensity}</span>
+                                <ChevronDown size={16} className={`transition-transform ${showProControls ? 'rotate-180' : ''}`} />
+                            </button>
+
+                            {/* Pro Controls Panel */}
+                            {showProControls && (
+                                <div className="bg-[#111] border border-[#222] rounded-xl p-4 flex flex-col gap-4">
+                                    <div className="flex flex-col gap-2">
+                                        <div className="flex items-center justify-between text-xs font-bold text-[#888]">
+                                            <span className="flex items-center gap-1">Prompt intensity <span className="w-3 h-3 rounded-full bg-[#222] text-[#666] flex items-center justify-center text-[8px]">i</span></span>
+                                            <span className="text-white">{promptIntensity}</span>
+                                        </div>
+                                        <Slider
+                                            value={promptIntensity}
+                                            onChange={(e) => setPromptIntensity(Number(e.target.value))}
+                                            min={0} max={100}
+                                            className="w-full"
+                                        />
                                     </div>
-                                    <Slider
-                                        value={lyricsIntensity}
-                                        onChange={(e) => setLyricsIntensity(Number(e.target.value))}
-                                        min={0} max={100}
-                                        className="w-full"
-                                    />
+                                    {!isInstrumental && (
+                                        <div className="flex flex-col gap-2">
+                                            <div className="flex items-center justify-between text-xs font-bold text-[#888]">
+                                                <span className="flex items-center gap-1">Lyrics intensity <span className="w-3 h-3 rounded-full bg-[#222] text-[#666] flex items-center justify-center text-[8px]">i</span></span>
+                                                <span className="text-white">{lyricsIntensity}</span>
+                                            </div>
+                                            <Slider
+                                                value={lyricsIntensity}
+                                                onChange={(e) => setLyricsIntensity(Number(e.target.value))}
+                                                min={0} max={100}
+                                                className="w-full"
+                                            />
+                                        </div>
+                                    )}
                                 </div>
                             )}
                         </div>
@@ -461,8 +497,8 @@ export default function Crear() {
 
                     <button
                         onClick={handleGenerate}
-                        disabled={isGenerating || !prompt}
-                        className="w-full py-4 bg-orange-600 hover:bg-orange-500 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl font-bold tracking-[0.2em] text-white flex items-center justify-center gap-3 transition-all shadow-[0_10px_30px_rgba(255,107,0,0.2)]"
+                        disabled={isGenerating || (creationMode === 'easy' ? !prompt : (!isInstrumental && !lyrics && !prompt))}
+                        className="w-full py-4 bg-orange-600 hover:bg-orange-500 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl font-bold tracking-[0.2em] text-white flex items-center justify-center gap-3 transition-all shadow-[0_10px_30px_rgba(255,107,0,0.2)] mt-2"
                     >
                         {isGenerating ? (
                             <Activity size={20} className="animate-spin" />
@@ -538,7 +574,15 @@ export default function Crear() {
 
                                 <div className="flex-1 min-w-0">
                                     <div className="flex items-center gap-3 mb-1">
-                                        <h4 className="text-lg font-bold text-white truncate">{track.title}</h4>
+                                        <h4
+                                            className="text-lg font-bold text-white truncate hover:underline cursor-pointer"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                router.push(`/${locale}/song/${track.id}`);
+                                            }}
+                                        >
+                                            {track.title}
+                                        </h4>
                                         <span className="text-[10px] text-orange-500 font-mono tracking-tighter">{track.duration}</span>
                                     </div>
                                     <p className="text-sm text-[#666] mb-3 truncate italic">{track.style?.split(',').slice(0, 2).join(', ')}</p>
@@ -576,6 +620,38 @@ export default function Crear() {
                                                 className="w-full text-left px-4 py-3 text-xs font-bold text-silver-light hover:text-white hover:bg-orange-600 flex items-center gap-3 transition-colors"
                                             >
                                                 <Share2 size={14} /> Compartir
+                                            </button>
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); setOpenMenuId(null); /* handle remake */ }}
+                                                className="w-full text-left px-4 py-3 text-xs font-bold text-silver-light hover:text-white hover:bg-orange-600 flex items-center gap-3 transition-colors"
+                                            >
+                                                <RefreshCw size={14} /> Re-crear (Remake)
+                                            </button>
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); setOpenMenuId(null); /* handle playlist */ }}
+                                                className="w-full text-left px-4 py-3 text-xs font-bold text-silver-light hover:text-white hover:bg-orange-600 flex items-center gap-3 transition-colors"
+                                            >
+                                                <ListPlus size={14} /> Añadir a Playlist
+                                            </button>
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation(); setOpenMenuId(null);
+                                                    if (track.lyrics) {
+                                                        navigator.clipboard.writeText(track.lyrics);
+                                                        alert('Letras copiadas al portapapeles');
+                                                    } else {
+                                                        alert('Esta canción no tiene letras.');
+                                                    }
+                                                }}
+                                                className="w-full text-left px-4 py-3 text-xs font-bold text-silver-light hover:text-white hover:bg-orange-600 flex items-center gap-3 transition-colors"
+                                            >
+                                                <Copy size={14} /> Copiar Letras
+                                            </button>
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); setOpenMenuId(null); /* handle edit meta */ }}
+                                                className="w-full text-left px-4 py-3 text-xs font-bold text-silver-light hover:text-white hover:bg-orange-600 flex items-center gap-3 transition-colors"
+                                            >
+                                                <Pencil size={14} /> Editar Título/Portada
                                             </button>
                                             <button
                                                 onClick={async (e) => {

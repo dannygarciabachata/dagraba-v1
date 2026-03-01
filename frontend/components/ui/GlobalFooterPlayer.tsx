@@ -2,7 +2,7 @@
 
 import React, { useRef, useEffect, useState } from 'react';
 import { useDAWStore } from '@/store/useDAWStore';
-import { Play, Pause, SkipBack, SkipForward, Volume2, Music, X, Maximize2 } from 'lucide-react';
+import { Play, Pause, SkipBack, SkipForward, Volume2, Music, X, Maximize2, Repeat, Shuffle, Share2, ListPlus, Heart, MoreVertical } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
 export function GlobalFooterPlayer() {
@@ -13,6 +13,13 @@ export function GlobalFooterPlayer() {
     const [progress, setProgress] = useState(0);
     const [duration, setDuration] = useState(0);
     const [volume, setVolume] = useState(0.8);
+    const [isLooping, setIsLooping] = useState(false);
+
+    useEffect(() => {
+        if (audioRef.current) {
+            audioRef.current.loop = isLooping;
+        }
+    }, [isLooping]);
 
     useEffect(() => {
         const audio = audioRef.current;
@@ -103,6 +110,9 @@ export function GlobalFooterPlayer() {
             <div className="flex-1 flex flex-col items-center gap-2 max-w-2xl">
                 <div className="flex items-center gap-6">
                     <button className="text-white/40 hover:text-white transition-colors">
+                        <Shuffle size={16} />
+                    </button>
+                    <button className="text-white/40 hover:text-white transition-colors">
                         <SkipBack size={20} />
                     </button>
                     <button
@@ -113,6 +123,12 @@ export function GlobalFooterPlayer() {
                     </button>
                     <button className="text-white/40 hover:text-white transition-colors">
                         <SkipForward size={20} />
+                    </button>
+                    <button
+                        onClick={() => setIsLooping(!isLooping)}
+                        className={`${isLooping ? 'text-orange-500' : 'text-white/40'} hover:text-orange-400 transition-colors`}
+                    >
+                        <Repeat size={16} />
                     </button>
                 </div>
 
@@ -138,9 +154,18 @@ export function GlobalFooterPlayer() {
             </div>
 
             {/* Right Controls */}
-            <div className="flex items-center gap-6 w-[300px] justify-end">
-                <div className="flex items-center gap-2 group">
-                    <Volume2 size={18} className="text-white/40 group-hover:text-white transition-colors" />
+            <div className="flex items-center gap-4 w-[350px] justify-end">
+                <button className="text-white/40 hover:text-white transition-colors">
+                    <Share2 size={16} />
+                </button>
+                <button className="text-white/40 hover:text-white transition-colors">
+                    <ListPlus size={16} />
+                </button>
+                <button className="text-white/40 hover:text-white transition-colors">
+                    <Heart size={16} />
+                </button>
+                <div className="flex items-center gap-2 group border-l border-white/10 pl-4 ml-2">
+                    <Volume2 size={16} className="text-white/40 group-hover:text-white transition-colors" />
                     <input
                         type="range"
                         min="0"
@@ -152,14 +177,17 @@ export function GlobalFooterPlayer() {
                             setVolume(v);
                             if (audioRef.current) audioRef.current.volume = v;
                         }}
-                        className="w-20 h-1 bg-white/10 rounded-full appearance-none cursor-pointer accent-white"
+                        className="w-16 h-1 bg-white/10 rounded-full appearance-none cursor-pointer accent-white"
                     />
                 </div>
+                <button className="text-white/40 hover:text-white transition-colors ml-2">
+                    <MoreVertical size={16} />
+                </button>
                 <button
                     onClick={() => setPreviewTrack(null)}
-                    className="text-white/20 hover:text-red-500 transition-colors"
+                    className="text-white/20 hover:text-red-500 transition-colors ml-2"
                 >
-                    <X size={18} />
+                    <X size={16} />
                 </button>
             </div>
         </div>

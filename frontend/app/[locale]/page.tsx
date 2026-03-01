@@ -6,11 +6,13 @@ import { useTranslations, useLocale } from 'next-intl';
 import { Sparkles, Play, Music, Mic2, Cpu, ArrowRight, Star, Users, CheckCircle2 } from 'lucide-react';
 import { useUserStore } from '@/store/useUserStore';
 import { Footer } from '@/components/ui/Footer';
+import { useAuth } from '@/context/AuthContext';
 
 export default function LandingPage() {
   const t = useTranslations('Landing');
   const locale = useLocale();
   const { credits } = useUserStore();
+  const { user, logout } = useAuth();
 
   return (
     <div className="flex flex-col w-full bg-[#050505] text-white">
@@ -54,19 +56,39 @@ export default function LandingPage() {
 
           {/* CTAs */}
           <div className="flex flex-col sm:flex-row items-center gap-6 animate-in fade-in slide-in-from-bottom-12 duration-700 delay-300">
-            <Link
-              href={`/${locale}/planer`}
-              className="group flex items-center gap-3 px-10 py-5 bg-white text-black font-black uppercase tracking-widest text-xs rounded-2xl hover:bg-cyan-glow hover:text-white transition-all duration-300 shadow-[0_20px_50px_rgba(255,255,255,0.1)] hover:shadow-cyan-glow/40"
-            >
-              {t('ctaStart')}
-              <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
-            </Link>
-            <Link
-              href={`/${locale}/pricing`}
-              className="px-10 py-5 bg-white/5 border border-white/10 hover:bg-white/10 transition-all font-black uppercase tracking-widest text-xs rounded-2xl backdrop-blur-sm"
-            >
-              {t('ctaPricing')}
-            </Link>
+            {user ? (
+              <>
+                <Link
+                  href={`/${locale}/dashboard`}
+                  className="group flex items-center gap-3 px-10 py-5 bg-white text-black font-black uppercase tracking-widest text-xs rounded-2xl hover:bg-cyan-glow hover:text-white transition-all duration-300 shadow-[0_20px_50px_rgba(255,255,255,0.1)] hover:shadow-cyan-glow/40"
+                >
+                  Dashboard
+                  <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+                </Link>
+                <button
+                  onClick={logout}
+                  className="px-10 py-5 bg-red-500/10 text-red-500 border border-red-500/20 hover:bg-red-500/20 hover:text-white transition-all font-black uppercase tracking-widest text-xs rounded-2xl backdrop-blur-sm cursor-pointer"
+                >
+                  Sign Out
+                </button>
+              </>
+            ) : (
+              <>
+                <Link
+                  href={`/${locale}/planer`}
+                  className="group flex items-center gap-3 px-10 py-5 bg-white text-black font-black uppercase tracking-widest text-xs rounded-2xl hover:bg-cyan-glow hover:text-white transition-all duration-300 shadow-[0_20px_50px_rgba(255,255,255,0.1)] hover:shadow-cyan-glow/40"
+                >
+                  {t('ctaStart')}
+                  <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+                </Link>
+                <Link
+                  href={`/${locale}/pricing`}
+                  className="px-10 py-5 bg-white/5 border border-white/10 hover:bg-white/10 transition-all font-black uppercase tracking-widest text-xs rounded-2xl backdrop-blur-sm"
+                >
+                  {t('ctaPricing')}
+                </Link>
+              </>
+            )}
           </div>
 
           {/* Stats Footer */}
@@ -150,14 +172,35 @@ export default function LandingPage() {
         </div>
 
         <div className="container relative z-10 px-6 mx-auto text-center flex flex-col items-center">
-          <h2 className="text-5xl md:text-7xl font-black tracking-tighter mb-8 max-w-2xl leading-[0.95]">Ready to Create Your Masterpiece?</h2>
-          <p className="text-silver-dark text-xl mb-12 max-w-lg">Get 100 free credits today and join the future of music production.</p>
-          <Link
-            href={`/${locale}/crear`}
-            className="px-16 py-6 bg-white text-black font-black uppercase tracking-widest text-sm rounded-2xl hover:scale-105 transition-all shadow-2xl hover:shadow-white/20"
-          >
-            Join Now
-          </Link>
+          <h2 className="text-5xl md:text-7xl font-black tracking-tighter mb-8 max-w-2xl leading-[0.95]">
+            {user ? 'Welcome Back to the Studio' : 'Ready to Create Your Masterpiece?'}
+          </h2>
+          <p className="text-silver-dark text-xl mb-12 max-w-lg">
+            {user ? 'Continue crafting your sound and explore new features.' : 'Get 100 free credits today and join the future of music production.'}
+          </p>
+          {user ? (
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
+              <Link
+                href={`/${locale}/dashboard`}
+                className="px-16 py-6 bg-white text-black font-black uppercase tracking-widest text-sm rounded-2xl hover:scale-105 transition-all shadow-[0_0_40px_rgba(255,255,255,0.2)]"
+              >
+                Dashboard
+              </Link>
+              <button
+                onClick={logout}
+                className="px-16 py-6 bg-red-500/10 text-red-500 border border-red-500/20 hover:bg-red-500/20 transition-all font-black uppercase tracking-widest text-sm rounded-2xl hover:scale-105 cursor-pointer"
+              >
+                Sign Out
+              </button>
+            </div>
+          ) : (
+            <Link
+              href={`/${locale}/crear`}
+              className="px-16 py-6 bg-white text-black font-black uppercase tracking-widest text-sm rounded-2xl hover:scale-105 transition-all shadow-2xl hover:shadow-white/20"
+            >
+              Join Now
+            </Link>
+          )}
         </div>
       </section>
 
