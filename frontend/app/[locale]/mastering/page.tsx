@@ -495,11 +495,11 @@ export default function Mastering() {
     // NOTE: This logic was previously causing a Hooks order violation.
     // It is now placed AFTER all hooks have been called, making it safe.
     if (plan !== 'premium' && plan !== 'unlimited') {
-         return (
+        return (
             <div className="flex flex-col w-full h-full items-center justify-center p-8">
                 <PlanLock
                     featureName="Mastering Suite"
-                    requiredPlan="Premium"
+                    requiredPlan="premium"
                 />
             </div>
         );
