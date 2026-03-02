@@ -178,6 +178,8 @@ export default function Crear() {
 
         } catch (error) {
             console.error('Error polling status:', error);
+            // Don't retry indefinitely on real network/code errors
+            updateTrack(taskId, { duration: 'Error', tags: ['Error de Red'] });
         }
     };
 
@@ -221,7 +223,7 @@ export default function Crear() {
             }
 
             const payload = {
-                provider: 'kie',
+                provider: 'dagraba',
                 prompt: finalPrompt,
                 title: title || undefined,
                 instrumental: isInstrumental,
@@ -259,10 +261,10 @@ export default function Crear() {
                 setPrompt("");
                 setTitle("");
 
-                console.log(`[KIE] Generation Queued: ${taskId}. Polling for status...`);
+                console.log(`[DAGRABA] Generation Queued: ${taskId}. Polling for status...`);
 
                 // Start polling
-                pollTaskStatus(taskId, 'kie', 'music');
+                pollTaskStatus(taskId, 'dagraba', 'music');
 
             } else {
                 console.error("AI generation failed:", data);

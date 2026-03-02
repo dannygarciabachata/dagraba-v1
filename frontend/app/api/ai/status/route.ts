@@ -8,8 +8,13 @@ import { BaseMusicService } from '@/lib/ai/types';
 export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const taskId = searchParams.get('taskId');
-    const provider = searchParams.get('provider') || 'kie';
+    let provider = searchParams.get('provider') || 'kie';
     const type = searchParams.get('type') || 'music'; // 'music', 'video', 'market'
+
+    // Auto-detect Dagraba tasks
+    if (taskId?.startsWith('local_') || taskId?.startsWith('train_')) {
+        provider = 'dagraba';
+    }
 
     if (!taskId) {
         return NextResponse.json({ success: false, error: 'taskId is required' }, { status: 400 });

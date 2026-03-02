@@ -2,14 +2,26 @@ import React from 'react';
 
 interface MasteringKnobProps {
     label: string;
-    value: number; // 0 to 100
+    value: number;
     onChange?: (value: number) => void;
     size?: 'sm' | 'md' | 'lg';
+    min?: number;
+    max?: number;
 }
 
-export function MasteringKnob({ label, value, onChange, size = 'md' }: MasteringKnobProps) {
+export function MasteringKnob({
+    label,
+    value,
+    onChange,
+    size = 'md',
+    min = 0,
+    max = 100
+}: MasteringKnobProps) {
     // Calculate rotation (-135deg to +135deg for a standard 270 degree sweep)
-    const rotation = -135 + (value / 100) * 270;
+    // Map value from [min, max] to [-135, 135]
+    const range = max - min;
+    const normalizedValue = range === 0 ? 0 : (value - min) / range;
+    const rotation = -135 + normalizedValue * 270;
 
     const sizeClasses = {
         sm: 'w-10 h-10',
@@ -18,15 +30,18 @@ export function MasteringKnob({ label, value, onChange, size = 'md' }: Mastering
     };
 
     return (
-        <div 
+        <div
             className="flex flex-col items-center gap-3"
             onMouseDown={(e) => {
                 const startY = e.clientY;
                 const startValue = value;
-                
+
                 const handleMouseMove = (moveEvent: MouseEvent) => {
                     const deltaY = startY - moveEvent.clientY;
-                    const newValue = Math.min(100, Math.max(0, startValue + deltaY));
+                    // sensitivity: 1 pixel move = 1% of range (adjustable)
+                    const percentDelta = deltaY / 100;
+                    const valueDelta = percentDelta * range;
+                    const newValue = Math.min(max, Math.max(min, startValue + valueDelta));
                     if (onChange) onChange(newValue);
                 };
 
