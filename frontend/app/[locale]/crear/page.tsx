@@ -35,6 +35,8 @@ export default function Crear() {
 
     // Track Menu State
     const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+    const [isPanelOpen, setIsPanelOpen] = useState(false);
+    const [panelMenuOpen, setPanelMenuOpen] = useState(false);
 
     // Edit Modal State
     const [editModalOpen, setEditModalOpen] = useState(false);
@@ -274,6 +276,7 @@ export default function Crear() {
 
     const handleSelectTrack = (track: any) => {
         setActiveTrack(track);
+        setIsPanelOpen(true);
     };
 
     const handlePlayTrack = (track: any, e: React.MouseEvent) => {
@@ -286,7 +289,7 @@ export default function Crear() {
     };
 
     return (
-        <div className="flex h-full w-full bg-[#050505] overflow-hidden">
+        <div className="flex h-full w-full bg-[#050505] overflow-hidden relative">
 
             {/* LEFT SIDEBAR: Creation Input */}
             <aside className="w-[350px] border-r border-white/5 bg-[#0A0A0C] flex flex-col p-6 gap-8">
@@ -725,77 +728,230 @@ export default function Crear() {
             </main>
 
             {/* RIGHT PANEL: Details & Lyrics */}
-            <aside className="w-[450px] border-l border-white/5 bg-[#08080A] flex flex-col overflow-y-auto custom-scrollbar">
+            {/* OVERLAY: Right Sidebar Toggle */}
+            {isPanelOpen && <div className="absolute inset-0 bg-black/50 z-30 transition-opacity" onClick={() => setIsPanelOpen(false)} />}
+
+            {/* RIGHT PANEL: Details & Lyrics */}
+            <aside className={`absolute right-0 top-0 bottom-0 w-full md:w-[500px] border-l border-[#222] bg-[#0A0A0C] flex flex-col overflow-y-auto custom-scrollbar shadow-2xl z-40 transform transition-transform duration-300 ease-in-out ${isPanelOpen ? 'translate-x-0' : 'translate-x-full'}`}>
                 {activeTrack ? (
                     <div className="flex flex-col w-full h-full relative">
-                        {/* Cover Splash */}
-                        <div className="relative aspect-square w-full">
-                            <img src={activeTrack.image} alt="" className="w-full h-full object-cover" />
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent pointer-events-none" />
-                        </div>
+                        {/* Cover Splash & Top Header */}
+                        <div className="relative w-full p-8 pb-4 flex flex-col">
+                            {/* Header with Close */}
+                            <div className="flex items-center mb-6">
+                                <button
+                                    onClick={() => setIsPanelOpen(false)}
+                                    className="w-10 h-10 flex items-center justify-center rounded-full bg-[#222] hover:bg-[#333] text-[#888] hover:text-white transition-colors"
+                                >
+                                    <ChevronDown className="rotate-90" size={20} />
+                                </button>
+                            </div>
 
-                        {/* Track Title & Tags (below cover, clean) */}
-                        <div className="px-8 pt-5 pb-2">
-                            <h3 className="text-2xl font-black text-white tracking-tighter mb-3 leading-none">{activeTrack.title}</h3>
-                            <div className="flex flex-wrap gap-2">
+                            <div className="w-full aspect-square relative rounded-2xl overflow-hidden shadow-2xl mb-6 border border-[#222]">
+                                <img src={activeTrack.image} alt="" className="w-full h-full object-cover" />
+                            </div>
+
+                            {/* Title & Artist */}
+                            <h3 className="text-3xl font-black text-white tracking-tighter mb-2 leading-none">{activeTrack.title}</h3>
+                            <div className="flex items-center gap-3 text-sm text-[#888] mb-4">
+                                <div className="flex items-center gap-2 hover:text-white cursor-pointer transition-colors">
+                                    <img src="/logo_circular.png" className="w-5 h-5 rounded-full" />
+                                    <span>Danny Garcia Bachata</span>
+                                </div>
+                                <span>•</span>
+                                <span>{activeTrack.duration}</span>
+                                <span>•</span>
+                                <span className="flex items-center gap-1"><Eye size={14} /> {activeTrack.views}</span>
+                            </div>
+
+                            <div className="flex flex-wrap gap-2 mb-6">
                                 {activeTrack.tags.map((tag: string) => (
-                                    <span key={tag} className="px-2 py-0.5 bg-white/5 border border-white/10 rounded text-[9px] font-black uppercase tracking-widest text-[#888]">
+                                    <span key={tag} className="px-3 py-1 bg-[#1A1A1A] border border-[#333] rounded-full text-[10px] font-bold text-[#AAA] hover:text-white hover:bg-[#222] transition-colors cursor-pointer">
                                         {tag}
                                     </span>
                                 ))}
                             </div>
+
+                            {/* Interaction Row */}
+                            <div className="flex items-center gap-2 w-full justify-between">
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        onClick={(e) => handlePlayTrack(activeTrack, e)}
+                                        className="w-10 h-10 bg-white text-black rounded-full flex items-center justify-center hover:scale-105 transition-transform"
+                                    >
+                                        {currentPreviewTrack?.id === activeTrack.id ? <Pause size={18} fill="black" /> : <Play size={18} fill="black" className="ml-0.5" />}
+                                    </button>
+                                    <button className="h-10 px-4 bg-[#222] hover:bg-[#333] text-white font-bold text-sm rounded-full flex items-center gap-2 transition-all border border-[#333]">
+                                        <Pencil size={14} /> Edit
+                                    </button>
+                                    <button className="h-10 px-4 bg-[#222] hover:bg-[#333] text-white font-bold text-sm rounded-full flex items-center gap-2 transition-all border border-[#333]">
+                                        <Share2 size={14} /> Publish
+                                    </button>
+                                </div>
+                                <div className="flex items-center gap-1">
+                                    <button className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-[#222] text-[#CCC] hover:text-white transition-all">
+                                        <Plus size={18} />
+                                    </button>
+                                    <button className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-[#222] text-[#CCC] hover:text-white transition-all">
+                                        <Heart size={18} />
+                                    </button>
+                                    <button className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-[#222] text-[#CCC] hover:text-white transition-all">
+                                        <MessageSquare size={18} />
+                                    </button>
+                                    <button className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-[#222] text-[#CCC] hover:text-white transition-all">
+                                        <Share2 size={18} />
+                                    </button>
+
+                                    {/* Three Dots */}
+                                    <div className="relative">
+                                        <button
+                                            onClick={() => setPanelMenuOpen(!panelMenuOpen)}
+                                            className="w-10 h-10 rounded-full flex items-center justify-center hover:bg-[#222] text-[#CCC] hover:text-white transition-all"
+                                        >
+                                            <MoreVertical size={18} />
+                                        </button>
+
+                                        {panelMenuOpen && (
+                                            <div className="absolute right-0 bottom-full mb-2 w-56 bg-[#1A1A1A] border border-[#333] rounded-xl shadow-2xl py-2 z-50 overflow-hidden">
+                                                <button onClick={() => setPanelMenuOpen(false)} className="w-full text-left px-4 py-2.5 text-sm text-[#E0E0E0] hover:text-white hover:bg-[#222] flex items-center gap-3 transition-colors">
+                                                    <RefreshCw size={16} className="text-[#888]" /> Remake
+                                                </button>
+                                                <button onClick={() => setPanelMenuOpen(false)} className="w-full text-left px-4 py-2.5 text-sm text-[#E0E0E0] hover:text-white hover:bg-[#222] flex items-center gap-3 transition-colors">
+                                                    <Play size={16} className="text-[#888]" /> Play next
+                                                </button>
+                                                <button
+                                                    onClick={() => {
+                                                        if (activeTrack.lyrics) {
+                                                            navigator.clipboard.writeText(activeTrack.lyrics);
+                                                            setPanelMenuOpen(false);
+                                                            alert("Letras copiadas al portapapeles!");
+                                                        }
+                                                    }}
+                                                    className="w-full text-left px-4 py-2.5 text-sm text-[#E0E0E0] hover:text-white hover:bg-[#222] flex items-center gap-3 transition-colors"
+                                                >
+                                                    <Copy size={16} className="text-[#888]" /> Copy lyrics
+                                                </button>
+                                                <button
+                                                    onClick={async () => {
+                                                        setPanelMenuOpen(false);
+                                                        const src = activeTrack.url || activeTrack.streamAudioUrl;
+                                                        if (!src) return;
+                                                        const a = document.createElement('a');
+                                                        a.href = src;
+                                                        a.download = `${activeTrack.title}.mp3`;
+                                                        a.click();
+                                                    }}
+                                                    className="w-full text-left px-4 py-2.5 text-sm text-[#E0E0E0] hover:text-white hover:bg-[#222] flex items-center gap-3 transition-colors"
+                                                >
+                                                    <Download size={16} className="text-[#888]" /> Download
+                                                </button>
+                                                <button onClick={() => setPanelMenuOpen(false)} className="w-full text-left px-4 py-2.5 text-sm text-[#E0E0E0] hover:text-white hover:bg-[#222] flex items-center gap-3 transition-colors">
+                                                    <Pencil size={16} className="text-[#888]" /> Edit song title and cover
+                                                </button>
+                                                <div className="h-px bg-[#333] my-1 mx-2"></div>
+                                                <button onClick={() => setPanelMenuOpen(false)} className="w-full text-left px-4 py-2.5 text-sm text-[#E0E0E0] hover:text-white hover:bg-[#222] flex items-center gap-3 transition-colors">
+                                                    <HelpCircle size={16} className="text-[#888]" /> Feedback
+                                                </button>
+                                                <button onClick={() => setPanelMenuOpen(false)} className="w-full text-left px-4 py-2.5 text-sm text-[#E0E0E0] hover:text-white hover:bg-[#222] flex items-center gap-3 transition-colors">
+                                                    <Flame size={16} className="text-[#888]" /> Dislike
+                                                </button>
+                                                <button
+                                                    onClick={() => {
+                                                        removeTrack(activeTrack.id);
+                                                        setIsPanelOpen(false);
+                                                    }}
+                                                    className="w-full text-left px-4 py-2.5 text-sm text-red-500 hover:bg-red-500/10 flex items-center gap-3 transition-colors"
+                                                >
+                                                    <Trash2 size={16} /> Delete
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
-                        {/* Actions */}
-                        <div className="p-8 flex flex-col gap-8">
-                            <div className="flex flex-col gap-4">
-                                <div className="flex gap-4">
-                                    <button className="flex-1 py-3 bg-white text-black font-bold tracking-widest text-xs rounded-xl hover:bg-silver-light transition-all flex items-center justify-center gap-2">
-                                        <Share2 size={14} /> PUBLICAR
+                        {/* Send to Console (Equivalent to "Edit In Studio") */}
+                        <div className="px-8 mt-2 mb-4">
+                            <button
+                                onClick={() => {
+                                    const { addTrack, tracks } = useDAWStore.getState();
+                                    if (!tracks.find(t => t.id === activeTrack.id)) {
+                                        addTrack(activeTrack.title, '#FF6B00');
+                                    }
+                                    router.push('/studio');
+                                }}
+                                className="w-full py-3 bg-[#1A1A1A] border border-[#333] text-white font-bold text-sm rounded-xl hover:bg-[#222] transition-all flex items-center justify-center gap-2"
+                            >
+                                <Music4 size={16} className="text-orange-500" /> AL CONSOLA / STUDIO
+                            </button>
+                        </div>
+
+                        {/* Lyrics & Edit Actions */}
+                        <div className="px-8 pb-32 flex flex-col gap-6">
+
+                            {/* Lyrics Block */}
+                            {activeTrack.lyrics && (
+                                <div className="flex flex-col gap-3">
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-[11px] font-black text-[#888] uppercase tracking-wider">Lyrics</span>
+                                        <button className="text-[10px] text-orange-500 hover:text-orange-400 border border-orange-500/30 px-2 py-1 rounded bg-orange-500/10 transition-colors">Edit</button>
+                                    </div>
+                                    <div className="text-[#CCC] text-sm leading-relaxed font-sans whitespace-pre-wrap font-medium">
+                                        {activeTrack.lyrics}
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="h-px bg-[#222] my-2" />
+
+                            {/* Advanced Edit Section */}
+                            <div className="flex flex-col gap-3">
+                                <span className="text-[11px] font-black text-[#888] uppercase tracking-wider">Edición Avanzada</span>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <button
+                                        onClick={() => { setEditMode('extend'); setEditTrack(activeTrack); setEditModalOpen(true); }}
+                                        className="p-3 bg-white/5 hover:bg-white/10 border border-white/5 rounded-xl flex items-center justify-between transition-colors group"
+                                    >
+                                        <div className="flex items-center gap-2">
+                                            <ArrowUpRight size={16} className="text-orange-500" />
+                                            <span className="text-sm font-bold text-white">Extender</span>
+                                        </div>
                                     </button>
                                     <button
-                                        onClick={() => {
-                                            const { addTrack, tracks } = useDAWStore.getState();
-                                            if (!tracks.find(t => t.id === activeTrack.id)) {
-                                                addTrack(activeTrack.title, '#FF6B00');
-                                            }
-                                            router.push('/studio');
-                                        }}
-                                        className="flex-1 py-3 bg-[#111] border border-[#222] text-white font-bold tracking-widest text-xs rounded-xl hover:bg-[#222] text-orange-500 hover:text-orange-400 border-orange-500/30 transition-all flex items-center justify-center gap-2"
+                                        onClick={() => { setEditMode('vocals'); setEditTrack(activeTrack); setEditModalOpen(true); }}
+                                        className="p-3 bg-white/5 hover:bg-white/10 border border-white/5 rounded-xl flex items-center justify-between transition-colors group"
                                     >
-                                        <Send size={14} /> AL CONSOLA
+                                        <div className="flex items-center gap-2">
+                                            <Type size={16} className="text-orange-500" />
+                                            <span className="text-sm font-bold text-white">Añadir Voces</span>
+                                        </div>
                                     </button>
-                                    <button className="w-12 h-12 bg-[#111] border border-[#222] rounded-xl flex items-center justify-center text-red-500 hover:bg-red-500/10 transition-all shrink-0">
-                                        <Heart size={20} />
+                                    <button
+                                        onClick={() => { setEditMode('instrumental'); setEditTrack(activeTrack); setEditModalOpen(true); }}
+                                        className="p-3 bg-white/5 hover:bg-white/10 border border-white/5 rounded-xl flex items-center justify-between transition-colors group"
+                                    >
+                                        <div className="flex items-center gap-2">
+                                            <Music size={16} className="text-orange-500" />
+                                            <span className="text-sm font-bold text-white">Instrumental</span>
+                                        </div>
                                     </button>
-                                </div>
-                                <button
-                                    onClick={() => router.push(`/${window.location.pathname.split('/')[1] || 'en'}/covers?trackId=${activeTrack.id}`)}
-                                    className="w-full py-4 bg-gradient-to-r from-blue-600 via-indigo-500 to-purple-600 text-white font-black tracking-widest text-sm rounded-xl hover:scale-[1.02] transition-all flex items-center justify-center gap-3 shadow-[0_0_20px_rgba(79,70,229,0.3)] border border-white/10 relative overflow-hidden group"
-                                >
-                                    <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out" />
-                                    <Sparkles size={18} className="animate-pulse" /> DISEÑAR PORTADA EN CANVA
-                                </button>
-                            </div>
-
-                            {/* Lyrics Container */}
-                            <div className="flex flex-col gap-4">
-                                <div className="flex items-center justify-between">
-                                    <span className="text-[10px] font-black tracking-widest text-[#444] uppercase flex items-center gap-2">
-                                        <MessageSquare size={12} /> LÍRICA GENERADA
-                                    </span>
-                                    <button className="text-[9px] font-bold text-orange-500 hover:underline">Editar</button>
-                                </div>
-                                <div className="bg-[#0A0A0C] border border-[#222] rounded-2xl p-6 shadow-inner">
-                                    <pre className="text-silver-dark text-sm leading-relaxed font-sans whitespace-pre-wrap">
-                                        {activeTrack.lyrics}
-                                    </pre>
+                                    <button
+                                        onClick={() => { setEditMode('video'); setEditTrack(activeTrack); setEditModalOpen(true); }}
+                                        className="p-3 bg-white/5 hover:bg-white/10 border border-white/5 rounded-xl flex items-center justify-between transition-colors group"
+                                    >
+                                        <div className="flex items-center gap-2">
+                                            <Activity size={16} className="text-orange-500" />
+                                            <span className="text-sm font-bold text-white">Generar Video</span>
+                                        </div>
+                                    </button>
                                 </div>
                             </div>
                         </div>
+
                     </div>
                 ) : (
-                    <div className="h-full flex flex-col items-center justify-center text-[#222] p-12 text-center">
+                    <div className="h-full flex flex-col items-center justify-center text-[#222] p-12 text-center pt-32">
                         <Disc3 size={100} className="mb-6 opacity-20" />
                         <p className="text-sm font-bold tracking-widest uppercase opacity-20">Selecciona una obra para ver detalles</p>
                     </div>
