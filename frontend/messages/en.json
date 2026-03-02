@@ -45,7 +45,8 @@
         "mastering": "Mastering",
         "notifications": "Notifications",
         "profile": "Profile",
-        "settings": "Settings"
+        "settings": "Settings",
+        "admin": "Admin"
     },
     "Languages": {
         "en": "English",

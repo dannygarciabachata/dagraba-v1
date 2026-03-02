@@ -43,7 +43,8 @@
         "studio": "Studio",
         "mastering": "Mastering",
         "profile": "Profil",
-        "settings": "Einstellungen"
+        "settings": "Einstellungen",
+        "admin": "Admin"
     },
     "Languages": {
         "en": "English",
