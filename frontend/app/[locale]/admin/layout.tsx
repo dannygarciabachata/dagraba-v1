@@ -1,7 +1,15 @@
+'use client';
+
 import React from 'react';
-import { ShieldAlert, Server, Activity, Database, Settings, Terminal, LayoutDashboard } from 'lucide-react';
+import { ShieldAlert, Server, Activity, Database, Settings, Terminal, LayoutDashboard, Music } from 'lucide-react';
+import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
+    const searchParams = useSearchParams();
+    const activeTab = searchParams.get('tab') || 'ai';
+
+    const getLocalizedHref = (tab: string) => `?tab=${tab}`;
     return (
         <div className="flex bg-[#050505] min-h-screen w-full text-silver-light font-mono overflow-hidden">
             {/* Immersive Spaceship Control Background */}
@@ -23,15 +31,45 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 </div>
 
                 <nav className="flex flex-col gap-4 w-full px-2">
-                    <AdminNavItem icon={<LayoutDashboard size={20} />} label="OVERVIEW" href="/admin" active />
-                    <AdminNavItem icon={<Activity size={20} />} label="MODAL AI" href="/admin#modal" />
-                    <AdminNavItem icon={<Database size={20} />} label="ASSETS" href="/admin#assets" />
-                    <AdminNavItem icon={<ShieldAlert size={20} />} label="VAULT" href="/admin#vault" />
-                    <AdminNavItem icon={<Server size={20} />} label="USERS" href="/admin#users" />
+                    <AdminNavItem
+                        icon={<Activity size={20} />}
+                        label="MODAL AI"
+                        href={getLocalizedHref('ai')}
+                        active={activeTab === 'ai'}
+                    />
+                    <AdminNavItem
+                        icon={<Music size={20} />}
+                        label="INSTRUMENTS"
+                        href={getLocalizedHref('instruments')}
+                        active={activeTab === 'instruments'}
+                    />
+                    <AdminNavItem
+                        icon={<Database size={20} />}
+                        label="ASSETS"
+                        href={getLocalizedHref('assets')}
+                        active={activeTab === 'assets'}
+                    />
+                    <AdminNavItem
+                        icon={<ShieldAlert size={20} />}
+                        label="VAULT"
+                        href={getLocalizedHref('finance')}
+                        active={activeTab === 'finance'}
+                    />
+                    <AdminNavItem
+                        icon={<Server size={20} />}
+                        label="USERS"
+                        href={getLocalizedHref('users')}
+                        active={activeTab === 'users'}
+                    />
                 </nav>
 
                 <div className="mt-auto flex flex-col w-full p-2">
-                    <AdminNavItem icon={<Settings size={20} />} label="CONFIG" href="/admin#config" />
+                    <AdminNavItem
+                        icon={<Settings size={20} />}
+                        label="CONFIG"
+                        href={getLocalizedHref('config')}
+                        active={activeTab === 'config'}
+                    />
                     <div className="mt-4 border-t border-[#333] pt-4 w-full overflow-hidden flex flex-col items-center group-hover:items-start group-hover:px-4">
                         <span className="text-[10px] text-[#FF6B00] font-bold tracking-widest flex items-center gap-2 max-w-full truncate">
                             <span className="w-2 h-2 rounded-full bg-[#FF6B00] animate-pulse shrink-0" />
@@ -71,7 +109,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
 function AdminNavItem({ icon, label, href, active = false }: { icon: React.ReactNode, label: string, href: string, active?: boolean }) {
     return (
-        <a href={href} className="group/item flex items-center gap-4 px-3 py-2.5 rounded-md hover:bg-[#222] transition-colors relative w-full overflow-hidden">
+        <Link href={href} className="group/item flex items-center gap-4 px-3 py-2.5 rounded-md hover:bg-[#222] transition-colors relative w-full overflow-hidden">
             {active && <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#FF6B00] shadow-[0_0_10px_rgba(255,107,0,0.8)]" />}
             <div className={`shrink-0 ${active ? 'text-[#FF6B00]' : 'text-[#888] group-hover/item:text-white'}`}>
                 {icon}
@@ -79,6 +117,6 @@ function AdminNavItem({ icon, label, href, active = false }: { icon: React.React
             <span className={`text-xs font-bold tracking-widest opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap ${active ? 'text-white' : 'text-[#888] group-hover/item:text-white'}`}>
                 {label}
             </span>
-        </a>
+        </Link>
     );
 }
