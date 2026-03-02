@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useEffect } from 'react';
 import { AITrainingModule } from '@/components/admin/AITrainingModule';
 import { InstrumentBank } from '@/components/admin/InstrumentBank';
