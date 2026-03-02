@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
-import { KieService } from '@/lib/ai/services/kie-service';
-import { MusicGptService } from '@/lib/ai/services/musicgpt-service';
-import { DagrabaService } from '@/lib/ai/services/dagraba-service';
-import { BaseMusicService, MusicGenerationRequest } from '@/lib/ai/types';
+import { KieService } from '../../../../lib/ai/services/kie-service';
+import { MusicGptService } from '../../../../lib/ai/services/musicgpt-service';
+import { DagrabaService } from '../../../../lib/ai/services/dagraba-service';
+import { BaseMusicService, MusicGenerationRequest } from '../../../../lib/ai/types';
 
 export async function POST(req: Request) {
     try {
@@ -12,18 +12,8 @@ export async function POST(req: Request) {
 
         let service: BaseMusicService;
 
-        switch (provider.toLowerCase()) {
-            case 'dagraba':
-                service = new DagrabaService();
-                break;
-            case 'musicgpt':
-                service = new MusicGptService();
-                break;
-            case 'kie':
-            default:
-                service = new KieService();
-                break;
-        }
+        // Forzar DagrabaService para entrenamiento propio
+        service = new DagrabaService();
 
         const taskId = await service.generateMusic(requestParams as MusicGenerationRequest);
 

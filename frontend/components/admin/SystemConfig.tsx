@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Settings, Globe, Power, HardDrive, AlertTriangle } from 'lucide-react';
+import { Settings, Globe, Power, HardDrive, AlertTriangle, Settings2 } from 'lucide-react';
 
 export function SystemConfig() {
     const [maintenanceMode, setMaintenanceMode] = useState(false);
@@ -163,6 +163,33 @@ export function SystemConfig() {
                         </span>
                         <span className="text-[10px] text-[#888] text-center">Reinicia los workers de DA GRABA y limpia cache S3.</span>
                     </div>
+
+                    <button
+                        onClick={async () => {
+                            if (confirm('¿Estás seguro de que quieres reiniciar el asistente de configuración? Esto permitirá volver a entrar a /setup.')) {
+                                try {
+                                    const res = await fetch('/api/admin/settings', {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({ key: 'INITIAL_SETUP_COMPLETED', value: 'false', category: 'system' })
+                                    });
+                                    if (res.ok) {
+                                        alert('Asistente reiniciado. Redirigiendo...');
+                                        window.location.href = '/setup';
+                                    }
+                                } catch (error) {
+                                    alert('Error al reiniciar el asistente.');
+                                }
+                            }
+                        }}
+                        className="bg-red-900/20 hover:bg-red-900/40 border border-red-500/30 rounded-md p-4 flex flex-col items-center justify-center gap-2 mt-2 transition-colors group"
+                    >
+                        <Settings2 size={24} className="text-red-500 group-hover:rotate-45 transition-transform" />
+                        <span className="text-xs font-bold text-red-400 uppercase tracking-widest text-center">
+                            Reset Setup Wizard
+                        </span>
+                        <span className="text-[10px] text-red-500/70 text-center">Permite re-configurar el sistema desde cero.</span>
+                    </button>
                 </div>
 
             </div>

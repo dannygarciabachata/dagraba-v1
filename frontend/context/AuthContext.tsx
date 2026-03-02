@@ -52,6 +52,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const logout = async () => {
         try {
             await signOut(auth);
+            // Clear local store
+            const { useUserStore } = await import('@/store/useUserStore');
+            useUserStore.getState().clearUser();
+
             // Redirect to landing page after sign out
             window.location.href = '/';
         } catch (error) {

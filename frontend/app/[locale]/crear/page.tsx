@@ -29,7 +29,7 @@ export default function Crear() {
     const router = useRouter();
     const params = useParams();
     const locale = params?.locale || 'es';
-    const { currentPreviewTrack, setPreviewTrack, isPlaying, setIsPlaying, setRightPanelWidth } = useDAWStore();
+    const { currentPreviewTrack, setPreviewTrack, isPlaying, setIsPlaying, rightPanelWidth, sidebarWidth, setRightPanelWidth, setSidebarWidth } = useDAWStore();
     const { tracks, activeTrack, setTracks, setActiveTrack, updateTrack, removeTrack, addTrack } = useCreatorStore();
     const [isGenerating, setIsGenerating] = useState(false);
     const { credits, deductCredits } = useUserStore();
@@ -346,9 +346,16 @@ export default function Crear() {
         return () => setRightPanelWidth(0);
     }, [isPanelOpen, setRightPanelWidth]);
 
+    // Handle sidebar width for global player centering
+    useEffect(() => {
+        setSidebarWidth(350);
+        return () => setSidebarWidth(0);
+    }, [setSidebarWidth]);
+
     return (
         <div className="flex h-full w-full bg-[#050505] overflow-hidden relative">
 
+            {/* LEFT SIDEBAR: Creation Input */}
             {/* LEFT SIDEBAR: Creation Input */}
             <aside className="w-[350px] border-r border-white/5 bg-[#0A0A0C] flex flex-col p-6 gap-8">
                 <div className="flex items-center gap-3">
@@ -587,56 +594,65 @@ export default function Crear() {
                 </div>
             </aside>
 
-            {/* CENTER PANEL: Vertical Track List */}
-            <main className="flex-1 overflow-y-auto custom-scrollbar bg-[#050505] p-6 lg:p-8">
-                <div className="max-w-md mx-auto flex flex-col gap-4">
-                    <div className="flex items-center justify-between mb-2">
-                        <h3 className="text-xs font-black tracking-[0.3em] text-[#444] uppercase">Tus Creaciones</h3>
+            {/* CENTER PANEL: Horizontal Track List (Mureka Style) */}
+            <main className="flex-1 overflow-y-auto custom-scrollbar bg-[#050505] p-2 pl-4">
+                <div className="flex flex-col gap-6 w-full">
+                    <div className="flex items-center justify-between px-2 pt-4 max-w-[900px]">
+                        <h3 className="text-[10px] font-black tracking-[0.4em] text-[#333] uppercase">Tus Creaciones</h3>
                         <div className="flex gap-4">
-                            <span className="text-[10px] font-bold text-orange-500 bg-orange-500/10 px-2 py-0.5 rounded cursor-pointer">TODO</span>
-                            <span className="text-[10px] font-bold text-[#444] hover:text-white cursor-pointer transition-colors">FAVORITOS</span>
+                            <span className="text-[9px] font-black text-orange-500 bg-orange-500/10 px-2.5 py-1 rounded cursor-pointer tracking-widest">TODO</span>
+                            <span className="text-[9px] font-black text-[#333] hover:text-white px-2.5 py-1 rounded cursor-pointer transition-all tracking-widest">FAVORITOS</span>
                         </div>
                     </div>
 
                     {isGenerating && (
-                        <div className="bg-[#111]/50 border border-orange-500/20 rounded-2xl p-6 animate-pulse flex items-center gap-6">
-                            <div className="w-24 h-24 bg-[#222] rounded-xl flex items-center justify-center">
-                                <Activity className="text-orange-500" />
+                        <div className="bg-[#111]/50 border border-orange-500/20 rounded-xl p-4 animate-pulse flex items-center gap-6 w-full max-w-[900px] h-[156px]">
+                            <div className="w-[150px] h-[150px] bg-[#222] rounded-lg flex items-center justify-center">
+                                <Activity className="text-orange-500 animate-bounce" />
                             </div>
-                            <div className="flex-1 space-y-3">
-                                <div className="h-4 bg-[#222] w-1/3 rounded" />
+                            <div className="flex-1 space-y-4">
+                                <div className="h-4 bg-[#222] w-1/4 rounded" />
                                 <div className="h-3 bg-[#222] w-1/2 rounded" />
-                                <div className="h-2 bg-[#222] w-full rounded" />
+                                <div className="h-3 bg-[#222] w-1/3 rounded" />
                             </div>
                         </div>
                     )}
 
-                    <div className="flex flex-col gap-4">
+                    <div className="flex flex-col gap-3">
                         {tracks.map((track) => (
                             <div
                                 key={track.id}
                                 onClick={() => handleSelectTrack(track)}
-                                className={`group relative bg-[#0A0A0C] border transition-all duration-300 rounded-2xl p-4 flex items-center gap-4 cursor-pointer ${activeTrack?.id === track.id
-                                    ? 'border-orange-500/40 bg-orange-500/5 shadow-[0_10px_40px_rgba(255,107,0,0.05)]'
-                                    : 'border-white/5 hover:border-white/10'
+                                className={`group relative bg-[#08080A] border transition-all duration-300 rounded-xl p-[3px] flex items-center gap-6 cursor-pointer overflow-visible w-full max-w-[900px] h-[156px] ${activeTrack?.id === track.id
+                                    ? 'border-orange-500/40 bg-orange-500/5 shadow-[0_10px_30px_rgba(255,107,0,0.03)]'
+                                    : 'border-white/[0.03] hover:border-white/10 hover:bg-[#0C0C0E]'
                                     }`}
                             >
-                                <div className="w-20 h-20 shrink-0 rounded-xl overflow-hidden relative shadow-lg">
-                                    <img src={track.image} alt="" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
-                                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                {/* Cover Image Container */}
+                                <div className="w-[150px] h-[150px] shrink-0 rounded-lg overflow-hidden relative shadow-md">
+                                    <img src={track.image} alt="" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+
+                                    {/* Play Overlay */}
+                                    <div className="absolute inset-0 bg-black/60 flex items-center justify-center translate-y-2 opacity-0 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300">
                                         <button
                                             onClick={(e) => handlePlayTrack(track, e)}
-                                            className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-2xl transform scale-90 group-hover:scale-100 transition-all duration-300"
+                                            className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-2xl transform scale-90 hover:scale-100 transition-all"
                                         >
-                                            {currentPreviewTrack?.id === track.id && isPlaying ? <Pause size={24} fill="black" /> : <Play size={24} fill="black" className="ml-1" />}
+                                            {currentPreviewTrack?.id === track.id && isPlaying ? <Pause size={24} fill="black" /> : <Play size={24} fill="black" className="ml-0.5" />}
                                         </button>
+                                    </div>
+
+                                    {/* Duration Tag */}
+                                    <div className="absolute bottom-2 right-2 px-1.5 py-0.5 bg-black/80 backdrop-blur-md rounded text-[9px] font-mono text-white border border-white/10">
+                                        {track.duration}
                                     </div>
                                 </div>
 
-                                <div className="flex-1 min-w-0">
+                                {/* Track Info and Meta */}
+                                <div className="flex-1 flex flex-col justify-center min-w-0 pr-12 relative h-full">
                                     <div className="flex items-center gap-3 mb-1">
                                         <h4
-                                            className="text-lg font-bold text-white truncate hover:underline cursor-pointer"
+                                            className="text-[18px] font-bold text-white truncate group-hover:text-orange-400 transition-colors"
                                             onClick={(e) => {
                                                 e.stopPropagation();
                                                 handleSelectTrack(track);
@@ -644,149 +660,158 @@ export default function Crear() {
                                         >
                                             {track.title}
                                         </h4>
-                                        <span className="text-[10px] text-orange-500 font-mono tracking-tighter">{track.duration}</span>
+                                        <span className="px-2 py-0.5 rounded bg-white/5 border border-white/10 text-[9px] text-[#666] font-mono">V8-all</span>
                                     </div>
-                                    <p className="text-sm text-[#666] mb-3 truncate italic">{track.style?.split(',').slice(0, 2).join(', ')}</p>
-                                    <div className="flex items-center gap-4 mt-2">
-                                        <div className="flex items-center gap-1.5 text-[10px] text-[#444] font-bold">
-                                            <Eye size={12} /> {track.views}
+
+                                    <div className="flex flex-wrap gap-2 mb-4">
+                                        {track.style?.split(',').slice(0, 4).map(tag => (
+                                            <span key={tag} className="text-[10px] text-[#555] px-2 py-0.5 bg-[#111] rounded-full border border-white/5 hover:text-white transition-colors">
+                                                {tag.trim()}
+                                            </span>
+                                        ))}
+                                    </div>
+
+                                    <div className="flex items-center gap-6">
+                                        <button className="flex items-center gap-2 text-[11px] text-[#444] hover:text-white font-bold transition-colors">
+                                            <Share2 size={14} /> Publish
+                                        </button>
+                                        <div className="flex items-center gap-1.5 text-[11px] text-[#444] font-bold">
+                                            <Eye size={14} /> {track.views}
                                         </div>
-                                        <div className="flex items-center gap-1.5 text-[10px] text-[#444] font-bold">
-                                            <Heart size={12} /> {track.likes}
+                                        <div className="flex items-center gap-1.5 text-[11px] text-[#444] font-bold">
+                                            <Heart size={14} /> {track.likes}
                                         </div>
+                                        <div className="flex items-center gap-1.5 text-[11px] text-[#444] font-bold">
+                                            <Download size={14} />
+                                        </div>
+                                    </div>
+
+                                    {/* Right Side Actions for the Row */}
+                                    <div className="absolute right-0 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); setEditMode('vocals'); setEditTrack(track); setEditModalOpen(true); }}
+                                            className="px-4 py-2 bg-[#1A1A1A] hover:bg-[#222] border border-[#333] rounded-lg text-xs font-bold text-white flex items-center gap-2 transition-all opacity-0 group-hover:opacity-100"
+                                        >
+                                            <ArrowUpRight size={14} /> Video
+                                        </button>
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); setEditMode('extend'); setEditTrack(track); setEditModalOpen(true); }}
+                                            className="px-4 py-2 bg-[#1A1A1A] hover:bg-[#222] border border-[#333] rounded-lg text-xs font-bold text-white flex items-center gap-2 transition-all opacity-0 group-hover:opacity-100"
+                                        >
+                                            <Pencil size={14} /> Edit
+                                        </button>
+
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setOpenMenuId(openMenuId === track.id ? null : track.id);
+                                            }}
+                                            className="p-2 text-[#333] hover:text-white transition-colors rounded-lg hover:bg-white/5"
+                                        >
+                                            <MoreVertical size={18} />
+                                        </button>
                                     </div>
                                 </div>
 
-                                <div className="relative z-10 flex flex-col gap-2">
-                                    <button
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            setOpenMenuId(openMenuId === track.id ? null : track.id);
-                                        }}
-                                        className="p-2 text-[#666] hover:text-white transition-colors rounded-full hover:bg-white/5"
-                                    >
-                                        <MoreVertical size={20} />
-                                    </button>
+                                {/* Dropdown Menu (adjusted for horizontal row) */}
+                                {openMenuId === track.id && (
+                                    <div className="absolute right-4 top-[80%] w-52 bg-[#141416] border border-[#222] rounded-xl shadow-[0_10px_40px_rgba(0,0,0,0.5)] py-2 z-[200] animate-in fade-in zoom-in-95 duration-200">
+                                        <button onClick={(e) => { e.stopPropagation(); setOpenMenuId(null); }} className="w-full text-left px-4 py-2 text-xs text-[#E0E0E0] hover:text-white hover:bg-[#222] flex items-center gap-3 transition-colors">
+                                            <RefreshCw size={14} className="text-[#666]" /> Remake
+                                        </button>
 
-                                    {openMenuId === track.id && (
-                                        <div className="absolute right-10 top-0 w-56 bg-[#1A1A1A] border border-[#333] rounded-xl shadow-2xl py-2 z-50 overflow-y-auto max-h-[400px] custom-scrollbar">
-                                            <button onClick={(e) => { e.stopPropagation(); setOpenMenuId(null); }} className="w-full text-left px-4 py-2.5 text-sm text-[#E0E0E0] hover:text-white hover:bg-[#222] flex items-center gap-3 transition-colors">
-                                                <RefreshCw size={16} className="text-[#888]" /> Remake
-                                            </button>
+                                        <div className="h-px bg-[#222] my-1 mx-2"></div>
+                                        <div className="px-4 py-1 text-[8px] font-black text-[#444] uppercase tracking-[0.2em]">Edición Avanzada</div>
 
-                                            <div className="h-px bg-[#333] my-1 mx-2"></div>
-                                            <div className="px-4 py-1.5 text-[10px] font-black text-[#666] uppercase tracking-wider">Edición Avanzada</div>
+                                        <button onClick={(e) => { e.stopPropagation(); setOpenMenuId(null); setEditMode('extend'); setEditTrack(track); setEditModalOpen(true); }} className="w-full text-left px-4 py-2 text-xs text-[#E0E0E0] hover:text-white hover:bg-[#222] flex items-center gap-3 transition-colors">
+                                            <ArrowUpRight size={14} className="text-[#666]" /> Extender
+                                        </button>
+                                        <button onClick={(e) => { e.stopPropagation(); setOpenMenuId(null); setEditMode('vocals'); setEditTrack(track); setEditModalOpen(true); }} className="w-full text-left px-4 py-2 text-xs text-[#E0E0E0] hover:text-white hover:bg-[#222] flex items-center gap-3 transition-colors">
+                                            <Type size={14} className="text-[#666]" /> Añadir Voces
+                                        </button>
+                                        <button onClick={(e) => { e.stopPropagation(); setOpenMenuId(null); setEditMode('instrumental'); setEditTrack(track); setEditModalOpen(true); }} className="w-full text-left px-4 py-2 text-xs text-[#E0E0E0] hover:text-white hover:bg-[#222] flex items-center gap-3 transition-colors">
+                                            <Music size={14} className="text-[#666]" /> Instrumental
+                                        </button>
+                                        <button onClick={(e) => { e.stopPropagation(); setOpenMenuId(null); setEditMode('video'); setEditTrack(track); setEditModalOpen(true); }} className="w-full text-left px-4 py-2 text-xs text-[#E0E0E0] hover:text-white hover:bg-[#222] flex items-center gap-3 transition-colors">
+                                            <Activity size={14} className="text-[#666]" /> Generar Video
+                                        </button>
 
-                                            <button onClick={(e) => { e.stopPropagation(); setOpenMenuId(null); setEditMode('extend'); setEditTrack(track); setEditModalOpen(true); }} className="w-full text-left px-4 py-2.5 text-sm text-[#E0E0E0] hover:text-white hover:bg-[#222] flex items-center gap-3 transition-colors">
-                                                <ArrowUpRight size={16} className="text-[#888]" /> Extender
-                                            </button>
-                                            <button onClick={(e) => { e.stopPropagation(); setOpenMenuId(null); setEditMode('vocals'); setEditTrack(track); setEditModalOpen(true); }} className="w-full text-left px-4 py-2.5 text-sm text-[#E0E0E0] hover:text-white hover:bg-[#222] flex items-center gap-3 transition-colors">
-                                                <Type size={16} className="text-[#888]" /> Añadir Voces
-                                            </button>
-                                            <button onClick={(e) => { e.stopPropagation(); setOpenMenuId(null); setEditMode('instrumental'); setEditTrack(track); setEditModalOpen(true); }} className="w-full text-left px-4 py-2.5 text-sm text-[#E0E0E0] hover:text-white hover:bg-[#222] flex items-center gap-3 transition-colors">
-                                                <Music size={16} className="text-[#888]" /> Instrumental
-                                            </button>
-                                            <button onClick={(e) => { e.stopPropagation(); setOpenMenuId(null); setEditMode('video'); setEditTrack(track); setEditModalOpen(true); }} className="w-full text-left px-4 py-2.5 text-sm text-[#E0E0E0] hover:text-white hover:bg-[#222] flex items-center gap-3 transition-colors">
-                                                <Activity size={16} className="text-[#888]" /> Generar Video
-                                            </button>
+                                        <div className="h-px bg-[#222] my-1 mx-2"></div>
 
-                                            <div className="h-px bg-[#333] my-1 mx-2"></div>
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setOpenMenuId(null);
+                                                const { addTrack, tracks } = useDAWStore.getState();
+                                                if (!tracks.find(t => t.id === track.id)) {
+                                                    addTrack(track.title, '#FF6B00');
+                                                }
+                                                router.push(`/${locale}/studio`);
+                                            }}
+                                            className="w-full text-left px-4 py-2 text-xs text-orange-500 hover:bg-orange-500/5 flex items-center gap-3 transition-colors font-bold"
+                                        >
+                                            <Music4 size={14} className="text-orange-500" /> STUDIO
+                                        </button>
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); handleSendToMastering(track); }}
+                                            className="w-full text-left px-4 py-2 text-xs text-cyan-400 hover:bg-cyan-500/5 flex items-center gap-3 transition-colors font-bold"
+                                        >
+                                            <SlidersHorizontal size={14} className="text-cyan-400" /> MASTERING
+                                        </button>
 
-                                            <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleSendToMastering(track);
+                                                // The stem extract modal logic is handled in mastering,
+                                                // but we can pass a hint to open it automatically if needed.
+                                                // For now, it takes them to the Mastering space where they find the button.
+                                                setOpenMenuId(null);
+                                            }}
+                                            className="w-full text-left px-4 py-2 text-xs text-purple-400 hover:bg-purple-500/5 flex items-center gap-3 transition-colors font-bold"
+                                        >
+                                            <Layers size={14} className="text-purple-400" /> EXTRAER STEMS
+                                        </button>
+
+                                        <div className="h-px bg-[#222] my-1 mx-2"></div>
+
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                if (track.lyrics) {
+                                                    navigator.clipboard.writeText(track.lyrics);
                                                     setOpenMenuId(null);
-                                                    const { addTrack, tracks } = useDAWStore.getState();
-                                                    if (!tracks.find(t => t.id === track.id)) {
-                                                        addTrack(track.title, '#FF6B00');
-                                                    }
-                                                    router.push(`/${locale}/studio`);
-                                                }}
-                                                className="w-full text-left px-4 py-2.5 text-sm text-orange-500 hover:bg-[#222] flex items-center gap-3 transition-colors font-bold"
-                                            >
-                                                <Music4 size={16} className="text-orange-500" /> AL CONSOLA / STUDIO
-                                            </button>
-
-                                            <div className="h-px bg-[#333] my-1 mx-2"></div>
-
-                                            <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    handleSendToMastering(track);
-                                                }}
-                                                className="w-full text-left px-4 py-2.5 text-sm text-cyan-400 hover:bg-[#222] flex items-center gap-3 transition-colors font-bold"
-                                            >
-                                                <SlidersHorizontal size={16} className="text-cyan-400" /> MANDAR AL MASTERING
-                                            </button>
-
-                                            <div className="h-px bg-[#333] my-1 mx-2"></div>
-
-                                            <button onClick={(e) => { e.stopPropagation(); setOpenMenuId(null); }} className="w-full text-left px-4 py-2.5 text-sm text-[#E0E0E0] hover:text-white hover:bg-[#222] flex items-center gap-3 transition-colors">
-                                                <Play size={16} className="text-[#888]" /> Play next
-                                            </button>
-                                            <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    if (track.lyrics) {
-                                                        navigator.clipboard.writeText(track.lyrics);
-                                                        setOpenMenuId(null);
-                                                        alert("Letras copiadas al portapapeles!");
-                                                    }
-                                                }}
-                                                className="w-full text-left px-4 py-2.5 text-sm text-[#E0E0E0] hover:text-white hover:bg-[#222] flex items-center gap-3 transition-colors"
-                                            >
-                                                <Copy size={16} className="text-[#888]" /> Copy lyrics
-                                            </button>
-                                            <button
-                                                onClick={async (e) => {
-                                                    e.stopPropagation();
-                                                    setOpenMenuId(null);
-                                                    const src = track.url || track.streamAudioUrl;
-                                                    if (!src) return;
-                                                    const a = document.createElement('a');
-                                                    a.href = src;
-                                                    a.download = `${track.title}.mp3`;
-                                                    a.click();
-                                                }}
-                                                className="w-full text-left px-4 py-2.5 text-sm text-[#E0E0E0] hover:text-white hover:bg-[#222] flex items-center gap-3 transition-colors"
-                                            >
-                                                <Download size={16} className="text-[#888]" /> Download
-                                            </button>
-                                            <button onClick={(e) => { e.stopPropagation(); setOpenMenuId(null); }} className="w-full text-left px-4 py-2.5 text-sm text-[#E0E0E0] hover:text-white hover:bg-[#222] flex items-center gap-3 transition-colors">
-                                                <Pencil size={16} className="text-[#888]" /> Edit song title and cover
-                                            </button>
-                                            <div className="h-px bg-[#333] my-1 mx-2"></div>
-                                            <button onClick={(e) => { e.stopPropagation(); setOpenMenuId(null); }} className="w-full text-left px-4 py-2.5 text-sm text-[#E0E0E0] hover:text-white hover:bg-[#222] flex items-center gap-3 transition-colors">
-                                                <HelpCircle size={16} className="text-[#888]" /> Feedback
-                                            </button>
-                                            <button onClick={(e) => { e.stopPropagation(); setOpenMenuId(null); }} className="w-full text-left px-4 py-2.5 text-sm text-[#E0E0E0] hover:text-white hover:bg-[#222] flex items-center gap-3 transition-colors">
-                                                <Flame size={16} className="text-[#888]" /> Dislike
-                                            </button>
-                                            <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    removeTrack(track.id);
-                                                    setOpenMenuId(null);
-                                                }}
-                                                className="w-full text-left px-4 py-2.5 text-sm text-red-500 hover:bg-red-500/10 flex items-center gap-3 transition-colors"
-                                            >
-                                                <Trash2 size={16} /> Delete
-                                            </button>
-                                        </div>
-                                    )}
-                                </div>
+                                                    alert("Letras copiadas!");
+                                                }
+                                            }}
+                                            className="w-full text-left px-4 py-2 text-xs text-[#E0E0E0] hover:text-white hover:bg-[#222] flex items-center gap-3 transition-colors"
+                                        >
+                                            <Copy size={14} className="text-[#666]" /> Copy lyrics
+                                        </button>
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                removeTrack(track.id);
+                                                setOpenMenuId(null);
+                                            }}
+                                            className="w-full text-left px-4 py-2 text-xs text-red-500/80 hover:bg-red-500/10 flex items-center gap-3 transition-colors"
+                                        >
+                                            <Trash2 size={14} /> Delete
+                                        </button>
+                                    </div>
+                                )}
 
                                 {activeTrack?.id === track.id && (
-                                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-orange-600 shadow-[0_0_15px_rgba(255,107,0,0.8)] rounded-l-2xl" />
+                                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-orange-600 shadow-[0_0_15px_rgba(255,107,0,0.5)] rounded-l-xl" />
                                 )}
                             </div>
                         ))}
                     </div>
                 </div>
-            </main>
+            </main >
 
             {/* RIGHT PANEL: Details & Lyrics */}
-            <aside className={`border-l border-[#222] bg-[#0A0A0C] shrink-0 flex flex-col overflow-hidden transition-[width] duration-300 ease-in-out ${isPanelOpen ? 'w-[340px]' : 'w-0 border-none'}`}>
+            < aside className={`border-l border-[#222] bg-[#0A0A0C] shrink-0 flex flex-col overflow-hidden transition-[width] duration-300 ease-in-out ${isPanelOpen ? 'w-[340px]' : 'w-0 border-none'}`}>
                 <div className="w-[340px] h-full flex flex-col overflow-y-auto custom-scrollbar relative">
                     {activeTrack ? (
                         <div className="flex flex-col w-full h-full relative">
@@ -986,72 +1011,74 @@ export default function Crear() {
                         </div>
                     )}
                 </div>
-            </aside>
+            </aside >
             {/* Edit Modal (Extend, Vocals, Instrumental, Video) */}
-            {editModalOpen && editTrack && (
-                <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
-                    <div className="bg-[#111] border border-[#333] rounded-2xl w-full max-w-md p-6 shadow-2xl animate-in zoom-in-95 duration-200">
-                        <div className="flex justify-between items-center mb-6">
-                            <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                                {editMode === 'extend' && <><ArrowUpRight size={20} className="text-orange-500" /> Extender Pista</>}
-                                {editMode === 'vocals' && <><Type size={20} className="text-orange-500" /> Añadir Voces</>}
-                                {editMode === 'instrumental' && <><Music size={20} className="text-orange-500" /> Añadir Instrumental</>}
-                                {editMode === 'video' && <><Activity size={20} className="text-orange-500" /> Generar Video MP4</>}
-                            </h3>
-                            <button onClick={() => setEditModalOpen(false)} className="p-2 text-[#666] hover:text-white bg-[#222] rounded-full">
-                                <Plus size={20} className="rotate-45" />
-                            </button>
-                        </div>
-
-                        <div className="flex items-center gap-4 mb-6 p-4 bg-[#1A1A1A] rounded-xl border border-[#333]">
-                            <img src={editTrack.image} alt="cover" className="w-12 h-12 rounded-lg object-cover" />
-                            <div>
-                                <p className="text-sm font-bold text-white truncate max-w-[250px]">{editTrack.title}</p>
-                                <p className="text-xs text-[#888]">{editMode === 'video' ? 'Crear visualizador para este track' : 'Pista base para edición'}</p>
+            {
+                editModalOpen && editTrack && (
+                    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+                        <div className="bg-[#111] border border-[#333] rounded-2xl w-full max-w-md p-6 shadow-2xl animate-in zoom-in-95 duration-200">
+                            <div className="flex justify-between items-center mb-6">
+                                <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                                    {editMode === 'extend' && <><ArrowUpRight size={20} className="text-orange-500" /> Extender Pista</>}
+                                    {editMode === 'vocals' && <><Type size={20} className="text-orange-500" /> Añadir Voces</>}
+                                    {editMode === 'instrumental' && <><Music size={20} className="text-orange-500" /> Añadir Instrumental</>}
+                                    {editMode === 'video' && <><Activity size={20} className="text-orange-500" /> Generar Video MP4</>}
+                                </h3>
+                                <button onClick={() => setEditModalOpen(false)} className="p-2 text-[#666] hover:text-white bg-[#222] rounded-full">
+                                    <Plus size={20} className="rotate-45" />
+                                </button>
                             </div>
-                        </div>
 
-                        {editMode !== 'video' && (
-                            <div className="space-y-4 mb-6">
-                                {editMode === 'extend' && (
-                                    <div className="space-y-2">
-                                        <label className="text-xs font-bold text-[#888] uppercase tracking-wider">Continuar en (segundos)</label>
-                                        <input
-                                            type="number"
-                                            value={editContinueAt}
-                                            onChange={(e) => setEditContinueAt(e.target.value)}
-                                            className="w-full bg-[#0A0A0C] border border-[#333] rounded-xl p-3 text-sm text-white focus:border-orange-500 outline-none"
-                                            placeholder="Ej: 120"
-                                        />
-                                        <p className="text-[10px] text-[#666]">Deja en 0 para extender desde el final de la pista ({editTrack.duration}).</p>
-                                    </div>
-                                )}
-
-                                <div className="space-y-2">
-                                    <label className="text-xs font-bold text-[#888] uppercase tracking-wider">
-                                        {editMode === 'vocals' ? 'Letras o estilo vocal' : (editMode === 'extend' ? 'Cómo continuar' : 'Estilo Instrumental')}
-                                    </label>
-                                    <textarea
-                                        value={editPrompt}
-                                        onChange={(e) => setEditPrompt(e.target.value)}
-                                        placeholder={editMode === 'vocals' ? "Escribe las letras aquí..." : "Describe el estilo musical..."}
-                                        className="w-full h-24 bg-[#0A0A0C] border border-[#333] rounded-xl p-3 text-sm text-white focus:border-orange-500 outline-none resize-none custom-scrollbar"
-                                    />
+                            <div className="flex items-center gap-4 mb-6 p-4 bg-[#1A1A1A] rounded-xl border border-[#333]">
+                                <img src={editTrack.image} alt="cover" className="w-12 h-12 rounded-lg object-cover" />
+                                <div>
+                                    <p className="text-sm font-bold text-white truncate max-w-[250px]">{editTrack.title}</p>
+                                    <p className="text-xs text-[#888]">{editMode === 'video' ? 'Crear visualizador para este track' : 'Pista base para edición'}</p>
                                 </div>
                             </div>
-                        )}
 
-                        <button
-                            onClick={handleEditAction}
-                            disabled={isEditing || (editMode !== 'video' && !editPrompt.trim())}
-                            className="w-full py-4 bg-orange-600 hover:bg-orange-500 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl font-bold tracking-widest text-white flex items-center justify-center gap-2 transition-all shadow-[0_0_20px_rgba(255,107,0,0.3)]"
-                        >
-                            {isEditing ? <Activity size={18} className="animate-spin" /> : <Sparkles size={18} />}
-                            {isEditing ? 'PROCESANDO...' : 'INICIAR PROCESO'}
-                        </button>
+                            {editMode !== 'video' && (
+                                <div className="space-y-4 mb-6">
+                                    {editMode === 'extend' && (
+                                        <div className="space-y-2">
+                                            <label className="text-xs font-bold text-[#888] uppercase tracking-wider">Continuar en (segundos)</label>
+                                            <input
+                                                type="number"
+                                                value={editContinueAt}
+                                                onChange={(e) => setEditContinueAt(e.target.value)}
+                                                className="w-full bg-[#0A0A0C] border border-[#333] rounded-xl p-3 text-sm text-white focus:border-orange-500 outline-none"
+                                                placeholder="Ej: 120"
+                                            />
+                                            <p className="text-[10px] text-[#666]">Deja en 0 para extender desde el final de la pista ({editTrack.duration}).</p>
+                                        </div>
+                                    )}
+
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-bold text-[#888] uppercase tracking-wider">
+                                            {editMode === 'vocals' ? 'Letras o estilo vocal' : (editMode === 'extend' ? 'Cómo continuar' : 'Estilo Instrumental')}
+                                        </label>
+                                        <textarea
+                                            value={editPrompt}
+                                            onChange={(e) => setEditPrompt(e.target.value)}
+                                            placeholder={editMode === 'vocals' ? "Escribe las letras aquí..." : "Describe el estilo musical..."}
+                                            className="w-full h-24 bg-[#0A0A0C] border border-[#333] rounded-xl p-3 text-sm text-white focus:border-orange-500 outline-none resize-none custom-scrollbar"
+                                        />
+                                    </div>
+                                </div>
+                            )}
+
+                            <button
+                                onClick={handleEditAction}
+                                disabled={isEditing || (editMode !== 'video' && !editPrompt.trim())}
+                                className="w-full py-4 bg-orange-600 hover:bg-orange-500 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl font-bold tracking-widest text-white flex items-center justify-center gap-2 transition-all shadow-[0_0_20px_rgba(255,107,0,0.3)]"
+                            >
+                                {isEditing ? <Activity size={18} className="animate-spin" /> : <Sparkles size={18} />}
+                                {isEditing ? 'PROCESANDO...' : 'INICIAR PROCESO'}
+                            </button>
+                        </div>
                     </div>
-                </div>
-            )}
-        </div>
+                )
+            }
+        </div >
     );
 }

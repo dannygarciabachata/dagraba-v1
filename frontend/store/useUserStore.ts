@@ -14,6 +14,7 @@ interface UserState {
     setPlan: (plan: UserPlan) => void;
     resetTrial: () => void;
     completeTrial: () => void;
+    clearUser: () => void;
 }
 
 /**
@@ -47,7 +48,8 @@ export const useUserStore = create<UserState>()(
 
             resetTrial: () => set({ hasUsedTrial: false, credits: 100 }),
 
-            completeTrial: () => set({ hasUsedTrial: true })
+            completeTrial: () => set({ hasUsedTrial: true }),
+            clearUser: () => set({ credits: 200, plan: 'free', hasUsedTrial: false })
         }),
         {
             name: 'dagraba-user-storage',

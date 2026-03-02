@@ -51,13 +51,15 @@ export default async function RootLayout({
                 {/* Sidebar Navigation */}
                 <Sidebar />
 
-                {/* Fullscreen App Container */}
-                <main className="relative z-10 flex-1 h-full flex flex-col overflow-y-auto overflow-x-hidden">
-                  {children}
-                </main>
+                {/* Content Area (Main + Footer) */}
+                <div className="flex-1 flex flex-col h-full overflow-hidden relative z-10">
+                  <main className="flex-1 h-full overflow-y-auto overflow-x-hidden relative">
+                    {children}
+                  </main>
 
-                {/* Persistent Audio Player */}
-                <GlobalFooterPlayer />
+                  {/* Persistent Audio Player */}
+                  <GlobalFooterPlayer />
+                </div>
 
                 {/* Global Auth Modal */}
                 <LoginModal />

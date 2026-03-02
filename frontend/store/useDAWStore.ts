@@ -59,6 +59,8 @@ interface DAWStore {
     isFullMixer: boolean;
     trackHeights: Record<string, number>; // Global heights for each track id
     rightPanelWidth: number;
+    sidebarWidth: number;
+    isProcessing: boolean;
 
     // Acciones para que la IA mueva los faders
     setFaderValue: (id: string, value: number) => void;
@@ -74,7 +76,6 @@ interface DAWStore {
     setFullMixer: (status: boolean) => void;
     setTrackHeight: (id: string, height: number) => void;
     setAllTrackHeights: (delta: number, min: number, max: number) => void;
-    setRightPanelWidth: (width: number) => void;
 
     // Hardware & Routing
     toggleRecordArm: (id: string) => void;
@@ -93,6 +94,9 @@ interface DAWStore {
     setIsPlaying: (playing: boolean) => void;
     setMasterLevel: (level: number) => void;
     setPreviewTrack: (track: any | null) => void;
+    setRightPanelWidth: (width: number) => void;
+    setSidebarWidth: (width: number) => void;
+    setIsProcessing: (isProcessing: boolean) => void;
 
     // FX Insert Management
     addInsert: (trackId: string, pluginId: FXInsert['pluginId']) => void;
@@ -128,6 +132,8 @@ export const useDAWStore = create<DAWStore>()(
             isFullMixer: false,
             trackHeights: {},
             rightPanelWidth: 0,
+            sidebarWidth: 0,
+            isProcessing: false,
 
             setTracks: (tracks: DAWTrack[]) => set((state) => {
                 const newFaders: FaderState[] = tracks.map((track) => ({
@@ -237,6 +243,8 @@ export const useDAWStore = create<DAWStore>()(
             setPreviewTrack: (track) => set({ currentPreviewTrack: track }),
             setFullMixer: (status) => set({ isFullMixer: status }),
             setRightPanelWidth: (width) => set({ rightPanelWidth: width }),
+            setSidebarWidth: (width) => set({ sidebarWidth: width }),
+            setIsProcessing: (isProcessing) => set({ isProcessing }),
 
             setTrackHeight: (id, height) => set((state) => ({
                 trackHeights: { ...state.trackHeights, [id]: height }

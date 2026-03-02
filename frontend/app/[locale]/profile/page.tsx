@@ -2,12 +2,14 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
+
 import {
     User, Settings, Shield, Zap, Save, Palette, Globe, HardDrive,
     Music, Heart, Eye, Share2, ExternalLink, CheckCircle2,
     Play, Pause, MoreVertical, Headphones, Users, Plus, X, RefreshCw, Upload, Download, BarChart3,
-    CreditCard, Bitcoin, AlertCircle, Check
+    CreditCard, Bitcoin, AlertCircle, Check, LogOut
 } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
 
 const SpotifyIcon = () => (
     <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
@@ -45,6 +47,7 @@ type Tab = 'music' | 'public' | 'spotify' | 'lastfm' | 'daw' | 'billing' | 'pago
 export default function Profile() {
     const [activeTab, setActiveTab] = useState<Tab>('music');
     const router = useRouter();
+    const { logout } = useAuth();
     const [spotifyConnected, setSpotifyConnected] = useState(false);
     const [lastfmConnected, setLastfmConnected] = useState(false);
     const [lastfmUser, setLastfmUser] = useState('');
@@ -106,6 +109,17 @@ export default function Profile() {
                             </button>
                             <button className="flex items-center gap-1.5 px-3 py-1.5 bg-orange-600/20 hover:bg-orange-600/30 border border-orange-500/40 rounded-lg text-[10px] font-bold text-orange-400 transition-all">
                                 <Share2 size={11} /> Compartir
+                            </button>
+                            <button
+                                onClick={() => {
+                                    if (confirm('¿Estás seguro de que quieres cerrar sesión?')) {
+                                        logout();
+                                        router.push('/');
+                                    }
+                                }}
+                                className="flex items-center gap-1.5 px-3 py-1.5 bg-red-600/20 hover:bg-red-600/30 border border-red-500/40 rounded-lg text-[10px] font-bold text-red-500 transition-all"
+                            >
+                                <LogOut size={11} /> Cerrar Sesión
                             </button>
                         </div>
                     </div>

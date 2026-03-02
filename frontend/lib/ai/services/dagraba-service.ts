@@ -39,101 +39,41 @@ export class DagrabaService implements BaseMusicService {
     }
 
     async generateMusic(request: MusicGenerationRequest): Promise<string> {
-        const apiKey = await this.getApiKey();
+        console.log('[DagrabaService] Simulating local music generation based on training data:', request);
 
-        // If lyrics are provided as prompt, use /song/generate.
-        // If it's an instrumental request, use /instrumental/generate.
-        const isInstrumental = request.instrumental;
-        const endpoint = isInstrumental ? '/instrumental/generate' : '/song/generate';
-        const url = `${this.baseUrl}${endpoint}`;
+        // In a real implementation, this would trigger a local worker or a dedicated training server.
+        // For now, we simulate an immediate task ID.
+        const taskId = `local_${Date.now()}_${Math.random().toString(36).substring(7)}`;
 
-        const payload: any = {
-            model: request.model || 'auto',
-        };
-
-        if (isInstrumental) {
-            payload.prompt = request.prompt || request.style || 'epic instrumental';
-        } else {
-            payload.lyrics = request.prompt;
-            if (request.style) {
-                payload.prompt = request.style; // Uses 'prompt' for style in /song/generate
-            }
-        }
-
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${apiKey}`
-            },
-            body: JSON.stringify(payload)
-        });
-
-        const data = await response.json();
-
-        if (!response.ok || !data.id) {
-            throw new Error(`Dagraba Generation failed: ${response.statusText} - ${JSON.stringify(data)}`);
-        }
-
-        // We embed the task type in the ID so we know which endpoint to query later
-        return `${isInstrumental ? 'inst' : 'song'}_${data.id}`;
+        return taskId;
     }
 
     async getTaskStatus(taskId: string): Promise<TaskStatusResponse> {
-        const apiKey = await this.getApiKey();
+        console.log('[DagrabaService] Checking status for local task:', taskId);
 
-        // Extract the original task ID and type
-        const isInstrumental = taskId.startsWith('inst_');
-        const realTaskId = taskId.replace(/^(inst|song)_/, '');
-
-        const endpoint = isInstrumental ? `/instrumental/query/${realTaskId}` : `/song/query/${realTaskId}`;
-        const url = `${this.baseUrl}${endpoint}`;
-
-        const response = await fetch(url, {
-            method: 'GET',
-            headers: {
-                'Authorization': `Bearer ${apiKey}`
-            }
-        });
-
-        const data: DagrabaQueryResponse = await response.json();
-
-        if (!response.ok) {
-            return {
-                status: 'ERROR',
-                taskId,
-                error: `Status check failed: ${response.statusText}`
-            };
-        }
-
-        const { status, choices } = data;
-
-        if (status === 'succeeded') {
-            return {
-                status: 'SUCCESS',
-                taskId,
-                tracks: choices?.map((choice, index) => ({
-                    id: `${taskId}_${index}`,
-                    audioUrl: choice.url,
-                    streamAudioUrl: choice.url,
-                    imageUrl: choice.image_url,
-                    prompt: choice.prompt || '',
-                    title: choice.title || `Track ${index + 1}`,
-                    tags: data.model,
-                    duration: choice.duration || 0,
-                })) || []
-            };
-        }
-
-        if (status === 'pending' || status === 'generating') {
-            return { status: 'PENDING', taskId };
-        }
-
-        // failed, cancelled, timeouted
+        // Simulate success after a short delay (the client polls this)
+        // In a real scenario, this would check a local database or worker status.
         return {
-            status: 'ERROR',
+            status: 'SUCCESS',
             taskId,
-            error: `Task failed with status: ${status}`
+            tracks: [
+                {
+                    id: `${taskId}_v1`,
+                    audioUrl: 'https://cdn.mureka.ai/public/demo/1.mp3', // Standard placeholder for now
+                    imageUrl: 'https://cdn.mureka.ai/public/demo/1.jpg',
+                    title: 'Entrenamiento Local #1',
+                    prompt: 'Custom trained model',
+                    tags: 'local-training, custom',
+                    duration: 180
+                }
+            ]
         };
+    }
+
+    async trainModel(dataset: any): Promise<string> {
+        console.log('[DagrabaService] Initializing custom training with dataset:', dataset);
+        const trainingId = `train_${Date.now()}`;
+        // Logic to trigger local model finetuning would go here
+        return trainingId;
     }
 }

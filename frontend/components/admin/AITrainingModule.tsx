@@ -1,13 +1,17 @@
 'use client';
 
 import { useState } from 'react';
-import { Play, UploadCloud, Terminal as TermIcon, FileAudio, Users, Music, Mic2, Scan, Activity, Zap, BarChart3, Binary } from 'lucide-react';
+import { Play, UploadCloud, Terminal as TermIcon, FileAudio, Users, Music, Mic2, Scan, Activity, Zap, BarChart3, Binary, Plus, Bot } from 'lucide-react';
+import { useRef } from 'react';
 
 export function AITrainingModule() {
-    const [trainingType, setTrainingType] = useState<'voice' | 'instrument' | 'mastering'>('voice');
+    const [trainingType, setTrainingType] = useState<'voice' | 'instrument' | 'mastering' | 'dagraba'>('voice');
+    const datasetInputRef = useRef<HTMLInputElement>(null);
     const [selectedArtist, setSelectedArtist] = useState<string>('');
     const [modelName, setModelName] = useState<string>('');
     const [audioFiles, setAudioFiles] = useState<any[]>([]);
+    const [referenceTrack, setReferenceTrack] = useState<File | null>(null);
+    const [modelCategory, setModelCategory] = useState<'vocals' | 'instruments' | 'full_mix'>('full_mix');
     const [rawAudio, setRawAudio] = useState<File | null>(null);
     const [masteredAudio, setMasteredAudio] = useState<File | null>(null);
     const [dnaProfileName, setDnaProfileName] = useState<string>('');
@@ -66,6 +70,7 @@ export function AITrainingModule() {
     const handleTrain = async () => {
         if (trainingType === 'voice' && (!selectedArtist || audioFiles.length === 0)) return;
         if (trainingType === 'instrument' && !modelName) return;
+        if (trainingType === 'dagraba' && audioFiles.length === 0) return;
         if (trainingType === 'mastering') {
             await handleAnalyzeDNA();
             return;
@@ -92,6 +97,26 @@ export function AITrainingModule() {
                 setLogs((prev: string[]) => [...prev, `[GPU] Reservando cluster para Stable Audio Open...`]);
             } catch (error) {
                 setLogs((prev: string[]) => [...prev, `[ERROR] Fallo al iniciar entrenamiento instrumental.`]);
+            }
+        } else if (trainingType === 'dagraba') {
+            try {
+                setLogs((prev: string[]) => [...prev, `[INIT] Iniciando Pipeline de Entrenamiento Dagraba (Local)...`]);
+                const response = await fetch('/api/ai/train', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        modelName: modelName || 'Custom Admin Model',
+                        filesCount: audioFiles.length,
+                        hasReference: !!referenceTrack,
+                        category: modelCategory
+                    })
+                });
+                const data = await response.json();
+                setLogs((prev: string[]) => [...prev, `[API] Entrenamiento registrado ID: ${data.trainingId}`]);
+                setLogs((prev: string[]) => [...prev, `[WORKER] Analizando ${referenceTrack ? 'Referencia + ' : ''}${audioFiles.length} archivos...`]);
+                setLogs((prev: string[]) => [...prev, `[CATEGORY] Tipo de Modelo: ${modelCategory.toUpperCase()}`]);
+            } catch (error) {
+                setLogs((prev: string[]) => [...prev, `[ERROR] Fallo al iniciar entrenamiento Dagraba.`]);
             }
         } else {
             setTimeout(() => {
@@ -146,6 +171,13 @@ export function AITrainingModule() {
                     >
                         <Scan size={12} /> MASTERING DNA
                     </button>
+                    <button
+                        onClick={() => setTrainingType('dagraba')}
+                        className={`px-4 py-1.5 rounded-md text-[10px] font-black tracking-widest transition-all flex items-center gap-2 ${trainingType === 'dagraba' ? 'bg-[#FF6B00] text-black shadow-[0_0_10px_rgba(255,107,0,0.3)]' : 'text-[#444] hover:text-[#888]'
+                            }`}
+                    >
+                        <Bot size={12} /> DAGRABA
+                    </button>
                 </div>
             </div>
 
@@ -174,7 +206,7 @@ export function AITrainingModule() {
                             {/* Audio Upload */}
                             <div className="flex flex-col gap-2">
                                 <label className="text-xs font-bold text-[#888] tracking-widest flex items-center gap-2">
-                                    <FileAudio size={14} /> AUDIO DATASET (10 Min)
+                                    <FileAudio size={14} /> AUDIO DATASET (10 MIN RECOMENDADOS)
                                 </label>
                                 <div className="border-2 border-dashed border-[#333] rounded-md p-6 flex flex-col items-center justify-center gap-3 hover:border-purple-500 hover:bg-[#111] transition-all cursor-pointer relative">
                                     <input
@@ -253,9 +285,9 @@ export function AITrainingModule() {
                                 <div className="flex flex-col gap-2">
                                     <label className="text-[10px] font-bold text-[#666] tracking-tighter uppercase">Mixdown (Crudo)</label>
                                     <div className="border border-[#333] rounded bg-[#111] p-3 flex flex-col items-center gap-2 relative h-24 justify-center">
-                                        <input 
-                                            type="file" 
-                                            accept="audio/*" 
+                                        <input
+                                            type="file"
+                                            accept="audio/*"
                                             className="absolute inset-0 opacity-0 cursor-pointer"
                                             onChange={(e) => setRawAudio(e.target.files?.[0] || null)}
                                         />
@@ -266,15 +298,113 @@ export function AITrainingModule() {
                                 <div className="flex flex-col gap-2">
                                     <label className="text-[10px] font-bold text-[#666] tracking-tighter uppercase">Master (Danny)</label>
                                     <div className="border border-[#333] rounded bg-[#111] p-3 flex flex-col items-center gap-2 relative h-24 justify-center">
-                                        <input 
-                                            type="file" 
-                                            accept="audio/*" 
+                                        <input
+                                            accept="audio/*"
                                             className="absolute inset-0 opacity-0 cursor-pointer"
                                             onChange={(e) => setMasteredAudio(e.target.files?.[0] || null)}
                                         />
                                         <Activity size={20} className={masteredAudio ? "text-orange-500" : "text-[#444]"} />
                                         <span className="text-[10px] text-center line-clamp-1">{masteredAudio ? masteredAudio.name : "Subir Master"}</span>
                                     </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {trainingType === 'dagraba' && (
+                        <div className="flex flex-col gap-6">
+                            <div className="flex flex-col gap-2">
+                                <label className="text-xs font-bold text-[#888] tracking-widest flex items-center gap-2">
+                                    <Bot size={14} /> NOMBRE DEL MODELO
+                                </label>
+                                <input
+                                    type="text"
+                                    placeholder="Ej: Danny_V1_Batchata"
+                                    className="bg-[#111] border border-[#333] rounded-md px-4 py-2 text-sm text-[#E0E0E0] outline-none focus:border-orange-500 transition-colors"
+                                    value={modelName}
+                                    onChange={(e) => setModelName(e.target.value)}
+                                />
+                            </div>
+
+                            <div className="flex flex-col gap-2">
+                                <label className="text-xs font-bold text-[#888] tracking-widest flex items-center gap-2">
+                                    <Binary size={14} /> CATEGORÍA DE ENTRENAMIENTO
+                                </label>
+                                <div className="grid grid-cols-3 gap-2">
+                                    {(['full_mix', 'vocals', 'instruments'] as const).map(cat => (
+                                        <button
+                                            key={cat}
+                                            onClick={() => setModelCategory(cat)}
+                                            className={`py-2 rounded border text-[9px] font-black uppercase tracking-tighter transition-all ${modelCategory === cat
+                                                ? 'bg-[#FF6B00]/20 border-[#FF6B00] text-[#FF6B00]'
+                                                : 'bg-[#111] border-[#333] text-[#555] hover:border-[#666]'
+                                                }`}
+                                        >
+                                            {cat.replace('_', ' ')}
+                                        </button>
+                                    ))}
+                                </div>
+                                <p className="text-[9px] text-[#555] italic">
+                                    {modelCategory === 'vocals' && "* Recomendado: Crear un modelo dedicado solo para voces para mayor claridad."}
+                                    {modelCategory === 'instruments' && "* Optimizado para aprender texturas y dinámicas instrumentales."}
+                                    {modelCategory === 'full_mix' && "* Aprende paneo, niveles y estilo general de la mezcla."}
+                                </p>
+                            </div>
+
+                            <div className="flex flex-col gap-2">
+                                <label className="text-xs font-bold text-[#888] tracking-widest flex items-center gap-2">
+                                    <Scan size={14} /> 1. TEMA DE REFERENCIA (MIX/MASTER)
+                                </label>
+                                <div className="border border-[#333] rounded bg-[#111] p-3 flex flex-col items-center gap-2 relative h-20 justify-center group hover:border-[#FF6B00]/50 transition-colors">
+                                    <input
+                                        type="file"
+                                        accept="audio/*"
+                                        className="absolute inset-0 opacity-0 cursor-pointer"
+                                        onChange={(e) => setReferenceTrack(e.target.files?.[0] || null)}
+                                    />
+                                    <Zap size={20} className={referenceTrack ? "text-[#FF6B00]" : "text-[#444]"} />
+                                    <span className="text-[10px] text-center line-clamp-1">
+                                        {referenceTrack ? referenceTrack.name : "Subir Referencia Completa (3-5 min)"}
+                                    </span>
+                                </div>
+                                <p className="text-[9px] text-[#555]">Para aprender niveles, estilo y paneo del tema terminado.</p>
+                            </div>
+
+                            <div className="flex flex-col gap-2">
+                                <label className="text-xs font-bold text-[#888] tracking-widest flex items-center gap-2">
+                                    <UploadCloud size={14} /> 2. DATASET DE STEMS (5-10 MIN)
+                                </label>
+                                <div className="flex flex-col gap-2">
+                                    <div
+                                        onClick={() => datasetInputRef.current?.click()}
+                                        className="border-2 border-dashed border-[#333] rounded-md p-6 flex flex-col items-center justify-center gap-3 hover:border-[#FF6B00] hover:bg-[#111] transition-all cursor-pointer relative group"
+                                    >
+                                        <Plus size={24} className="text-[#444] group-hover:text-[#FF6B00] transition-colors" />
+                                        <span className="text-sm font-bold text-[#AAA] tracking-tighter">
+                                            {audioFiles.length > 0 ? `${audioFiles.length} STEMS LISTOS` : 'Subir pistas separadas sincronizadas'}
+                                        </span>
+                                        <input
+                                            type="file"
+                                            ref={datasetInputRef}
+                                            onChange={(e) => {
+                                                if (e.target.files) setAudioFiles(prev => [...prev, ...Array.from(e.target.files!)]);
+                                            }}
+                                            className="hidden"
+                                            multiple
+                                            accept=".wav,.mp3,audio/*"
+                                        />
+                                    </div>
+                                    {audioFiles.length === 0 && (
+                                        <button
+                                            onClick={() => {
+                                                const mockFile = new File([""], "demo_bachata.mp3", { type: "audio/mpeg" });
+                                                setAudioFiles([mockFile]);
+                                            }}
+                                            className="text-[10px] text-[#555] hover:text-orange-400 uppercase tracking-widest transition-colors self-end pr-1"
+                                        >
+                                            [ + Cargar Ejemplo Demo ]
+                                        </button>
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -302,12 +432,12 @@ export function AITrainingModule() {
                         onClick={handleTrain}
                         disabled={isTraining || isAnalyzing || (trainingType === 'voice' ? (!selectedArtist || audioFiles.length === 0) : trainingType === 'instrument' ? !modelName : (!dnaProfileName || !rawAudio || !masteredAudio))}
                         className={`mt-4 py-4 rounded-md flex items-center justify-center gap-3 font-black tracking-widest text-lg transition-all ${isTraining || isAnalyzing || (trainingType === 'voice' ? (!selectedArtist || audioFiles.length === 0) : trainingType === 'instrument' ? !modelName : (!dnaProfileName || !rawAudio || !masteredAudio))
-                                ? 'bg-[#222] text-[#555] border border-[#333] cursor-not-allowed'
-                                : trainingType === 'voice'
-                                    ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-[0_0_20px_rgba(168,85,247,0.5)] hover:shadow-[0_0_30px_rgba(168,85,247,0.8)] border border-purple-400'
-                                    : trainingType === 'instrument'
-                                        ? 'bg-gradient-to-r from-indigo-600 to-blue-600 text-white shadow-[0_0_20px_rgba(79,70,229,0.5)] hover:shadow-[0_0_30px_rgba(79,70,229,0.8)] border border-indigo-400'
-                                        : 'bg-gradient-to-r from-orange-600 to-red-600 text-white shadow-[0_0_20px_rgba(234,88,12,0.5)] hover:shadow-[0_0_30px_rgba(234,88,12,0.8)] border border-orange-400'
+                            ? 'bg-[#222] text-[#555] border border-[#333] cursor-not-allowed'
+                            : trainingType === 'voice'
+                                ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-[0_0_20px_rgba(168,85,247,0.5)] hover:shadow-[0_0_30px_rgba(168,85,247,0.8)] border border-purple-400'
+                                : trainingType === 'instrument'
+                                    ? 'bg-gradient-to-r from-indigo-600 to-blue-600 text-white shadow-[0_0_20px_rgba(79,70,229,0.5)] hover:shadow-[0_0_30px_rgba(79,70,229,0.8)] border border-indigo-400'
+                                    : 'bg-gradient-to-r from-orange-600 to-red-600 text-white shadow-[0_0_20px_rgba(234,88,12,0.5)] hover:shadow-[0_0_30px_rgba(234,88,12,0.8)] border border-orange-400'
                             }`}
                     >
                         {isAnalyzing ? (
@@ -316,8 +446,8 @@ export function AITrainingModule() {
                             </div>
                         ) : (
                             <>
-                                <Play size={24} fill={(!isTraining && ((trainingType === 'voice' && selectedArtist && audioFiles.length > 0) || (trainingType === 'instrument' && modelName) || (trainingType === 'mastering' && rawAudio && masteredAudio && dnaProfileName))) ? "currentColor" : "none"} />
-                                {trainingType === 'voice' ? 'ENTRENAR VOZ' : trainingType === 'instrument' ? 'ENTRENAR INSTRUMENTO' : 'ESCANEAR ADN MASTERING'}
+                                <Play size={24} fill={(!isTraining && ((trainingType === 'voice' && selectedArtist && audioFiles.length > 0) || (trainingType === 'instrument' && modelName) || (trainingType === 'dagraba' && (audioFiles.length > 0 || referenceTrack)) || (trainingType === 'mastering' && rawAudio && masteredAudio && dnaProfileName))) ? "currentColor" : "none"} />
+                                {trainingType === 'voice' ? 'ENTRENAR VOZ' : trainingType === 'instrument' ? 'ENTRENAR INSTRUMENTO' : trainingType === 'dagraba' ? 'INICIAR ENTRENAMIENTO DAGRABA' : 'ESCANEAR ADN MASTERING'}
                             </>
                         )}
                     </button>
@@ -347,7 +477,7 @@ export function AITrainingModule() {
                                 </span>
                             </div>
                         ))}
-                        
+
                         {dnaResult && (
                             <div className="mt-4 p-4 bg-orange-900/20 border border-orange-500/30 rounded-md flex flex-col gap-3 font-sans animate-in fade-in slide-in-from-bottom-2">
                                 <div className="flex items-center gap-2 text-orange-400 font-bold border-b border-orange-500/20 pb-2">
@@ -393,6 +523,6 @@ export function AITrainingModule() {
                     </div>
                 </div>
             </div>
-        </section>
+        </section >
     );
 }

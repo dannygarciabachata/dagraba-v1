@@ -52,18 +52,18 @@ export function Sidebar() {
     };
 
     return (
-        <aside className="w-16 lg:w-48 h-full flex flex-col justify-between py-6 z-50 relative"
+        <aside className="w-16 lg:w-64 h-full flex flex-col justify-between py-8 z-50 relative transition-all duration-500"
             style={{ background: 'var(--sidebar-bg)', borderRight: '1px solid var(--sidebar-border)', boxShadow: '10px 0 30px rgba(0,0,0,0.6)' }}
         >
-            <div className="flex flex-col items-center lg:items-start w-full">
+            <div className="flex flex-col items-center w-full">
                 {/* Logo Text/Icon */}
-                <div className="w-full px-0 lg:px-6 mb-12 flex justify-center lg:justify-start">
-                    <div className="w-14 h-14 lg:w-32 lg:h-32 rounded-2xl flex items-center justify-center overflow-hidden shadow-[0_0_30px_rgba(255,107,0,0.6)] border border-orange-500/20 transform hover:scale-105 transition-transform duration-500">
+                <div className="w-full px-4 mb-10 flex justify-center">
+                    <div className="w-12 h-12 lg:w-16 lg:h-16 rounded-xl flex items-center justify-center overflow-hidden shadow-[0_0_20px_rgba(255,107,0,0.3)] border border-orange-500/10 transform hover:scale-110 transition-all duration-500 cursor-pointer">
                         <img src="/logo.jpg" alt="DA GRABA Logo" className="w-full h-full object-cover" />
                     </div>
                 </div>
                 {/* Navigation Links */}
-                <nav className="flex flex-col gap-4 w-full px-2 lg:px-4">
+                <nav className="flex flex-col gap-2 w-full px-3">
                     {navItems.map((item) => {
                         const hrefWithLocale = getLocalizedHref(item.href);
                         const isActive = pathname.startsWith(hrefWithLocale);
@@ -72,17 +72,18 @@ export function Sidebar() {
                             <Link
                                 key={item.id}
                                 href={hrefWithLocale}
-                                className={`flex items-center gap-3 px-3 lg:px-4 py-3 rounded-lg transition-all duration-300 w-full group ${isActive
-                                    ? 'bg-cyan-glow/10 border border-cyan-glow/30 text-cyan-glow shadow-[0_0_15px_rgba(0,240,255,0.15)] glow-cyan'
-                                    : 'text-silver-dark hover:text-white hover:bg-white/5 border border-transparent'
+                                className={`flex items-center gap-4 px-4 py-3.5 rounded-xl transition-all duration-300 w-full group relative ${isActive
+                                    ? 'bg-white/5 text-cyan-glow shadow-[inset_0_0_20px_rgba(0,240,255,0.05)]'
+                                    : 'text-silver-dark hover:text-white hover:bg-white/5'
                                     }`}
                             >
-                                <Icon size={20} className={isActive ? 'text-cyan-glow' : 'text-silver-dark group-hover:text-white transition-colors'} />
-                                <span className={`hidden lg:block text-sm font-medium tracking-wide ${isActive ? 'text-cyan-glow' : ''}`}>
+                                <Icon size={22} className={isActive ? 'text-cyan-glow' : 'text-silver-dark group-hover:text-white group-hover:scale-110 transition-all'} />
+                                <span className={`hidden lg:block text-xs font-bold tracking-[0.1em] uppercase transition-all ${isActive ? 'text-cyan-glow opacity-100' : 'opacity-60 group-hover:opacity-100'
+                                    }`}>
                                     {t(item.id)}
                                 </span>
                                 {isActive && (
-                                    <span className="absolute left-0 w-1 h-8 bg-cyan-glow rounded-r-md shadow-[0_0_10px_rgba(0,240,255,1)]" />
+                                    <span className="absolute left-0 w-1 h-6 bg-cyan-glow rounded-r-full shadow-[0_0_15px_rgba(0,240,255,0.8)]" />
                                 )}
                             </Link>
                         );
@@ -91,102 +92,99 @@ export function Sidebar() {
             </div>
 
             {/* Bottom Section: AI Status & Settings & Language */}
-            <div className="w-full flex flex-col gap-2">
+            <div className="w-full flex flex-col gap-4 pb-4">
                 <CloudStatusPanel />
 
-                {/* Language Switcher */}
-                <div className="w-full px-2 lg:px-4 mb-2">
+                <div className="flex flex-col gap-1 px-3">
+                    {/* Language Switcher */}
                     <div className="relative group/lang">
-                        <button className="flex items-center gap-3 px-3 lg:px-4 py-3 rounded-lg w-full text-silver-dark hover:text-white hover:bg-white/5 transition-all group">
-                            <Languages size={20} className="group-hover:scale-110 transition-transform" />
-                            <span className="hidden lg:block text-sm font-medium tracking-wide">{tl(currentLocale)}</span>
+                        <button className="flex items-center gap-4 px-4 py-3 rounded-xl w-full text-silver-dark hover:text-white hover:bg-white/5 transition-all group">
+                            <Languages size={20} className="group-hover:rotate-12 transition-transform opacity-60 group-hover:opacity-100" />
+                            <span className="hidden lg:block text-[10px] font-black uppercase tracking-widest">{tl(currentLocale)}</span>
                         </button>
 
                         {/* Dropdown content */}
-                        <div className="absolute bottom-full left-0 mb-2 w-48 bg-[#111] border border-white/10 rounded-xl shadow-2xl opacity-0 invisible group-hover/lang:opacity-100 group-hover/lang:visible transition-all duration-200 z-[110] p-1 overflow-hidden">
+                        <div className="absolute bottom-full left-4 mb-2 w-48 bg-[#0D0D0F] border border-white/5 rounded-2xl shadow-2xl opacity-0 invisible group-hover/lang:opacity-100 group-hover/lang:visible transition-all duration-300 z-[110] p-1.5 overflow-hidden backdrop-blur-xl">
                             <div className="max-h-60 overflow-y-auto custom-scrollbar">
                                 {locales.map((loc) => (
                                     <Link
                                         key={loc}
                                         href={getSwitchLocaleHref(loc)}
-                                        className={`flex items-center gap-2 px-4 py-2.5 text-sm rounded-lg transition-colors ${currentLocale === loc ? 'bg-indigo-600 text-white' : 'text-white/60 hover:bg-white/5 hover:text-white'}`}
+                                        className={`flex items-center gap-3 px-4 py-2 text-[10px] font-bold rounded-lg transition-colors ${currentLocale === loc ? 'bg-orange-500/20 text-orange-500' : 'text-white/40 hover:bg-white/5 hover:text-white'}`}
                                     >
-                                        <span className="uppercase text-[10px] w-6 opacity-50">{loc}</span>
+                                        <span className="uppercase text-[8px] w-6 opacity-30">{loc}</span>
                                         {tl(loc)}
                                     </Link>
                                 ))}
                             </div>
                         </div>
                     </div>
-                </div>
 
-                <div className="w-full px-2 lg:px-4 flex flex-col gap-2">
-                    {/* Credits Display */}
-                    <div className="mx-2 mb-4 p-3 rounded-xl bg-white/5 border border-white/10 flex flex-col gap-2 group/credits hover:border-orange-500/30 transition-all duration-500">
-                        <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                                <div className="w-6 h-6 rounded-lg bg-orange-500/10 flex items-center justify-center text-orange-500">
-                                    <Coins size={14} className="group-hover/credits:rotate-12 transition-transform" />
+                    <div className="w-full px-2 lg:px-4 flex flex-col gap-2">
+                        {/* Credits Display */}
+                        <div className="mx-1 p-4 rounded-2xl bg-[#0D0D0F] border border-white/5 flex flex-col gap-3 group/credits hover:border-orange-500/20 transition-all duration-700 shadow-inner">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                    <div className="w-7 h-7 rounded-full bg-orange-500/10 flex items-center justify-center text-orange-500 shadow-[0_0_10px_rgba(255,107,0,0.1)]">
+                                        <Coins size={14} className="group-hover/credits:rotate-[360deg] transition-transform duration-1000" />
+                                    </div>
+                                    <span className="text-[9px] font-black tracking-[0.2em] text-[#444] uppercase">WALLET</span>
                                 </div>
-                                <span className="text-[10px] font-black tracking-widest text-[#555] uppercase">Balance</span>
                             </div>
-                            <span className="text-[10px] font-black text-white px-2 py-0.5 bg-white/5 rounded border border-white/5 uppercase tracking-tighter">
-                                {mounted ? plan : '...'}
-                            </span>
+                            <div className="flex items-baseline gap-1.5">
+                                <span className="text-2xl font-black text-white tracking-tighter tabular-nums text-shadow-glow">
+                                    {mounted ? credits : '...'}
+                                </span>
+                                <span className="text-[8px] font-black text-orange-500/60 uppercase tracking-widest">TOKENS</span>
+                            </div>
                         </div>
-                        <div className="flex items-baseline gap-1">
-                            <span className="text-xl font-black text-white tracking-tighter tabular-nums drop-shadow-[0_0_8px_rgba(255,255,255,0.2)]">
-                                {mounted ? credits : '...'}
-                            </span>
-                            <span className="text-[9px] font-black text-[#444] uppercase tracking-widest">créditos</span>
-                        </div>
+
+                        <Link
+                            href={getLocalizedHref('/settings')}
+                            className={`flex items-center gap-4 px-4 py-3 rounded-xl w-full transition-all duration-300 group ${pathname.startsWith(getLocalizedHref('/settings'))
+                                ? 'bg-white/5 text-cyan-glow'
+                                : 'text-silver-dark hover:text-white hover:bg-white/5'
+                                }`}
+                        >
+                            <Settings size={20} className="group-hover:rotate-[30deg] transition-transform duration-500 opacity-60 group-hover:opacity-100" />
+                            <span className="hidden lg:block text-[10px] font-black uppercase tracking-widest">{t('settings')}</span>
+                        </Link>
+
+                        {user ? (
+                            <button
+                                onClick={() => logout()}
+                                title="Sign Out"
+                                className="flex items-center justify-start gap-4 px-4 py-3 mb-1 rounded-xl w-full transition-all duration-300 group text-red-500 hover:text-red-400 hover:bg-red-500/10 cursor-pointer border border-transparent hover:border-red-500/20"
+                            >
+                                <LogOut size={20} className="group-hover:-translate-x-1 transition-transform duration-300" />
+                                <span className="hidden lg:block text-[10px] font-black uppercase tracking-widest">Sign Out</span>
+                            </button>
+                        ) : (
+                            <button
+                                onClick={() => setLoginModalOpen(true)}
+                                className="flex items-center justify-start gap-4 px-4 py-3 mb-1 rounded-xl w-full transition-all duration-300 group text-orange-500/80 hover:text-orange-400 hover:bg-orange-500/5 cursor-pointer"
+                            >
+                                <LogIn size={20} className="group-hover:translate-x-1 transition-transform duration-300" />
+                                <span className="hidden lg:block text-[10px] font-black uppercase tracking-widest">Sign In</span>
+                            </button>
+                        )}
                     </div>
 
-                    <Link
-                        href={getLocalizedHref('/settings')}
-                        className={`flex items-center gap-3 px-3 lg:px-4 py-3 rounded-lg w-full transition-all duration-300 group border ${pathname.startsWith(getLocalizedHref('/settings'))
-                            ? 'bg-cyan-glow/10 border-cyan-glow/30 text-cyan-glow'
-                            : 'text-silver-dark hover:text-white hover:bg-white/5 border-transparent'
-                            }`}
-                    >
-                        <Settings size={20} className="group-hover:rotate-90 transition-transform duration-500" />
-                        <span className="hidden lg:block text-sm font-medium tracking-wide">{t('settings')}</span>
-                    </Link>
-
-                    {user ? (
-                        <button
-                            onClick={() => logout()}
-                            className="flex items-center justify-start gap-3 px-3 lg:px-4 py-3 mb-2 rounded-lg w-full transition-all duration-300 group border text-red-500/80 hover:text-red-400 hover:bg-red-500/10 border-transparent cursor-pointer"
-                        >
-                            <LogOut size={20} className="group-hover:-translate-x-1 transition-transform duration-300" />
-                            <span className="hidden lg:block text-sm font-medium tracking-wide uppercase text-[10px]">Sign Out</span>
-                        </button>
-                    ) : (
-                        <button
-                            onClick={() => setLoginModalOpen(true)}
-                            className="flex items-center justify-start gap-3 px-3 lg:px-4 py-3 mb-2 rounded-lg w-full transition-all duration-300 group border text-orange-500 hover:text-orange-400 hover:bg-orange-500/10 border-transparent cursor-pointer"
-                        >
-                            <LogIn size={20} className="group-hover:translate-x-1 transition-transform duration-300" />
-                            <span className="hidden lg:block text-sm font-medium tracking-wide uppercase text-[10px]">Sign In</span>
-                        </button>
-                    )}
-                </div>
-
-                {/* Theme Toggle */}
-                <div className="w-full px-2 lg:px-4 flex items-center gap-3 px-3 lg:px-5 py-2">
-                    <span className="hidden lg:block text-[10px] font-bold uppercase tracking-widest" style={{ color: 'var(--text-muted)' }}>Tema</span>
-                    <ThemeToggle />
-                </div>
-
-                {/* Legal Links Footer */}
-                <div className="hidden lg:flex flex-col items-center gap-2 mt-4 text-[9px] text-gray-300 font-mono tracking-widest uppercase pb-2 text-center">
-                    <div className="flex gap-3">
-                        <Link href={getLocalizedHref('/terms')} className="hover:text-cyan-400 transition-colors">Términos</Link>
-                        <Link href={getLocalizedHref('/privacy')} className="hover:text-cyan-400 transition-colors">Privacidad</Link>
-                        <Link href={getLocalizedHref('/cookies')} className="hover:text-cyan-400 transition-colors">Cookies</Link>
+                    {/* Theme Toggle */}
+                    <div className="flex items-center justify-between px-6 py-2">
+                        <span className="hidden lg:block text-[8px] font-black uppercase tracking-[0.3em] text-[#333]">TEMA</span>
+                        <ThemeToggle />
                     </div>
-                    <div className="mt-1 opacity-80">
-                        © 2026 Da Graba LLC by iHOSTcast Ltd. All Rights Reserved.
+
+                    {/* Legal Links Footer */}
+                    <div className="hidden lg:flex flex-col items-center gap-1.5 mt-2 px-4 text-[8px] text-[#444] font-black tracking-widest uppercase pb-2 text-center">
+                        <div className="flex gap-4">
+                            <Link href={getLocalizedHref('/terms')} className="hover:text-white transition-colors">Términos</Link>
+                            <Link href={getLocalizedHref('/privacy')} className="hover:text-white transition-colors">Privacidad</Link>
+                        </div>
+                        <div className="opacity-40 leading-relaxed">
+                            © 2026 Da Graba Studio v1
+                        </div>
                     </div>
                 </div>
             </div>
