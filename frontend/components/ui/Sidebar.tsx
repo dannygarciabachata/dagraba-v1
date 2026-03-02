@@ -21,6 +21,7 @@ const navItems = [
     { id: 'library', href: '/library', icon: Library },
     { id: 'notifications', href: '/notifications', icon: Bell },
     { id: 'profile', href: '/profile', icon: User },
+    { id: 'admin', href: '/admin', icon: Settings },
 ];
 
 const locales = ['en', 'es', 'pt', 'fr', 'de', 'it', 'ja'];
@@ -31,7 +32,7 @@ export function Sidebar() {
     const pathname = usePathname();
     const currentLocale = useLocale();
 
-    const { user, logout, setLoginModalOpen } = useAuth();
+    const { user, isSuperAdmin, logout, setLoginModalOpen } = useAuth();
     const [mounted, setMounted] = React.useState(false);
     const credits = useUserStore(state => state.credits);
     const plan = useUserStore(state => state.plan);
@@ -67,6 +68,10 @@ export function Sidebar() {
                     {navItems.filter(item => {
                         // Restricted items for guest users
                         if (!user && (item.id === 'dashboard' || item.id === 'library' || item.id === 'notifications')) {
+                            return false;
+                        }
+                        // Superadmin only items
+                        if (item.id === 'admin' && !isSuperAdmin) {
                             return false;
                         }
                         return true;

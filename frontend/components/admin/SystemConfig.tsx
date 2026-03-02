@@ -2,8 +2,10 @@
 
 import React, { useState } from 'react';
 import { Settings, Globe, Power, HardDrive, AlertTriangle, Settings2 } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
 
 export function SystemConfig() {
+    const { user } = useAuth();
     const [maintenanceMode, setMaintenanceMode] = useState(false);
     const [selectedRegion, setSelectedRegion] = useState('us-east-1');
     const [apiKey, setApiKey] = useState('');
@@ -13,13 +15,17 @@ export function SystemConfig() {
     React.useEffect(() => {
         const fetchApiKey = async () => {
             try {
-                const resKie = await fetch('/api/admin/settings?key=KIE_API_KEY');
+                const resKie = await fetch('/api/admin/settings?key=KIE_API_KEY', {
+                    headers: { 'x-admin-email': user?.email || '' }
+                });
                 const dataKie = await resKie.json();
                 if (dataKie.success && dataKie.setting) {
                     setApiKey(dataKie.setting.value);
                 }
 
-                const resMusicGpt = await fetch('/api/admin/settings?key=MUSICGPT_API_KEY');
+                const resMusicGpt = await fetch('/api/admin/settings?key=MUSICGPT_API_KEY', {
+                    headers: { 'x-admin-email': user?.email || '' }
+                });
                 const dataMusicGpt = await resMusicGpt.json();
                 if (dataMusicGpt.success && dataMusicGpt.setting) {
                     setMusicGptKey(dataMusicGpt.setting.value);
@@ -37,7 +43,10 @@ export function SystemConfig() {
         try {
             const res = await fetch('/api/admin/settings', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-admin-email': user?.email || ''
+                },
                 body: JSON.stringify({ key: keyName, value: keyValue, category: 'ai_engine' })
             });
             const data = await res.json();
@@ -170,7 +179,10 @@ export function SystemConfig() {
                                 try {
                                     const res = await fetch('/api/admin/settings', {
                                         method: 'POST',
-                                        headers: { 'Content-Type': 'application/json' },
+                                        headers: {
+                                            'Content-Type': 'application/json',
+                                            'x-admin-email': user?.email || ''
+                                        },
                                         body: JSON.stringify({ key: 'INITIAL_SETUP_COMPLETED', value: 'false', category: 'system' })
                                     });
                                     if (res.ok) {

@@ -13,10 +13,9 @@ export default function proxy(request: NextRequest) {
 
     // Protect all /admin routes
     if (pathname.includes('/admin')) {
-        const adminToken = request.cookies.get('admin_access')?.value;
-        if (adminToken !== 'danny_admin_token') {
-            // return NextResponse.redirect(new URL('/dashboard', request.url));
-        }
+        // In a real app, we'd check a secure httpOnly cookie or JWT role here.
+        // For now, we rely on client-side protection and API route checks.
+        // This is a placeholder for server-side redirection if we had session data in cookies.
     }
 
     return intlMiddleware(request);

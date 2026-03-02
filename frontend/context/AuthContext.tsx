@@ -10,6 +10,7 @@ interface AuthContextType {
     loading: boolean;
     logout: () => Promise<void>;
     signInWithGoogle: () => Promise<void>;
+    isSuperAdmin: boolean;
     loginModalOpen: boolean;
     setLoginModalOpen: (open: boolean) => void;
 }
@@ -19,6 +20,7 @@ const AuthContext = createContext<AuthContextType>({
     loading: true,
     logout: async () => { },
     signInWithGoogle: async () => { },
+    isSuperAdmin: false,
     loginModalOpen: false,
     setLoginModalOpen: () => { },
 });
@@ -27,6 +29,7 @@ export const useAuth = () => useContext(AuthContext);
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const [user, setUser] = useState<User | null>(null);
+    const [isSuperAdmin, setIsSuperAdmin] = useState(false);
     const [loading, setLoading] = useState(true);
     const [loginModalOpen, setLoginModalOpen] = useState(false);
     const router = useRouter();
@@ -35,8 +38,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
             setUser(currentUser);
 
+            const superAdminEmail = 'dagrabastudio@gmail.com';
+            const isSuper = currentUser?.email === superAdminEmail;
+            setIsSuperAdmin(isSuper);
+
             // Auto-grant Admin status to official account
-            if (currentUser?.email === 'dagrabastudio@gmail.com') {
+            if (isSuper) {
                 import('@/store/useUserStore').then((m) => {
                     const store = m.useUserStore.getState();
                     store.setPlan('premium');
@@ -80,7 +87,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     };
 
     return (
-        <AuthContext.Provider value={{ user, loading, logout, signInWithGoogle, loginModalOpen, setLoginModalOpen }}>
+        <AuthContext.Provider value={{ user, isSuperAdmin, loading, logout, signInWithGoogle, loginModalOpen, setLoginModalOpen }}>
             {children}
         </AuthContext.Provider>
     );
