@@ -37,11 +37,13 @@
     },
     "Navigation": {
         "dashboard": "Dashboard",
+        "library": "Library",
         "explorer": "Explorer",
         "planer": "Planer",
         "crear": "Create",
         "studio": "Studio",
         "mastering": "Mastering",
+        "notifications": "Notifications",
         "profile": "Profile",
         "settings": "Settings"
     },

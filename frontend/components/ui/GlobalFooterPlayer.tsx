@@ -7,9 +7,8 @@ import { useTranslations } from 'next-intl';
 
 export function GlobalFooterPlayer() {
     const t = useTranslations('Player');
-    const { currentPreviewTrack, setPreviewTrack } = useDAWStore();
+    const { currentPreviewTrack, setPreviewTrack, isPlaying, setIsPlaying, rightPanelWidth } = useDAWStore();
     const audioRef = useRef<HTMLAudioElement | null>(null);
-    const [isPlaying, setIsPlaying] = useState(false);
     const [progress, setProgress] = useState(0);
     const [duration, setDuration] = useState(0);
     const [volume, setVolume] = useState(0.8);
@@ -33,15 +32,20 @@ export function GlobalFooterPlayer() {
                 setIsPlaying(false);
                 return;
             }
-            audio.src = src;
-            audio.load();
-            audio.volume = volume;
-            audio.play().catch(err => {
-                // Autoplay blocked or URL problem
-                console.warn('[GlobalPlayer] Playback failed:', err);
-                setIsPlaying(false);
-            });
-            setIsPlaying(true);
+            if (audio.src !== src && !audio.src.endsWith(src)) {
+                audio.src = src;
+                audio.load();
+                audio.volume = volume;
+            }
+
+            if (isPlaying) {
+                audio.play().catch(err => {
+                    console.warn('[GlobalPlayer] Playback failed:', err);
+                    setIsPlaying(false);
+                });
+            } else {
+                audio.pause();
+            }
         } else {
             audio.pause();
             audio.src = '';
@@ -49,16 +53,10 @@ export function GlobalFooterPlayer() {
             setProgress(0);
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [currentPreviewTrack]);
+    }, [currentPreviewTrack, isPlaying]);
 
 
     const togglePlay = () => {
-        if (!audioRef.current) return;
-        if (isPlaying) {
-            audioRef.current.pause();
-        } else {
-            audioRef.current.play();
-        }
         setIsPlaying(!isPlaying);
     };
 
@@ -84,69 +82,76 @@ export function GlobalFooterPlayer() {
     if (!currentPreviewTrack) return null;
 
     return (
-        <div className="fixed bottom-0 left-0 right-0 h-20 bg-black/90 backdrop-blur-xl border-t border-white/10 z-[100] flex items-center px-6 gap-8 animate-in slide-in-from-bottom duration-500">
+        <div
+            className="fixed bottom-0 left-0 h-24 bg-[#0A0A0C] border-t border-[#1A1A1A] z-[100] flex items-center justify-between px-6 animate-in slide-in-from-bottom duration-500 transition-[right]"
+            style={{ right: `${rightPanelWidth || 0}px` }}
+        >
             <audio
                 ref={audioRef}
                 onTimeUpdate={handleTimeUpdate}
                 onEnded={() => setIsPlaying(false)}
             />
 
-            {/* Track Info */}
-            <div className="flex items-center gap-4 w-[300px] shrink-0">
-                <div className="w-12 h-12 bg-gradient-to-br from-indigo-600 to-purple-700 rounded-md flex items-center justify-center shadow-lg overflow-hidden border border-white/10">
+            {/* Track Info (Left) */}
+            <div className="flex items-center gap-4 w-[350px] shrink-0">
+                <div className="w-14 h-14 bg-gradient-to-br from-indigo-600 to-purple-700 rounded-lg flex items-center justify-center shadow-lg overflow-hidden border border-white/5 shrink-0">
                     {currentPreviewTrack.image ? (
-                        <img src={currentPreviewTrack.image} alt="" className="w-full h-full object-cover" />
+                        <img src={currentPreviewTrack.image} alt="" className="w-full h-full object-cover rounded-lg" />
                     ) : (
-                        <Music className="text-white/50" size={20} />
+                        <Music className="text-white/50" size={24} />
                     )}
                 </div>
                 <div className="flex flex-col min-w-0">
-                    <span className="text-white font-bold text-sm truncate">{currentPreviewTrack.title || t('untitled')}</span>
-                    <span className="text-white/50 text-[10px] uppercase tracking-widest truncate">{currentPreviewTrack.style || t('aiGenerated')}</span>
+                    <span className="text-white font-semibold text-base truncate">{currentPreviewTrack.title || t('untitled')}</span>
+                    <span className="text-white/40 text-[13px] truncate mt-0.5">{currentPreviewTrack.style || t('aiGenerated')}</span>
                 </div>
             </div>
 
-            {/* Player Controls */}
-            <div className="flex-1 flex flex-col items-center gap-2 max-w-2xl">
+            {/* Player Controls (Center) - Absolutely Centered */}
+            <div className="absolute left-1/2 -translate-x-1/2 flex flex-col items-center gap-1.5 w-full max-w-[500px] justify-center z-10 px-4">
+
+                {/* Top Row: Playback Buttons */}
                 <div className="flex items-center gap-6">
-                    <button className="text-white/40 hover:text-white transition-colors">
-                        <Shuffle size={16} />
-                    </button>
-                    <button className="text-white/40 hover:text-white transition-colors">
-                        <SkipBack size={20} />
+                    <button className="text-white/50 hover:text-white transition-colors">
+                        <SkipBack size={20} fill="currentColor" />
                     </button>
                     <button
                         onClick={togglePlay}
-                        className="w-10 h-10 bg-white rounded-full flex items-center justify-center hover:scale-105 transition-transform shadow-[0_0_15px_rgba(255,255,255,0.3)]"
+                        className="w-10 h-10 bg-[#6b4cff] rounded-full flex items-center justify-center hover:bg-[#5b3ce0] hover:scale-105 transition-all shadow-[0_0_20px_rgba(107,76,255,0.4)] text-white"
                     >
-                        {isPlaying ? <Pause size={20} fill="black" className="text-black" /> : <Play size={20} fill="black" className="text-black ml-1" />}
+                        {isPlaying ? <Pause size={18} fill="currentColor" /> : <Play size={18} fill="currentColor" className="ml-1" />}
                     </button>
-                    <button className="text-white/40 hover:text-white transition-colors">
-                        <SkipForward size={20} />
+                    <button className="text-white/50 hover:text-white transition-colors">
+                        <SkipForward size={20} fill="currentColor" />
                     </button>
                     <button
                         onClick={() => setIsLooping(!isLooping)}
-                        className={`${isLooping ? 'text-orange-500' : 'text-white/40'} hover:text-orange-400 transition-colors`}
+                        className={`${isLooping ? 'text-white' : 'text-white/50'} hover:text-white transition-colors ml-2`}
                     >
-                        <Repeat size={16} />
+                        <Repeat size={18} />
                     </button>
                 </div>
 
-                <div className="w-full flex items-center gap-3">
-                    <span className="text-[10px] font-mono text-white/40 w-10 text-right">
+                {/* Bottom Row: Progress Bar & Timestamps */}
+                <div className="flex items-center w-full gap-3">
+                    <span className="text-[11px] font-mono text-white/50 w-10 text-right shrink-0">
                         {Math.floor((audioRef.current?.currentTime || 0) / 60)}:
                         {Math.floor((audioRef.current?.currentTime || 0) % 60).toString().padStart(2, '0')}
                     </span>
-                    <input
-                        type="range"
-                        value={isFinite(progress) ? progress : 0}
-                        onChange={handleSeek}
-                        min={0}
-                        max={100}
-                        className="flex-1 h-1 bg-white/10 rounded-full appearance-none cursor-pointer accent-white"
-                        style={{ background: `linear-gradient(to right, white ${isFinite(progress) ? progress : 0}%, rgba(255,255,255,0.1) ${isFinite(progress) ? progress : 0}%)` }}
-                    />
-                    <span className="text-[10px] font-mono text-white/40 w-10">
+
+                    <div className="flex-1 flex items-center h-full group relative py-1">
+                        <input
+                            type="range"
+                            value={isFinite(progress) ? progress : 0}
+                            onChange={handleSeek}
+                            min={0}
+                            max={100}
+                            className="w-full h-1 bg-[#2A2A2A] rounded-full appearance-none cursor-pointer group-hover:h-1.5 transition-all [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:opacity-0 group-hover:[&::-webkit-slider-thumb]:opacity-100"
+                            style={{ background: `linear-gradient(to right, white ${isFinite(progress) ? progress : 0}%, #2A2A2A ${isFinite(progress) ? progress : 0}%)` }}
+                        />
+                    </div>
+
+                    <span className="text-[11px] font-mono text-white/50 w-10 shrink-0">
                         {Math.floor(duration / 60)}:
                         {Math.floor(duration % 60).toString().padStart(2, '0')}
                     </span>
@@ -154,38 +159,25 @@ export function GlobalFooterPlayer() {
             </div>
 
             {/* Right Controls */}
-            <div className="flex items-center gap-4 w-[350px] justify-end">
-                <button className="text-white/40 hover:text-white transition-colors">
-                    <Share2 size={16} />
+            <div className="flex items-center justify-end gap-5 w-[350px] shrink-0 z-20">
+                <button className="text-white/50 hover:text-white transition-colors">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m22 2-7 20-4-9-9-4Z" /><path d="M22 2 11 13" /></svg>
                 </button>
-                <button className="text-white/40 hover:text-white transition-colors">
-                    <ListPlus size={16} />
+                <button className="text-white/50 hover:text-white transition-colors">
+                    <Share2 size={20} />
                 </button>
-                <button className="text-white/40 hover:text-white transition-colors">
-                    <Heart size={16} />
+                <button className="text-white/50 hover:text-white transition-colors">
+                    <ListPlus size={20} />
                 </button>
-                <div className="flex items-center gap-2 group border-l border-white/10 pl-4 ml-2">
-                    <Volume2 size={16} className="text-white/40 group-hover:text-white transition-colors" />
-                    <input
-                        type="range"
-                        min="0"
-                        max="1"
-                        step="0.01"
-                        value={volume}
-                        onChange={(e) => {
-                            const v = parseFloat(e.target.value);
-                            setVolume(v);
-                            if (audioRef.current) audioRef.current.volume = v;
-                        }}
-                        className="w-16 h-1 bg-white/10 rounded-full appearance-none cursor-pointer accent-white"
-                    />
-                </div>
-                <button className="text-white/40 hover:text-white transition-colors ml-2">
-                    <MoreVertical size={16} />
+                <button className="text-white/50 hover:text-white transition-colors">
+                    <Heart size={20} />
+                </button>
+                <button className="text-white/50 hover:text-white transition-colors ml-2">
+                    <MoreVertical size={20} />
                 </button>
                 <button
                     onClick={() => setPreviewTrack(null)}
-                    className="text-white/20 hover:text-red-500 transition-colors ml-2"
+                    className="text-white/30 hover:text-red-500 transition-colors ml-4 border-l border-white/10 pl-4"
                 >
                     <X size={16} />
                 </button>

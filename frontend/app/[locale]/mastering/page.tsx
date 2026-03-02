@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { StudioMonitor } from '@/components/daw/StudioMonitor';
 import { MasteringKnob } from '@/components/daw/MasteringKnob';
-import { Activity, Power, SlidersHorizontal, Upload, Download, Play, Pause, Volume2, Repeat, Music, History, Save, ChevronLeft, MessageSquare, Sparkles, MoreHorizontal, Layers, Trash2, X, ArrowRight } from 'lucide-react';
+import { Activity, Power, SlidersHorizontal, Upload, Download, Play, Pause, Volume2, Repeat, Music, History, Save, UploadCloud, ChevronLeft, ChevronDown, MessageSquare, Sparkles, MoreHorizontal, Layers, Trash2, X, ArrowRight } from 'lucide-react';
 import { useMasteringStore, MasteringSettings } from '@/store/useMasteringStore';
 import { audioEngine } from '@/lib/audio-engine-bridge';
 import { StudioChat } from '@/components/daw/StudioChat';
@@ -16,6 +16,15 @@ import { useDAWStore } from '@/store/useDAWStore';
 
 import { useUserStore } from '@/store/useUserStore';
 import { PlanLock } from '@/components/ui/PlanLock';
+export const EQ_BANDS = [
+    { k: "sub", lbl: "SUB", hz: "40Hz", col: "#FF3366" },
+    { k: "bass", lbl: "BASS", hz: "100Hz", col: "#FF9900" },
+    { k: "lm", lbl: "LO-MID", hz: "300Hz", col: "#FFD700" },
+    { k: "mid", lbl: "MID", hz: "1kHz", col: "#00FF88" },
+    { k: "hm", lbl: "HI-MID", hz: "4kHz", col: "#00FFFF" },
+    { k: "air", lbl: "AIR", hz: "12kHz", col: "#9D00FF" },
+];
+
 import { StemExtractModal } from '@/components/daw/StemExtractModal';
 
 export default function Mastering() {
@@ -48,6 +57,11 @@ export default function Mastering() {
     const [aiStatus, setAiStatus] = useState('');
     const [currentAudioId, setCurrentAudioId] = useState<string | null>(null);
 
+
+
+    // Plugin Chain UI state
+    const [pluginMenuOpen, setPluginMenuOpen] = useState(false);
+
     const defaultSettings: MasteringSettings = {
         gateThreshold: -12, gateAttack: 10, gateRelease: 100,
         eqHighpass: 50, eqTilt: 50, eqSideGain: 50, eqSideFreq: 0,
@@ -62,6 +76,12 @@ export default function Mastering() {
     const [settings, setSettings] = useState<MasteringSettings>(defaultSettings);
     const [menuOpen, setMenuOpen] = useState(false);
     const [stemsModalOpen, setStemsModalOpen] = useState(false);
+    const [activePluginGroup, setActivePluginGroup] = useState<'landr' | 'parametric' | 'eq' | 'compressors' | 'limiter'>('landr');
+    const [eq, setEq] = useState({ sub: 0, bass: 0, lm: 0, mid: 0, hm: 0, air: 0 });
+    const [proEq, setProEq] = useState<number[]>(Array(10).fill(0));
+    const [rackMenuOpen, setRackMenuOpen] = useState(false);
+    const [referenceAudioUrl, setReferenceAudioUrl] = useState<string | null>(null);
+    const refAudioRef = useRef<HTMLAudioElement | null>(null);
 
     const resetSettings = () => {
         setSettings(defaultSettings);
@@ -181,6 +201,11 @@ export default function Mastering() {
         input.onchange = async (e) => {
             const file = (e.target as HTMLInputElement).files?.[0];
             if (file) {
+                // Ensure only audio files are passed to prevent NotSupportedError with Blob URLs
+                if (!file.type.startsWith('audio/') && !file.name.match(/\.(mp3|wav|ogg|flac|m4a|aac)$/i)) {
+                    alert('Por favor, selecciona un archivo de audio válido (MP3, WAV, etc.).');
+                    return;
+                }
                 const projectId = `import-${Date.now()}`;
                 const url = URL.createObjectURL(file);
 
@@ -223,6 +248,24 @@ export default function Mastering() {
         }
     }, [audioUrl]);
 
+    useEffect(() => {
+        if (refAudioRef.current && referenceAudioUrl) {
+            audioEngine.connectAudioElement('reference-track', refAudioRef.current);
+            audioEngine.setTrackMute('reference-track', true); // Start muted
+        }
+    }, [referenceAudioUrl]);
+
+    useEffect(() => {
+        if (!audioUrl) return;
+        if (isComparing && referenceAudioUrl) {
+            audioEngine.setTrackMute('master-track', true);
+            audioEngine.setTrackMute('reference-track', false);
+        } else {
+            audioEngine.setTrackMute('master-track', false);
+            audioEngine.setTrackMute('reference-track', true);
+        }
+    }, [isComparing, audioUrl, referenceAudioUrl]);
+
     // Sync settings with Audio Engine
     useEffect(() => {
         if (!isOn) return;
@@ -235,6 +278,14 @@ export default function Mastering() {
         audioEngine.updateLimiter('master-track', settings.limStrength, settings.limCeiling, settings.limBypass);
 
     }, [settings, isOn]);
+
+    // Sync Pro EQ
+    useEffect(() => {
+        if (!isOn) return;
+        audioEngine.updateProEQ('master-track', proEq, false);
+    }, [proEq, isOn]);
+
+
 
     const startAIMastering = async () => {
         if (!audioUrl) {
@@ -397,10 +448,42 @@ export default function Mastering() {
             }, 2000);
 
         } catch (error) {
-            console.error("AI Mastering failed", error);
+            console.error("Mastering error:", error);
+            setAiStatus('ERROR EN MASTERIZACIÓN. INTENTA DE NUEVO.');
+        } finally {
             setIsAIMastering(false);
-            setAiStatus('ERROR EN EL PROCESO.');
+            if (refAudioRef.current && audioRef.current) {
+                refAudioRef.current.currentTime = audioRef.current.currentTime;
+            }
         }
+    };
+
+    const handleImportReference = () => {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'audio/*';
+        input.onchange = (e) => {
+            const file = (e.target as HTMLInputElement).files?.[0];
+            if (file) {
+                // Ensure only audio files are passed to prevent NotSupportedError
+                if (!file.type.startsWith('audio/') && !file.name.match(/\.(mp3|wav|ogg|flac|m4a|aac)$/i)) {
+                    alert('Por favor, selecciona un archivo de audio válido para la Referencia A/B.');
+                    return;
+                }
+                const url = URL.createObjectURL(file);
+                setReferenceAudioUrl(url);
+                setIsComparing(false);
+            }
+        };
+        input.click();
+    };
+
+    const handleSave = () => {
+        alert("Máster Guardado Exitosamente en tu perfil.");
+    };
+
+    const handlePublish = () => {
+        alert("Pista Publicada Exitosamente en DA-GRABA Network.");
     };
 
     const togglePlay = () => {
@@ -459,19 +542,6 @@ export default function Mastering() {
         }
     };
 
-    const handleSave = () => {
-        const projectId = `proj-${Date.now()}`;
-        addToHistory({
-            id: projectId,
-            name: selectedSong,
-            audioUrl: audioUrl,
-            audioId: currentAudioId || undefined,
-            settings: settings,
-            dna: metadataDNA || projectId
-        });
-        alert("Sesión guardada en el historial.");
-    };
-
     const handleExport = () => {
         handleSave(); // Auto-save on export
 
@@ -507,19 +577,33 @@ export default function Mastering() {
 
     return (
         <div className="flex flex-col w-full h-full items-center justify-start px-4 md:px-12 lg:px-24 py-4 relative overflow-y-auto overflow-x-hidden pb-32 pointer-events-auto custom-scrollbar">
-            <audio
-                ref={audioRef}
-                src={
-                    audioUrl
-                        ? (audioUrl.startsWith('blob:') || audioUrl.startsWith('data:'))
-                            ? audioUrl
-                            : `/api/audio-proxy?url=${encodeURIComponent(audioUrl)}`
-                        : undefined
-                }
-                onTimeUpdate={handleTimeUpdate}
-                onEnded={() => setIsPlaying(false)}
-                crossOrigin={audioUrl?.startsWith('blob:') ? undefined : "anonymous"}
-            />
+            {/* Main Audio Element */}
+            {audioUrl && (
+                <audio
+                    ref={audioRef}
+                    src={audioUrl}
+                    className="hidden"
+                    onTimeUpdate={(e) => {
+                        setProgress((e.currentTarget.currentTime / e.currentTarget.duration) * 100);
+                    }}
+                    onLoadedMetadata={(e) => {
+                        setDuration(e.currentTarget.duration);
+                    }}
+                    onEnded={() => {
+                        setIsPlaying(false);
+                        setProgress(0);
+                    }}
+                />
+            )}
+
+            {/* Reference Audio Element */}
+            {referenceAudioUrl && (
+                <audio
+                    ref={refAudioRef}
+                    src={referenceAudioUrl}
+                    className="hidden"
+                />
+            )}
 
             {/* Background Studio Window Blur effect */}
             <div className="absolute inset-x-0 bottom-0 h-64 bg-gradient-to-t from-black/80 to-transparent pointer-events-none" />
@@ -613,6 +697,15 @@ export default function Mastering() {
                     </div>
                     {/* Extraer Stems button + Import */}
                     <div className="ml-auto flex items-center gap-2 shrink-0">
+                        <button onClick={() => setPluginMenuOpen(!pluginMenuOpen)} className="flex items-center gap-2 px-5 py-2 rounded-xl bg-purple-600/20 hover:bg-purple-600/40 border border-purple-500/30 text-purple-400 text-[10px] font-black tracking-widest uppercase transition-all shadow-[0_0_15px_rgba(168,85,247,0.1)]">
+                            <Layers size={14} /> Cadena Plugins
+                        </button>
+                        <button onClick={handleSave} className="flex items-center gap-2 px-5 py-2 rounded-xl bg-slate-700/50 hover:bg-slate-700/80 border border-slate-500/30 text-white text-[10px] font-black tracking-widest uppercase transition-all shadow-[0_0_15px_rgba(255,255,255,0.05)]">
+                            <Save size={14} className="text-white/70" /> Salvar
+                        </button>
+                        <button onClick={handlePublish} className="flex items-center gap-2 px-5 py-2 rounded-xl bg-blue-600/20 hover:bg-blue-600/40 border border-blue-500/30 text-blue-400 text-[10px] font-black tracking-widest uppercase transition-all shadow-[0_0_15px_rgba(59,130,246,0.1)]">
+                            <UploadCloud size={14} /> Publicar
+                        </button>
                         <button
                             onClick={() => setStemsModalOpen(true)}
                             className="flex items-center gap-2 px-5 py-2 rounded-xl bg-green-600/20 hover:bg-green-600/40 border border-green-500/30 text-green-400 text-[10px] font-black tracking-widest uppercase transition-all shadow-[0_0_15px_rgba(34,197,94,0.1)]"
@@ -643,12 +736,74 @@ export default function Mastering() {
                                 <div className="w-8 h-8 rounded-full border border-white/20 flex items-center justify-center">
                                     <div className="w-5 h-5 rounded-full border border-white/40 border-t-transparent animate-spin-slow" />
                                 </div>
-                                <span className="text-white font-medium tracking-widest text-sm opacity-90">DA-GRABA Studio Mastering</span>
+                                <div className="flex flex-col relative w-64">
+                                    <button
+                                        onClick={() => setRackMenuOpen(!rackMenuOpen)}
+                                        className="flex items-center gap-2 text-white font-medium tracking-widest text-[14px] hover:text-cyan-400 transition-colors w-full text-left"
+                                    >
+                                        {activePluginGroup === 'landr' ? 'DA-GRABA MASTERING' :
+                                            activePluginGroup === 'parametric' ? 'ADVANCED PARAMETRIC' :
+                                                activePluginGroup === 'eq' ? 'PRO EQ RACK' :
+                                                    activePluginGroup === 'limiter' ? 'SMART PEAK LIMITER' :
+                                                        'ADVANCED COMPRESSORS'}
+                                        <ChevronDown size={14} className={`transition-transform ${rackMenuOpen ? 'rotate-180' : ''}`} />
+                                    </button>
+
+                                    {/* Dropdown Menu */}
+                                    {rackMenuOpen && (
+                                        <div className="absolute top-full left-0 mt-3 w-48 bg-[#0B1015] border border-white/10 rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.8)] overflow-hidden z-[100] animate-in fade-in slide-in-from-top-2">
+                                            <button
+                                                onClick={() => { setActivePluginGroup('landr'); setRackMenuOpen(false); }}
+                                                className={`w-full text-left px-4 py-3 text-[11px] font-bold tracking-widest uppercase border-b border-white/5 transition-colors ${activePluginGroup === 'landr' ? 'bg-cyan-500/10 text-cyan-400' : 'text-white/70 hover:bg-white/5 hover:text-white'}`}
+                                            >
+                                                DA-GRABA Mastering
+                                            </button>
+                                            <button
+                                                onClick={() => { setActivePluginGroup('parametric'); setRackMenuOpen(false); }}
+                                                className={`w-full text-left px-4 py-3 text-[11px] font-bold tracking-widest uppercase transition-colors ${activePluginGroup === 'parametric' ? 'bg-cyan-500/10 text-cyan-400' : 'text-white/70 hover:bg-white/5 hover:text-white'}`}
+                                            >
+                                                Advanced Parametric
+                                            </button>
+                                            <button
+                                                onClick={() => { setActivePluginGroup('eq'); setRackMenuOpen(false); }}
+                                                className={`w-full text-left px-4 py-3 text-[11px] font-bold tracking-widest uppercase border-t border-white/5 transition-colors ${activePluginGroup === 'eq' ? 'bg-cyan-500/10 text-cyan-400' : 'text-white/70 hover:bg-white/5 hover:text-white'}`}
+                                            >
+                                                Pro EQ Rack
+                                            </button>
+                                            <button
+                                                onClick={() => { setActivePluginGroup('compressors'); setRackMenuOpen(false); }}
+                                                className={`w-full text-left px-4 py-3 text-[11px] font-bold tracking-widest uppercase border-t border-white/5 transition-colors ${activePluginGroup === 'compressors' ? 'bg-cyan-500/10 text-cyan-400' : 'text-white/70 hover:bg-white/5 hover:text-white'}`}
+                                            >
+                                                Advanced Compressors
+                                            </button>
+                                            <button
+                                                onClick={() => { setActivePluginGroup('limiter'); setRackMenuOpen(false); }}
+                                                className={`w-full text-left px-4 py-3 text-[11px] font-bold tracking-widest uppercase border-t border-white/5 transition-colors ${activePluginGroup === 'limiter' ? 'bg-cyan-500/10 text-cyan-400' : 'text-white/70 hover:bg-white/5 hover:text-white'}`}
+                                            >
+                                                Smart Peak Limiter
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
 
-                            {/* Center Toggles */}
-                            <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-4 bg-white/5 rounded-full px-4 py-1.5 backdrop-blur-md border border-white/10">
-                                <span className="text-[11px] font-bold text-cyan-300 uppercase tracking-widest mr-2 cursor-pointer shadow-[0_0_10px_rgba(103,232,249,0.3)]">Master</span>
+                            {/* Center Toggles: Master / Reference A/B */}
+                            <div className="absolute left-1/2 -translate-x-1/2 flex items-center bg-black/50 rounded-full p-1 backdrop-blur-md border border-white/10 shadow-inner">
+                                <button
+                                    onClick={() => setIsComparing(false)}
+                                    className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${!isComparing ? 'bg-cyan-500 text-black shadow-[0_0_15px_rgba(6,182,212,0.4)]' : 'text-white/40 hover:text-white/70'}`}
+                                >
+                                    Master
+                                </button>
+                                <button
+                                    onClick={() => referenceAudioUrl ? setIsComparing(true) : handleImportReference()}
+                                    className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${isComparing ? 'bg-purple-500 text-black shadow-[0_0_15px_rgba(168,85,247,0.4)]' : 'text-white/40 hover:text-white/70'}`}
+                                >
+                                    {referenceAudioUrl ? 'Referencia (A/B)' : '+ Subir Referencia'}
+                                </button>
+                                {referenceAudioUrl && (
+                                    <button onClick={handleImportReference} className="px-3 text-[9px] text-white/30 hover:text-white/60 mx-1 uppercase mt-0.5">Edit</button>
+                                )}
                             </div>
 
                             {/* Right Controls */}
@@ -751,19 +906,7 @@ export default function Mastering() {
                                     {['DGB_BOLERO', 'DGB_BACHATA', 'DGB_MERENGUE'].map((genre) => (
                                         <button
                                             key={genre}
-                                            onClick={() => {
-                                                setSelectedGenre(genre);
-                                                if (genre === 'DGB_BOLERO') {
-                                                    // Warm preset: boost low, cut high slightly, gentle comp
-                                                    setSettings(prev => ({ ...prev, eqHighpass: 65, eqTilt: 50, eqSideGain: 40, eqSideFreq: 0, compStrength: 25 }));
-                                                } else if (genre === 'DGB_BACHATA') {
-                                                    // Balanced preset: slight mid boost, medium comp
-                                                    setSettings(prev => ({ ...prev, eqHighpass: 55, eqTilt: 55, eqSideGain: 55, eqSideFreq: 10, compStrength: 45 }));
-                                                } else if (genre === 'DGB_MERENGUE') {
-                                                    // Open preset: neutral low, boost high, boost presence, strong comp
-                                                    setSettings(prev => ({ ...prev, eqHighpass: 50, eqTilt: 45, eqSideGain: 65, eqSideFreq: 30, compStrength: 70 }));
-                                                }
-                                            }}
+                                            onClick={() => setSelectedGenre(genre)}
                                             className={`px-8 py-1.5 rounded-full text-xs font-medium tracking-wide transition-all ${selectedGenre === genre
                                                 ? 'bg-blue-600 shadow-[0_0_15px_rgba(37,99,235,0.6)] text-white'
                                                 : 'text-white/40 hover:text-white/80'
@@ -776,64 +919,349 @@ export default function Mastering() {
                             </div>
 
                             {/* Bottom Half: Control Grid */}
-                            <div className="grid grid-cols-12 gap-4 px-4 pb-4">
+                            {activePluginGroup === 'landr' && (
+                                <div className="grid grid-cols-12 gap-2 px-4 pb-4">
 
-                                {/* EQUALIZER */}
-                                <div className="col-span-3 flex flex-col items-center gap-4">
-                                    <span className="text-[9px] font-bold text-white/30 tracking-widest uppercase">Equalizer</span>
-                                    <div className="flex gap-2">
-                                        <MasteringKnob label="Low" value={settings.eqHighpass} onChange={(v) => setSettings({ ...settings, eqHighpass: v })} size="sm" />
-                                        <MasteringKnob label="Mid" value={settings.eqTilt} onChange={(v) => setSettings({ ...settings, eqTilt: v })} size="sm" />
-                                        <MasteringKnob label="High" value={settings.eqSideGain} onChange={(v) => setSettings({ ...settings, eqSideGain: v })} size="sm" />
-                                    </div>
-                                </div>
-
-                                {/* PRESENCE */}
-                                <div className="col-span-2 flex flex-col items-center gap-4 border-l border-white/5 pl-4">
-                                    <span className="text-[9px] font-bold text-white/30 tracking-widest uppercase">Presence</span>
-                                    <MasteringKnob label="Amount" value={settings.eqSideFreq} onChange={(v) => setSettings({ ...settings, eqSideFreq: v })} size="md" />
-                                </div>
-
-                                {/* DE-ESSER */}
-                                <div className="col-span-2 flex flex-col items-center gap-4 border-l border-white/5 pl-2">
-                                    <span className="text-[9px] font-bold text-white/30 tracking-widest uppercase">De-Esser</span>
-                                    <div className="flex gap-2">
-                                        <MasteringKnob label="Amount" value={settings.mbStrengthHigh} onChange={(v) => setSettings({ ...settings, mbStrengthHigh: v })} size="sm" />
-                                        <MasteringKnob label="Freq" value={settings.mbCrossoverHigh} onChange={(v) => setSettings({ ...settings, mbCrossoverHigh: v })} size="sm" />
-                                    </div>
-                                </div>
-
-                                {/* DYNAMICS */}
-                                <div className="col-span-3 flex flex-col items-center gap-4 border-l border-white/5 pl-2">
-                                    <span className="text-[9px] font-bold text-white/30 tracking-widest uppercase">Dynamics</span>
-                                    <div className="flex gap-2">
-                                        <MasteringKnob label="Comp" value={settings.compStrength} onChange={(v) => setSettings({ ...settings, compStrength: v })} size="sm" />
-                                        <MasteringKnob label="Chrc" value={settings.compAttack} onChange={(v) => setSettings({ ...settings, compAttack: v })} size="sm" />
-                                        <MasteringKnob label="Sat" value={settings.inputDrive} onChange={(v) => setSettings({ ...settings, inputDrive: v })} size="sm" />
-                                    </div>
-                                </div>
-
-                                {/* LOUDNESS (Rightmost) */}
-                                <div className="col-span-2 flex flex-col items-center justify-between border-l border-white/5 pl-4 h-full">
-                                    <span className="text-[9px] font-bold text-white/30 tracking-widest uppercase">Loudness</span>
-                                    <div className="flex items-center gap-4 w-full justify-center">
-                                        <div className="flex flex-col items-center -mr-2">
-                                            <MasteringKnob label="" value={settings.levelerTarget} onChange={(v) => setSettings({ ...settings, levelerTarget: v })} size="lg" />
-                                            <span className="text-[9px] text-white/40 font-medium tracking-widest mt-2">
-                                                {(-14 + (settings.levelerTarget / 100) * 8).toFixed(1)} LUFS
-                                            </span>
+                                    {/* EQUALIZER */}
+                                    <div className="col-span-3 flex flex-col items-center gap-4">
+                                        <span className="text-[9px] font-bold text-white/30 tracking-widest uppercase">Equalizer</span>
+                                        <div className="flex gap-2">
+                                            <MasteringKnob label="Low" value={settings.eqHighpass} onChange={(v) => setSettings({ ...settings, eqHighpass: v })} size="sm" />
+                                            <MasteringKnob label="Mid" value={settings.eqTilt} onChange={(v) => setSettings({ ...settings, eqTilt: v })} size="sm" />
+                                            <MasteringKnob label="High" value={settings.eqSideGain} onChange={(v) => setSettings({ ...settings, eqSideGain: v })} size="sm" />
                                         </div>
-                                        {/* Fake LUFS Meter */}
-                                        <div className="flex flex-col items-center gap-1">
-                                            <span className="text-[8px] font-mono text-cyan-400">-0.2 dB</span>
-                                            <div className="w-2 h-24 bg-black rounded-sm relative overflow-hidden ring-1 ring-white/10">
-                                                <div className="absolute bottom-0 w-full bg-gradient-to-t from-cyan-600 via-cyan-400 to-white transition-all shadow-[0_0_10px_rgba(6,182,212,0.8)]" style={{ height: `${isPlaying ? 60 + Math.random() * 30 : 0}%` }} />
+                                    </div>
+
+                                    {/* PRESENCE */}
+                                    <div className="col-span-2 flex flex-col items-center gap-4 border-l border-white/5 pl-2">
+                                        <span className="text-[9px] font-bold text-white/30 tracking-widest uppercase">Presence</span>
+                                        <MasteringKnob label="Amount" value={settings.eqSideFreq} onChange={(v) => setSettings({ ...settings, eqSideFreq: v })} size="sm" />
+                                    </div>
+
+                                    {/* DE-ESSER */}
+                                    <div className="col-span-2 flex flex-col items-center gap-4 border-l border-white/5 pl-2">
+                                        <span className="text-[9px] font-bold text-white/30 tracking-widest uppercase">De-Esser</span>
+                                        <div className="flex gap-2">
+                                            <MasteringKnob label="Amount" value={settings.mbStrengthHigh} onChange={(v) => setSettings({ ...settings, mbStrengthHigh: v })} size="sm" />
+                                            <MasteringKnob label="Freq" value={settings.mbCrossoverHigh} onChange={(v) => setSettings({ ...settings, mbCrossoverHigh: v })} size="sm" />
+                                        </div>
+                                    </div>
+
+                                    {/* DYNAMICS */}
+                                    <div className="col-span-3 flex flex-col items-center gap-4 border-l border-white/5 pl-2">
+                                        <span className="text-[9px] font-bold text-white/30 tracking-widest uppercase">Dynamics</span>
+                                        <div className="flex gap-2">
+                                            <MasteringKnob label="Comp" value={settings.compStrength} onChange={(v) => setSettings({ ...settings, compStrength: v })} size="sm" />
+                                            <MasteringKnob label="Char" value={settings.compAttack} onChange={(v) => setSettings({ ...settings, compAttack: v })} size="sm" />
+                                            <MasteringKnob label="Sat" value={settings.inputDrive} onChange={(v) => setSettings({ ...settings, inputDrive: v })} size="sm" />
+                                        </div>
+                                    </div>
+
+                                    {/* LOUDNESS (Rightmost) */}
+                                    <div className="col-span-2 flex flex-col items-center justify-between border-l border-white/5 pl-2 h-full">
+                                        <span className="text-[9px] font-bold text-white/30 tracking-widest uppercase">Loudness</span>
+                                        <div className="flex items-center gap-3 w-full justify-center">
+                                            <div className="flex flex-col items-center">
+                                                <MasteringKnob label="" value={settings.levelerTarget} onChange={(v) => setSettings({ ...settings, levelerTarget: v })} size="lg" />
+                                                <span className="text-[9px] text-white/40 font-medium tracking-widest mt-2">{settings.levelerTarget.toFixed(1)} LUFS</span>
+                                            </div>
+                                            {/* Fake LUFS Meter */}
+                                            <div className="flex flex-col items-center gap-1">
+                                                <span className="text-[8px] font-mono text-cyan-400">-0.2</span>
+                                                <div className="w-2 h-[72px] bg-black rounded-sm relative overflow-hidden ring-1 ring-white/10">
+                                                    <div className="absolute bottom-0 w-full bg-gradient-to-t from-cyan-600 via-cyan-400 to-white transition-all shadow-[0_0_10px_rgba(6,182,212,0.8)]" style={{ height: `${isPlaying ? 60 + Math.random() * 30 : 0}%` }} />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                </div>
+                            )}
+
+                            {activePluginGroup === 'parametric' && (
+                                <div className="grid grid-cols-12 gap-4 px-4 pb-4">
+                                    {/* PARAMETRIC EQ GRAPH */}
+                                    <div className="col-span-8 flex flex-col gap-2">
+                                        <div className="flex justify-between items-center px-2">
+                                            <span className="text-[10px] font-bold text-white/50 tracking-widest uppercase">Advanced Parametric EQ</span>
+                                            <div className="flex gap-2">
+                                                <span className="text-[9px] text-cyan-400 font-mono">L R MAT</span>
+                                                <span className="text-[9px] text-white/30 font-mono">PHASE LIN</span>
+                                            </div>
+                                        </div>
+                                        <div className="h-40 bg-black/40 rounded-xl border border-white/5 relative overflow-hidden backdrop-blur-md">
+                                            {/* Grid lines */}
+                                            <div className="absolute inset-0 flex flex-col justify-between py-2 opacity-20 pointer-events-none">
+                                                {[...Array(5)].map((_, i) => <div key={i} className="w-full h-px bg-white/20" />)}
+                                            </div>
+                                            <div className="absolute inset-0 flex justify-between px-8 opacity-20 pointer-events-none">
+                                                {[...Array(6)].map((_, i) => <div key={i} className="w-px h-full bg-white/20" />)}
+                                            </div>
+
+                                            {/* Frequency Labels */}
+                                            <div className="absolute bottom-1 left-0 w-full flex justify-between px-8">
+                                                {EQ_BANDS.map((b) => (
+                                                    <span key={b.k} className="text-[8px] font-mono text-white/30">{b.hz}</span>
+                                                ))}
+                                            </div>
+
+                                            {/* Fake EQ Curve */}
+                                            <svg className="absolute inset-0 w-full h-full pointer-events-none opacity-80" preserveAspectRatio="none">
+                                                <path
+                                                    d={`M 0,80 C 100,${80 - (eq.sub * 0.5)} 200,${80 - (eq.bass * 0.5)} 300,${80 - (eq.lm * 0.5)} S 500,${80 - (eq.mid * 0.5)} 600,${80 - (eq.hm * 0.5)} S 700,${80 - (eq.air * 0.5)} 800,80`}
+                                                    fill="none"
+                                                    stroke="rgba(6, 182, 212, 0.5)"
+                                                    strokeWidth="3"
+                                                    className="drop-shadow-[0_0_8px_rgba(6,182,212,0.8)]"
+                                                />
+                                                {/* Fill under curve */}
+                                                <path
+                                                    d={`M 0,160 L 0,80 C 100,${80 - (eq.sub * 0.5)} 200,${80 - (eq.bass * 0.5)} 300,${80 - (eq.lm * 0.5)} S 500,${80 - (eq.mid * 0.5)} 600,${80 - (eq.hm * 0.5)} S 700,${80 - (eq.air * 0.5)} 800,80 L 800,160 Z`}
+                                                    fill="url(#eqGradient)"
+                                                    opacity="0.3"
+                                                />
+                                                <defs>
+                                                    <linearGradient id="eqGradient" x1="0" y1="0" x2="0" y2="1">
+                                                        <stop offset="0%" stopColor="rgba(6, 182, 212, 0.8)" />
+                                                        <stop offset="100%" stopColor="rgba(6, 182, 212, 0)" />
+                                                    </linearGradient>
+                                                </defs>
+                                            </svg>
+
+                                            {/* Interactive Nodes */}
+                                            {EQ_BANDS.map((b, i) => {
+                                                const x = 30 + (i * 90); // Adjust spacing for 8 columns width
+                                                const eqVal = (eq as any)[b.k] || 0;
+                                                const y = 80 - (eqVal * 0.5);
+
+                                                return (
+                                                    <div
+                                                        key={b.k}
+                                                        className="absolute w-4 h-4 -ml-2 -mt-2 rounded-full cursor-ns-resize z-10 flex items-center justify-center group"
+                                                        style={{ left: `${x}px`, top: `${y}px` }}
+                                                        onMouseDown={(e) => {
+                                                            const startY = e.clientY;
+                                                            const startVal = eqVal;
+                                                            const handleMove = (ev: MouseEvent) => {
+                                                                const dy = startY - ev.clientY;
+                                                                setEq(prev => ({ ...prev, [b.k]: Math.max(-100, Math.min(100, startVal + dy)) }));
+                                                            };
+                                                            const handleUp = () => {
+                                                                window.removeEventListener('mousemove', handleMove);
+                                                                window.removeEventListener('mouseup', handleUp);
+                                                            };
+                                                            window.addEventListener('mousemove', handleMove);
+                                                            window.addEventListener('mouseup', handleUp);
+                                                        }}
+                                                    >
+                                                        <div className="w-2 h-2 rounded-full transition-transform group-hover:scale-150" style={{ backgroundColor: b.col, boxShadow: `0 0 10px ${b.col}` }} />
+                                                        {/* Tooltip */}
+                                                        <div className="absolute -top-8 bg-black/80 px-2 py-1 rounded text-[9px] font-mono text-white opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap border border-white/10 backdrop-blur-sm">
+                                                            {b.lbl}: {eqVal > 0 ? '+' : ''}{eqVal}
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+
+                                    {/* VCA Dynamics */}
+                                    <div className="col-span-2 flex flex-col items-center gap-4 border-l border-white/5 pl-4 relative h-40">
+                                        <span className="text-[9px] font-bold text-white/30 tracking-widest uppercase">VCA Dynamics</span>
+                                        <div className="flex-1 w-full bg-black/40 rounded-xl border border-white/5 relative overflow-hidden flex items-end justify-center pb-4">
+                                            {/* Gain reduction meter */}
+                                            <div className="w-3 h-24 bg-black rounded-sm relative overflow-hidden ring-1 ring-white/10">
+                                                <div
+                                                    className="absolute top-0 w-full bg-gradient-to-b from-orange-500 to-orange-600 transition-all shadow-[0_0_10px_rgba(249,115,22,0.8)]"
+                                                    style={{ height: `${isPlaying ? (settings.compStrength / 100) * 30 + Math.random() * 10 : 0}%` }}
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* LOUDNESS MAXIMIZER */}
+                                    <div className="col-span-2 flex flex-col items-center justify-between border-l border-white/5 pl-4 h-40">
+                                        <span className="text-[9px] font-bold text-white/30 tracking-widest uppercase text-center leading-tight mt-1">Loudness<br />Maximizer</span>
+                                        <div className="flex items-center gap-3 w-full justify-center">
+                                            <div className="flex flex-col items-center">
+                                                <MasteringKnob label="" value={settings.levelerTarget} onChange={(v) => setSettings({ ...settings, levelerTarget: v })} size="sm" />
+                                                <span className="text-[9px] text-white/40 font-medium tracking-widest mt-1">LUFS</span>
+                                            </div>
+                                            {/* LUFS Meter */}
+                                            <div className="flex flex-col items-center gap-1">
+                                                <div className="w-2 h-20 bg-black rounded-sm relative overflow-hidden ring-1 ring-white/10">
+                                                    <div className="absolute bottom-0 w-full bg-gradient-to-t from-cyan-600 via-cyan-400 to-white transition-all shadow-[0_0_10px_rgba(6,182,212,0.8)]" style={{ height: `${isPlaying ? 60 + Math.random() * 30 : 0}%` }} />
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
+                            )}
 
-                            </div>
+                            {activePluginGroup === 'eq' && (
+                                <div className="px-6 pb-6 flex flex-col gap-6 w-full">
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-[12px] font-bold text-white/50 tracking-widest uppercase">Pro EQ Rack - 10 Band Graph</span>
+                                        <div className="flex gap-4">
+                                            <span className="text-[10px] text-cyan-400 font-mono bg-cyan-900/30 px-3 py-1 rounded">M/S MODE</span>
+                                            <span className="text-[10px] text-white/30 font-mono bg-white/5 px-3 py-1 rounded">LINEAR PHASE</span>
+                                        </div>
+                                    </div>
+
+                                    <div className="h-48 w-full bg-black/50 rounded-2xl border border-white/5 relative overflow-hidden backdrop-blur-md shadow-inner">
+                                        <div className="absolute inset-0 flex flex-col justify-between py-4 opacity-10 pointer-events-none">
+                                            {[...Array(7)].map((_, i) => <div key={i} className="w-full h-px bg-white" />)}
+                                        </div>
+                                        <div className="absolute inset-0 flex justify-between px-10 opacity-10 pointer-events-none">
+                                            {[...Array(10)].map((_, i) => <div key={i} className="w-px h-full bg-white" />)}
+                                        </div>
+
+                                        {/* EQ Curve Graphic for Pro EQ */}
+                                        <svg className="absolute inset-0 w-full h-full pointer-events-none opacity-80" preserveAspectRatio="none">
+                                            {(() => {
+                                                const getPath = () => {
+                                                    let d = `M 0,${100 - (proEq[0] * 0.8)}`;
+                                                    for (let i = 0; i < 10; i++) {
+                                                        const pY = 100 - (proEq[i] * 0.8);
+                                                        const pX = i * 111.1; // 1000 / 9 roughly matches aspect
+                                                        if (i === 0) {
+                                                            d += ` L ${pX},${pY}`;
+                                                        } else {
+                                                            const prevY = 100 - (proEq[i - 1] * 0.8);
+                                                            const prevX = (i - 1) * 111.1;
+                                                            const cpX = prevX + 55.5; // Midpoint
+                                                            d += ` C ${cpX},${prevY} ${cpX},${pY} ${pX},${pY}`;
+                                                        }
+                                                    }
+                                                    return d;
+                                                };
+                                                const pathD = getPath();
+                                                return (
+                                                    <>
+                                                        <path
+                                                            d={pathD}
+                                                            fill="none"
+                                                            stroke="rgba(168, 85, 247, 0.6)"
+                                                            strokeWidth="3"
+                                                            className="drop-shadow-[0_0_12px_rgba(168,85,247,0.8)]"
+                                                        />
+                                                        <path
+                                                            d={`${pathD} L 1000,192 L 0,192 Z`}
+                                                            fill="url(#proEqGradient)"
+                                                            opacity="0.2"
+                                                        />
+                                                    </>
+                                                );
+                                            })()}
+                                            <defs>
+                                                <linearGradient id="proEqGradient" x1="0" y1="0" x2="0" y2="1">
+                                                    <stop offset="0%" stopColor="rgba(168, 85, 247, 0.8)" />
+                                                    <stop offset="100%" stopColor="rgba(168, 85, 247, 0)" />
+                                                </linearGradient>
+                                            </defs>
+                                        </svg>
+
+                                        {/* Sliders overlay fake UI */}
+                                        <div className="absolute inset-0 px-8 py-6 flex justify-between items-end pb-12">
+                                            {['31', '63', '125', '250', '500', '1K', '2K', '4K', '8K', '16K'].map((freq, i) => {
+                                                const eqVal = proEq[i];
+
+                                                return (
+                                                    <div
+                                                        key={freq}
+                                                        className="flex flex-col items-center gap-2 group cursor-ns-resize"
+                                                        onMouseDown={(e) => {
+                                                            const startY = e.clientY;
+                                                            const startVal = eqVal;
+                                                            const handleMove = (ev: MouseEvent) => {
+                                                                const dy = startY - ev.clientY;
+                                                                setProEq(prev => {
+                                                                    const next = [...prev];
+                                                                    next[i] = Math.max(-100, Math.min(100, startVal + dy));
+                                                                    return next;
+                                                                });
+                                                            };
+                                                            const handleUp = () => {
+                                                                window.removeEventListener('mousemove', handleMove);
+                                                                window.removeEventListener('mouseup', handleUp);
+                                                            };
+                                                            window.addEventListener('mousemove', handleMove);
+                                                            window.addEventListener('mouseup', handleUp);
+                                                        }}
+                                                    >
+                                                        <div className="w-1.5 h-24 bg-white/5 rounded-full relative">
+                                                            <div
+                                                                className="absolute w-3 h-3 bg-white rounded-full -left-0.5 shadow-[0_0_10px_rgba(255,255,255,0.8)] group-hover:bg-purple-400 group-hover:scale-125 transition-all"
+                                                                style={{ bottom: `${50 + (eqVal / 2)}%` }}
+                                                            />
+                                                        </div>
+                                                        <span className="text-[8px] font-mono text-white/40">{freq}</span>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {activePluginGroup === 'compressors' && (
+                                <div className="px-6 pb-6 flex flex-col gap-6 w-full">
+                                    <div className="flex justify-between items-center mb-2">
+                                        <span className="text-[12px] font-bold text-white/50 tracking-widest uppercase">Advanced Compressors Bundle</span>
+
+                                        {/* Preset Dropdown requested by User */}
+                                        <div className="flex items-center gap-2 bg-black/40 border border-white/10 px-4 py-1.5 rounded-lg cursor-pointer hover:border-white/20 hover:bg-white/5 transition-all group relative">
+                                            <span className="text-[10px] text-white/50 uppercase tracking-widest mr-2">Preset:</span>
+                                            <span className="text-[10px] text-cyan-400 font-bold tracking-widest uppercase">Punchy Master Bus</span>
+                                            <ChevronDown size={14} className="text-white/50" />
+                                            {/* Fake Dropdown Options visually hinted */}
+                                            <div className="absolute top-full right-0 mt-2 w-56 bg-[#0a0f14] border border-white/10 rounded-xl shadow-2xl p-2 hidden group-hover:block z-50">
+                                                <div className="px-3 py-2 text-[10px] font-bold tracking-widest text-white/80 hover:bg-cyan-500/20 hover:text-cyan-400 rounded cursor-pointer uppercase">Punchy Master Bus</div>
+                                                <div className="px-3 py-2 text-[10px] font-bold tracking-widest text-white/50 hover:bg-cyan-500/20 hover:text-cyan-400 rounded cursor-pointer uppercase">Glue & Warmth</div>
+                                                <div className="px-3 py-2 text-[10px] font-bold tracking-widest text-white/50 hover:bg-cyan-500/20 hover:text-cyan-400 rounded cursor-pointer uppercase">Aggressive Pumping</div>
+                                                <div className="px-3 py-2 text-[10px] font-bold tracking-widest text-white/50 hover:bg-cyan-500/20 hover:text-cyan-400 rounded cursor-pointer uppercase">Transparent Leveling</div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-3 gap-6">
+                                        {/* VCA Compressor */}
+                                        <div className="bg-gradient-to-br from-black to-slate-900 rounded-xl border border-white/5 p-4 flex flex-col items-center shadow-lg relative overflow-hidden">
+                                            <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-transparent via-cyan-500 to-transparent opacity-50" />
+                                            <span className="text-[10px] font-black text-white/70 tracking-widest uppercase mb-4">VCA Bus Comp</span>
+                                            <div className="flex gap-4">
+                                                <MasteringKnob label="Thresh" value={-12} onChange={() => { }} size="sm" />
+                                                <MasteringKnob label="Ratio" value={4} onChange={() => { }} size="sm" />
+                                                <MasteringKnob label="Makeup" value={2.5} onChange={() => { }} size="sm" />
+                                            </div>
+                                        </div>
+
+                                        {/* OPTO Compressor */}
+                                        <div className="bg-gradient-to-br from-black to-zinc-900 rounded-xl border border-white/5 p-4 flex flex-col items-center shadow-lg relative overflow-hidden">
+                                            <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-transparent via-orange-500 to-transparent opacity-50" />
+                                            <span className="text-[10px] font-black text-white/70 tracking-widest uppercase mb-4">Opto Leveler</span>
+                                            <div className="flex gap-4">
+                                                <MasteringKnob label="Peak" value={6} onChange={() => { }} size="sm" />
+                                                <MasteringKnob label="Gain" value={4} onChange={() => { }} size="sm" />
+                                                <div className="w-10 h-10 border border-white/10 rounded overflow-hidden bg-black/50 ml-2 relative">
+                                                    <div className="absolute bottom-0 w-full bg-orange-500/80 transition-all duration-300 shadow-[0_0_10px_rgba(249,115,22,0.8)]" style={{ height: `${isPlaying ? 20 + Math.random() * 40 : 0}%` }} />
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* FET Compressor */}
+                                        <div className="bg-gradient-to-br from-black to-neutral-900 rounded-xl border border-white/5 p-4 flex flex-col items-center shadow-lg relative overflow-hidden">
+                                            <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-transparent via-blue-500 to-transparent opacity-50" />
+                                            <span className="text-[10px] font-black text-white/70 tracking-widest uppercase mb-4">FET Master Limiter</span>
+                                            <div className="flex gap-4">
+                                                <MasteringKnob label="In" value={18} onChange={() => { }} size="sm" />
+                                                <MasteringKnob label="Out" value={12} onChange={() => { }} size="sm" />
+                                                <MasteringKnob label="Rel" value={3} onChange={() => { }} size="sm" />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
 
                             {/* STEREO FIELD (Bottom Left) */}
                             <div className="flex flex-col gap-2 px-8 pb-4">
@@ -850,6 +1278,53 @@ export default function Mastering() {
                                     <span className="text-[9px] text-blue-400 font-bold">{settings.stereoWidth}% Wide</span>
                                 </div>
                             </div>
+
+                            {activePluginGroup === 'limiter' && (
+                                <div className="px-6 pb-6 flex flex-col items-center gap-6 w-full animate-in fade-in zoom-in-95 duration-500">
+                                    <div className="flex justify-between items-center w-full mb-2">
+                                        <span className="text-[12px] font-bold text-white/50 tracking-widest uppercase">Smart True Peak Limiter</span>
+                                        <div className="flex gap-2 items-center">
+                                            <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse shadow-[0_0_10px_rgba(239,68,68,0.8)]" />
+                                            <span className="text-[9px] text-red-400 uppercase font-mono tracking-widest">Active Protection</span>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex w-full max-w-2xl gap-8 items-center justify-center p-8 bg-black/40 border border-white/5 rounded-2xl relative shadow-2xl">
+                                        <div className="absolute inset-0 bg-gradient-to-t from-red-500/5 to-transparent rounded-2xl pointer-events-none" />
+
+                                        {/* Threshold Slider */}
+                                        <div className="flex flex-col items-center gap-4 relative z-10 w-1/3">
+                                            <span className="text-[10px] font-black text-white/70 uppercase tracking-widest">Threshold / Gain</span>
+                                            <input
+                                                type="range"
+                                                min="0"
+                                                max="100"
+                                                value={settings.limStrength}
+                                                onChange={(e) => setSettings({ ...settings, limStrength: parseFloat(e.target.value) })}
+                                                className="w-full h-2 bg-gradient-to-r from-red-900 to-red-400 rounded-lg appearance-none cursor-pointer"
+                                            />
+                                            <span className="text-xl font-mono text-red-400 font-bold">{settings.limStrength.toFixed(1)}%</span>
+                                        </div>
+
+                                        {/* Separation Line */}
+                                        <div className="w-px h-32 bg-gradient-to-b from-transparent via-white/10 to-transparent" />
+
+                                        {/* Ceiling Knob */}
+                                        <div className="flex flex-col items-center gap-4 relative z-10 w-1/3">
+                                            <span className="text-[10px] font-black text-white/70 uppercase tracking-widest">Output Ceiling</span>
+                                            <MasteringKnob
+                                                label="Ceiling"
+                                                value={settings.limCeiling || -0.1}
+                                                onChange={(v) => setSettings({ ...settings, limCeiling: v })}
+                                                min={-6}
+                                                max={0}
+                                                size="lg"
+                                            />
+                                            <span className="text-xs font-mono text-white/50">{(settings.limCeiling || -0.1).toFixed(2)} dB</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
 
                         </div>
                     </div>
@@ -875,7 +1350,20 @@ export default function Mastering() {
                                 <div className="flex items-center gap-8">
                                     <button className="text-white/20 hover:text-white transition-colors"><Repeat size={16} /></button>
                                     <button
-                                        onClick={() => setIsPlaying(!isPlaying)}
+                                        onClick={() => {
+                                            const nextPlay = !isPlaying;
+                                            setIsPlaying(nextPlay);
+                                            if (nextPlay) {
+                                                if (audioRef.current) audioRef.current.play().catch(console.error);
+                                                if (refAudioRef.current) {
+                                                    refAudioRef.current.currentTime = audioRef.current?.currentTime || 0;
+                                                    refAudioRef.current.play().catch(console.error);
+                                                }
+                                            } else {
+                                                if (audioRef.current) audioRef.current.pause();
+                                                if (refAudioRef.current) refAudioRef.current.pause();
+                                            }
+                                        }}
                                         className="w-14 h-14 bg-white rounded-full flex items-center justify-center shadow-[0_0_30px_rgba(255,255,255,0.2)] hover:scale-105 transition-all active:scale-95 group"
                                     >
                                         {isPlaying ? <Pause size={24} fill="black" className="text-black" /> : <Play size={24} fill="black" className="text-black ml-1" />}
@@ -889,16 +1377,31 @@ export default function Mastering() {
                                         {Math.floor((audioRef.current?.currentTime || 0) / 60)}:
                                         {Math.floor((audioRef.current?.currentTime || 0) % 60).toString().padStart(2, '0')}
                                     </span>
-                                    <div
-                                        onClick={(e) => {
-                                            const rect = e.currentTarget.getBoundingClientRect();
-                                            const x = e.clientX - rect.left;
-                                            const p = (x / rect.width) * 100;
-                                            handleSeek(p);
-                                        }}
-                                        className="flex-1 h-1.5 bg-white/5 rounded-full relative overflow-hidden group cursor-pointer"
-                                    >
-                                        <div className="absolute inset-y-0 left-0 bg-gradient-to-r from-cyan-500 to-blue-600 shadow-[0_0_10px_rgba(6,182,212,0.5)]" style={{ width: `${progress}%` }} />
+                                    <div className="flex-1 h-3 relative group flex items-center cursor-pointer">
+                                        <input
+                                            type="range"
+                                            min="0"
+                                            max="100"
+                                            value={progress || 0}
+                                            onChange={(e) => {
+                                                handleSeek(parseFloat(e.target.value));
+                                                if (refAudioRef.current && audioRef.current) {
+                                                    refAudioRef.current.currentTime = audioRef.current.currentTime;
+                                                }
+                                            }}
+                                            className="absolute w-full h-full opacity-0 cursor-pointer z-10"
+                                        />
+                                        <div className="w-full h-1.5 bg-white/5 rounded-full relative overflow-hidden pointer-events-none">
+                                            <div
+                                                className="absolute inset-y-0 left-0 bg-gradient-to-r from-cyan-500 to-blue-600 shadow-[0_0_10px_rgba(6,182,212,0.5)]"
+                                                style={{ width: `${progress}%` }}
+                                            />
+                                        </div>
+                                        {/* Playhead thumb (visible on hover) */}
+                                        <div
+                                            className="absolute h-3 w-3 bg-white rounded-full shadow-[0_0_10px_rgba(255,255,255,0.8)] opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-0 -ml-1.5"
+                                            style={{ left: `${progress}%` }}
+                                        />
                                     </div>
                                     <span className="text-[10px] font-mono text-white/30 w-8 text-left">
                                         {Math.floor(duration / 60)}:{Math.floor(duration % 60).toString().padStart(2, '0')}
@@ -1025,6 +1528,95 @@ export default function Mastering() {
             {/* STEMS MODAL */}
             {stemsModalOpen && <StemExtractModal onClose={() => setStemsModalOpen(false)} />}
 
+            {/* Plugin Chain Menu Overlay */}
+            {pluginMenuOpen && (
+                <div className="absolute right-0 top-0 h-full w-80 bg-slate-900/95 backdrop-blur-3xl border-l border-white/10 shadow-2xl z-50 flex flex-col pointer-events-auto transform transition-transform duration-300">
+                    <div className="p-4 border-b border-white/10 flex justify-between items-center">
+                        <div className="flex items-center gap-2">
+                            <Layers size={18} className="text-purple-400" />
+                            <h3 className="text-sm font-bold text-white tracking-widest uppercase">Cadena de Plugins</h3>
+                        </div>
+                        <button onClick={() => setPluginMenuOpen(false)} className="text-white/50 hover:text-white transition-colors">
+                            <X size={18} />
+                        </button>
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4 custom-scrollbar">
+                        <div className="text-[10px] text-white/40 uppercase tracking-widest font-bold mb-2">Simulated Modules</div>
+
+                        {/* Target Leveler */}
+                        <div className={`p-3 rounded-xl border transition-all ${!settings.levelerBypass ? 'bg-green-500/10 border-green-500/30' : 'bg-white/5 border-white/10 opacity-60'}`}>
+                            <div className="flex justify-between items-center mb-2">
+                                <span className={`text-xs font-bold ${!settings.levelerBypass ? 'text-green-400' : 'text-white/50'}`}>Target Leveler</span>
+                                <button
+                                    onClick={() => setSettings({ ...settings, levelerBypass: !settings.levelerBypass })}
+                                    className={`w-8 h-4 rounded-full transition-colors relative ${!settings.levelerBypass ? 'bg-green-500' : 'bg-white/20'}`}
+                                >
+                                    <div className={`absolute top-0.5 w-3 h-3 rounded-full bg-white transition-transform ${!settings.levelerBypass ? 'left-4' : 'left-0.5'}`} />
+                                </button>
+                            </div>
+                            <span className="text-[10px] text-white/50">Auto-gain mapping to target LUFS</span>
+                        </div>
+
+                        {/* Vintage 6-Band EQ */}
+                        <div className={`p-3 rounded-xl border transition-all ${!settings.eqBypass ? 'bg-cyan-500/10 border-cyan-500/30' : 'bg-white/5 border-white/10 opacity-60'}`}>
+                            <div className="flex justify-between items-center mb-2">
+                                <span className={`text-xs font-bold ${!settings.eqBypass ? 'text-cyan-400' : 'text-white/50'}`}>Vintage 6-Band EQ</span>
+                                <button
+                                    onClick={() => setSettings({ ...settings, eqBypass: !settings.eqBypass })}
+                                    className={`w-8 h-4 rounded-full transition-colors relative ${!settings.eqBypass ? 'bg-cyan-500' : 'bg-white/20'}`}
+                                >
+                                    <div className={`absolute top-0.5 w-3 h-3 rounded-full bg-white transition-transform ${!settings.eqBypass ? 'left-4' : 'left-0.5'}`} />
+                                </button>
+                            </div>
+                            <span className="text-[10px] text-white/50">Parametric equalization phase-aligned</span>
+                        </div>
+
+                        {/* VCA Dynamics */}
+                        <div className={`p-3 rounded-xl border transition-all ${!settings.compBypass ? 'bg-orange-500/10 border-orange-500/30' : 'bg-white/5 border-white/10 opacity-60'}`}>
+                            <div className="flex justify-between items-center mb-2">
+                                <span className={`text-xs font-bold ${!settings.compBypass ? 'text-orange-400' : 'text-white/50'}`}>VCA Dynamics</span>
+                                <button
+                                    onClick={() => setSettings({ ...settings, compBypass: !settings.compBypass })}
+                                    className={`w-8 h-4 rounded-full transition-colors relative ${!settings.compBypass ? 'bg-orange-500' : 'bg-white/20'}`}
+                                >
+                                    <div className={`absolute top-0.5 w-3 h-3 rounded-full bg-white transition-transform ${!settings.compBypass ? 'left-4' : 'left-0.5'}`} />
+                                </button>
+                            </div>
+                            <span className="text-[10px] text-white/50">Bus compression and harmonic saturation</span>
+                        </div>
+
+                        {/* De-Esser & Multi-Band */}
+                        <div className={`p-3 rounded-xl border transition-all ${!settings.mbBypass ? 'bg-blue-500/10 border-blue-500/30' : 'bg-white/5 border-white/10 opacity-60'}`}>
+                            <div className="flex justify-between items-center mb-2">
+                                <span className={`text-xs font-bold ${!settings.mbBypass ? 'text-blue-400' : 'text-white/50'}`}>De-Esser & Multi-Band</span>
+                                <button
+                                    onClick={() => setSettings({ ...settings, mbBypass: !settings.mbBypass })}
+                                    className={`w-8 h-4 rounded-full transition-colors relative ${!settings.mbBypass ? 'bg-blue-500' : 'bg-white/20'}`}
+                                >
+                                    <div className={`absolute top-0.5 w-3 h-3 rounded-full bg-white transition-transform ${!settings.mbBypass ? 'left-4' : 'left-0.5'}`} />
+                                </button>
+                            </div>
+                            <span className="text-[10px] text-white/50">Dynamic control for sibilance</span>
+                        </div>
+
+                        {/* Brickwall Limiter */}
+                        <div className={`p-3 rounded-xl border transition-all ${!settings.limBypass ? 'bg-red-500/10 border-red-500/30' : 'bg-white/5 border-white/10 opacity-60'}`}>
+                            <div className="flex justify-between items-center mb-2">
+                                <span className={`text-xs font-bold ${!settings.limBypass ? 'text-red-400' : 'text-white/50'}`}>Brickwall Limiter</span>
+                                <button
+                                    onClick={() => setSettings({ ...settings, limBypass: !settings.limBypass })}
+                                    className={`w-8 h-4 rounded-full transition-colors relative ${!settings.limBypass ? 'bg-red-500' : 'bg-white/20'}`}
+                                >
+                                    <div className={`absolute top-0.5 w-3 h-3 rounded-full bg-white transition-transform ${!settings.limBypass ? 'left-4' : 'left-0.5'}`} />
+                                </button>
+                            </div>
+                            <span className="text-[10px] text-white/50">True peak clipping protection</span>
+                        </div>
+
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

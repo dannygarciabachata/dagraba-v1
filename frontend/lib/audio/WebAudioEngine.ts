@@ -3,6 +3,7 @@ export interface TrackChain {
     inserts: AudioNode[];
     gate?: DynamicsCompressorNode;
     eqBands?: BiquadFilterNode[]; // [lowShelf, midPeak, highShelf, presencePeak]
+    proEqBands?: BiquadFilterNode[]; // 10 bands
     compressor?: DynamicsCompressorNode;
     makeup?: GainNode;
     limiter?: DynamicsCompressorNode;
@@ -21,6 +22,9 @@ export interface TrackChain {
     source?: MediaElementAudioSourceNode | AudioBufferSourceNode;
     isMuted: boolean;
     isSoloed: boolean;
+    recorder?: MediaRecorder;
+    recordedChunks: Blob[];
+    inputNode?: MediaStreamAudioSourceNode;
 }
 
 class WebAudioEngine {
@@ -33,6 +37,7 @@ class WebAudioEngine {
     private startTime = 0;
     private soloedTracks: Set<string> = new Set();
     private dspWorkletReady = false;
+    private inputStream: MediaStream | null = null;
 
     constructor() {
         // We delay context creation until a user interaction (play)
@@ -76,7 +81,8 @@ class WebAudioEngine {
                 analyser,
                 inserts: [],
                 isMuted: false,
-                isSoloed: false
+                isSoloed: false,
+                recordedChunks: []
             });
         }
         return this.trackChains.get(trackId)!;
@@ -478,22 +484,52 @@ class WebAudioEngine {
 
     // --- Plugin System ---
 
+    private rebuildChain(trackId: string) {
+        const chain = this.getOrCreateTrack(trackId);
+
+        // Helper to disconnect a node if it exists
+        const safeDisconnect = (node: AudioNode | undefined) => {
+            if (node) {
+                try { node.disconnect(); } catch (e) { }
+            }
+        };
+
+        safeDisconnect(chain.input);
+        safeDisconnect(chain.gate);
+        if (chain.eqBands) safeDisconnect(chain.eqBands[chain.eqBands.length - 1]);
+        if (chain.proEqBands) safeDisconnect(chain.proEqBands[chain.proEqBands.length - 1]);
+        safeDisconnect(chain.compressor);
+        safeDisconnect(chain.makeup);
+        safeDisconnect(chain.limiter);
+        safeDisconnect(chain.wasmLimiter);
+
+        let current: AudioNode = chain.input;
+
+        if (chain.gate) { current.connect(chain.gate); current = chain.gate; }
+        if (chain.eqBands) { current.connect(chain.eqBands[0]); current = chain.eqBands[chain.eqBands.length - 1]; }
+        if (chain.proEqBands) { current.connect(chain.proEqBands[0]); current = chain.proEqBands[chain.proEqBands.length - 1]; }
+        if (chain.compressor) { current.connect(chain.compressor); current = chain.compressor; }
+        if (chain.makeup) { current.connect(chain.makeup); current = chain.makeup; }
+
+        if (chain.wasmLimiter) {
+            current.connect(chain.wasmLimiter);
+            current = chain.wasmLimiter;
+        } else if (chain.limiter) {
+            current.connect(chain.limiter);
+            current = chain.limiter;
+        }
+
+        current.connect(chain.panner);
+    }
+
     updateGate(trackId: string, threshold: number, bypass: boolean) {
         const chain = this.getOrCreateTrack(trackId);
         if (!chain.gate) {
-            // Real noise gates are complex in WebAudio without script processors.
-            // A compressor acts backwards (reduces loud, not quiet).
-            // We'll leave the node for routing but keep it fully transparent.
             const gate = this.ctx!.createDynamicsCompressor();
             gate.ratio.value = 1; // 1:1 ratio (no compression)
             gate.threshold.value = 0; // 0 dB 
             chain.gate = gate;
-
-            // Route: input -> gate -> [eqBands] -> [compressor] -> [makeup] -> [limiter] -> panner
-            chain.input.disconnect();
-            chain.input.connect(gate);
-            const nextNode = (chain.eqBands ? chain.eqBands[0] : null) || chain.compressor || chain.makeup || chain.limiter || chain.panner;
-            gate.connect(nextNode);
+            this.rebuildChain(trackId);
         }
 
         // Always bypass to prevent volume destruction
@@ -527,13 +563,7 @@ class WebAudioEngine {
             high.connect(presence);
 
             chain.eqBands = [low, mid, high, presence];
-
-            // Re-route
-            const prevNode = chain.gate || chain.input;
-            prevNode.disconnect();
-            prevNode.connect(low);
-            const nextNode = chain.compressor || chain.makeup || chain.limiter || chain.panner;
-            presence.connect(nextNode);
+            this.rebuildChain(trackId);
         }
 
         const [low, mid, high, presence] = chain.eqBands;
@@ -557,12 +587,7 @@ class WebAudioEngine {
         const chain = this.getOrCreateTrack(trackId);
         if (!chain.compressor) {
             chain.compressor = this.ctx!.createDynamicsCompressor();
-            // Re-route
-            const prevNode = (chain.eqBands ? chain.eqBands[chain.eqBands.length - 1] : null) || chain.gate || chain.input;
-            prevNode.disconnect();
-            prevNode.connect(chain.compressor);
-            const nextNode = chain.makeup || chain.limiter || chain.panner;
-            chain.compressor.connect(nextNode);
+            this.rebuildChain(trackId);
         }
 
         if (bypass) {
@@ -585,11 +610,7 @@ class WebAudioEngine {
 
         if (!chain.makeup) {
             chain.makeup = this.ctx!.createGain();
-            const prevNode = chain.compressor || (chain.eqBands ? chain.eqBands[chain.eqBands.length - 1] : null) || chain.gate || chain.input;
-            prevNode.disconnect();
-            prevNode.connect(chain.makeup);
-            const nextNode = chain.limiter || chain.panner;
-            chain.makeup.connect(nextNode);
+            this.rebuildChain(trackId);
         }
 
         if (bypass) {
@@ -610,10 +631,7 @@ class WebAudioEngine {
             if (!chain.wasmLimiter) {
                 try {
                     chain.wasmLimiter = new AudioWorkletNode(this.ctx!, 'phaselimiter-worklet');
-                    const prevNode = chain.makeup || chain.compressor || (chain.eqBands ? chain.eqBands[chain.eqBands.length - 1] : null) || chain.gate || chain.input;
-                    prevNode.disconnect();
-                    prevNode.connect(chain.wasmLimiter);
-                    chain.wasmLimiter.connect(chain.panner);
+                    this.rebuildChain(trackId);
                     console.log("[WebAudioEngine] Routed through WASM Limiter.");
                 } catch (e) {
                     console.warn("[WebAudioEngine] WASM Worklet not ready. Falling back to native limiter.", e);
@@ -644,10 +662,7 @@ class WebAudioEngine {
             chain.limiter.ratio.value = 50;
             chain.limiter.attack.value = 0.001;
             chain.limiter.release.value = 0.05;
-            const prevNode = chain.makeup || chain.compressor || (chain.eqBands ? chain.eqBands[chain.eqBands.length - 1] : null) || chain.gate || chain.input;
-            prevNode.disconnect();
-            prevNode.connect(chain.limiter);
-            chain.limiter.connect(chain.panner);
+            this.rebuildChain(trackId);
         }
 
         if (bypass) {
@@ -662,6 +677,147 @@ class WebAudioEngine {
     updateMultiband(trackId: string, lowStr: number, highStr: number, bypass: boolean) {
         // Placeholder for multiband - logic would require a splitter and multiple compressors
         // For now, let's just use it as a global tone shaper or additional compression
+    }
+
+    updateProEQ(trackId: string, bands: number[], bypass: boolean) {
+        const chain = this.getOrCreateTrack(trackId);
+
+        if (!chain.proEqBands) {
+            const freqs = [31, 63, 125, 250, 500, 1000, 2000, 4000, 8000, 16000];
+            const nodes = freqs.map(f => {
+                const filter = this.ctx!.createBiquadFilter();
+                filter.type = 'peaking';
+                if (f === 31) filter.type = 'lowshelf';
+                if (f === 16000) filter.type = 'highshelf';
+                filter.frequency.value = f;
+                // Quality factor of 1.414 gives approximately 1 octave bandwidth
+                filter.Q.value = 1.414;
+                return filter;
+            });
+
+            for (let i = 0; i < nodes.length - 1; i++) {
+                nodes[i].connect(nodes[i + 1]);
+            }
+            chain.proEqBands = nodes;
+            this.rebuildChain(trackId);
+        }
+
+        chain.proEqBands.forEach((filter, i) => {
+            if (bypass) {
+                filter.gain.setTargetAtTime(0, this.ctx!.currentTime, 0.1);
+            } else {
+                // bands[i] is between -100 and 100. Map to -12dB to +12dB
+                const dbGain = (bands[i] / 100) * 12;
+                filter.gain.setTargetAtTime(dbGain, this.ctx!.currentTime, 0.1);
+            }
+        });
+    }
+
+    // --- Audio Device Management ---
+
+    async getAudioDevices(): Promise<{ inputs: MediaDeviceInfo[], outputs: MediaDeviceInfo[] }> {
+        if (typeof navigator === 'undefined' || !navigator.mediaDevices) {
+            return { inputs: [], outputs: [] };
+        }
+
+        try {
+            const devices = await navigator.mediaDevices.enumerateDevices();
+            return {
+                inputs: devices.filter(d => d.kind === 'audioinput'),
+                outputs: devices.filter(d => d.kind === 'audiooutput')
+            };
+        } catch (err) {
+            console.error('[WebAudioEngine] Error enumerating devices:', err);
+            return { inputs: [], outputs: [] };
+        }
+    }
+
+    async setupRecordingStream(trackId: string, inputDeviceId: string): Promise<boolean> {
+        this.initContext();
+        const chain = this.getOrCreateTrack(trackId);
+
+        try {
+            // If we already have a stream, clean up the old input node for this track
+            if (chain.inputNode) {
+                chain.inputNode.disconnect();
+            }
+
+            const stream = await navigator.mediaDevices.getUserMedia({
+                audio: {
+                    deviceId: inputDeviceId ? { exact: inputDeviceId } : undefined,
+                    echoCancellation: false,
+                    noiseSuppression: false,
+                    autoGainControl: false
+                }
+            });
+
+            this.inputStream = stream;
+            const source = this.ctx!.createMediaStreamSource(stream);
+            source.connect(chain.input);
+            chain.inputNode = source;
+
+            console.log(`[WebAudioEngine] Recording stream setup for track ${trackId}`);
+            return true;
+        } catch (err) {
+            console.error(`[WebAudioEngine] Failed to setup recording stream for track ${trackId}:`, err);
+            return false;
+        }
+    }
+
+    // --- Recording Logic ---
+
+    startRecording(armedTrackIds: string[]) {
+        if (this.isRecording()) return;
+        this.initContext();
+
+        armedTrackIds.forEach(id => {
+            const chain = this.getOrCreateTrack(id);
+            if (!chain.inputNode) {
+                console.warn(`[WebAudioEngine] No input node for track ${id}. Cannot record.`);
+                return;
+            }
+
+            const stream = chain.inputNode.mediaStream;
+            const recorder = new MediaRecorder(stream);
+            chain.recordedChunks = [];
+
+            recorder.ondataavailable = (e) => {
+                if (e.data.size > 0) chain.recordedChunks.push(e.data);
+            };
+
+            recorder.start();
+            chain.recorder = recorder;
+            console.log(`[WebAudioEngine] Started recording on track ${id}`);
+        });
+    }
+
+    async stopRecording(armedTrackIds: string[]): Promise<Map<string, Blob>> {
+        const results = new Map<string, Blob>();
+
+        const stopPromises = armedTrackIds.map(id => {
+            return new Promise<void>((resolve) => {
+                const chain = this.getOrCreateTrack(id);
+                if (chain.recorder && chain.recorder.state !== 'inactive') {
+                    chain.recorder.onstop = () => {
+                        const blob = new Blob(chain.recordedChunks, { type: 'audio/wav' });
+                        results.set(id, blob);
+                        chain.recordedChunks = [];
+                        resolve();
+                    };
+                    chain.recorder.stop();
+                    console.log(`[WebAudioEngine] Stopped recording on track ${id}`);
+                } else {
+                    resolve();
+                }
+            });
+        });
+
+        await Promise.all(stopPromises);
+        return results;
+    }
+
+    isRecording(): boolean {
+        return Array.from(this.trackChains.values()).some(c => c.recorder && c.recorder.state === 'recording');
     }
 }
 

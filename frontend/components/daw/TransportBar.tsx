@@ -9,12 +9,13 @@ import { useDAWStore } from '@/store/useDAWStore';
 import { MidiInputSelector } from './MidiKeyboardComponent';
 import { modalClient } from '@/lib/modal-client';
 import { audioEngine } from '@/lib/audio-engine-bridge';
+import { StudioSettingsModal } from './StudioSettingsModal';
 
 export function TransportBar() {
     // --- State ---
     const [isPlaying, setIsPlaying] = useState(false);
-    const [isRecording, setIsRecording] = useState(false);
     const [playhead, setPlayhead] = useState(0);
+    const [showSettings, setShowSettings] = useState(false);
 
     // --- Global DAW Store ---
     const isTraining = useDAWStore((state) => state.isTraining);
@@ -28,6 +29,10 @@ export function TransportBar() {
     const setMasterLevel = useDAWStore((state) => state.setMasterLevel);
     const isFullMixer = useDAWStore((state) => state.isFullMixer);
     const setFullMixer = useDAWStore((state) => state.setFullMixer);
+
+    const isGlobalRecording = useDAWStore((state) => state.isGlobalRecording);
+    const setIsGlobalRecording = useDAWStore((state) => state.setIsGlobalRecording);
+    const tracks = useDAWStore((state) => state.tracks);
 
     // --- Audio Engine Sync ---
     useEffect(() => {
@@ -53,6 +58,29 @@ export function TransportBar() {
             setIsPlayingStore(true);
         }
         setIsPlaying(!isPlaying);
+    };
+
+    const handleToggleRecord = async () => {
+        if (isGlobalRecording) {
+            const armedTrackIds = tracks.filter(t => t.isArmed).map(t => t.id);
+            const recordingResults = await audioEngine.stopRecording(armedTrackIds);
+            // In a real app, we would process or save these blobs here
+            console.log("Recording saved:", recordingResults);
+            setIsGlobalRecording(false);
+        } else {
+            const armedTrackIds = tracks.filter(t => t.isArmed).map(t => t.id);
+            if (armedTrackIds.length === 0) {
+                alert("No has armado ningún track para grabar. Dale al botón 'R' en el track que quieras grabar.");
+                return;
+            }
+            audioEngine.startRecording(armedTrackIds);
+            setIsGlobalRecording(true);
+
+            // Auto-play if not playing
+            if (!isPlaying) {
+                handleTogglePlay();
+            }
+        }
     };
 
     const handleAutoMix = async () => {
@@ -123,8 +151,8 @@ export function TransportBar() {
                     <button className={`p-1.5 transition-colors rounded hover:bg-[#222] ${isPlaying ? 'text-[#A4ECA1]' : 'text-[#AAA] hover:text-white'}`} onClick={handleTogglePlay}>
                         <Play size={16} fill={isPlaying ? "currentColor" : "none"} />
                     </button>
-                    <button className={`p-1.5 transition-colors rounded hover:bg-[#222] ${isRecording ? 'text-red-500' : 'text-[#AAA] hover:text-red-400'}`} onClick={() => setIsRecording(!isRecording)}>
-                        <Circle size={16} fill={isRecording ? "currentColor" : "none"} />
+                    <button className={`p-1.5 transition-colors rounded hover:bg-[#222] ${isGlobalRecording ? 'text-red-500 animate-pulse' : 'text-[#AAA] hover:text-red-400'}`} onClick={handleToggleRecord}>
+                        <Circle size={16} fill={isGlobalRecording ? "currentColor" : "none"} />
                     </button>
                 </div>
 
@@ -245,10 +273,14 @@ export function TransportBar() {
                     >
                         <Download size={16} />
                     </button>
-                    <button className="p-1.5 text-[#666] hover:text-[#AAA] transition-colors rounded hover:bg-[#222]">
+                    <button
+                        onClick={() => setShowSettings(true)}
+                        className="p-1.5 text-[#AAA] hover:text-white transition-colors rounded hover:bg-[#222]"
+                    >
                         <Settings2 size={16} />
                     </button>
                 </div>
+                <StudioSettingsModal isOpen={showSettings} onClose={() => setShowSettings(false)} />
             </div>
         </div>
     );

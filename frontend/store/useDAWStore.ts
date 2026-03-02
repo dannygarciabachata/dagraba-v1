@@ -8,7 +8,12 @@ export interface DAWTrack {
     name: string;
     color: string;
     trackType: TrackType;
-    audioUrl?: string; // Optional audio source for the track (e.g. from stems or import)
+    audioUrl?: string;
+    isArmed?: boolean;
+    inputSource?: string;
+    outputTarget?: string;
+    isMuted?: boolean;
+    isSoloed?: boolean;
 }
 
 export interface FXInsert {
@@ -25,6 +30,9 @@ export interface FaderState {
     isMuted: boolean;
     pan: number;
     isSoloed: boolean;
+    isArmed: boolean;
+    inputSource: string; // 'none' | 'in-1' | 'in-2' | 'stereo-1-2' | 'midi-all' | 'midi-hardware'
+    outputTarget: string; // 'master' | 'out-1' | 'out-2' | 'out-1-2'
     inserts: FXInsert[];
 }
 
@@ -42,10 +50,15 @@ interface DAWStore {
     systemMessage: string;
     isMetronomeOn: boolean;
     isPlaying: boolean;
+    isGlobalRecording: boolean;
+    midiInputId: string | null;
+    audioInputDeviceId: string | null;
+    audioOutputDeviceId: string | null;
     masterLevel: number;
     currentPreviewTrack: any | null;
     isFullMixer: boolean;
     trackHeights: Record<string, number>; // Global heights for each track id
+    rightPanelWidth: number;
 
     // Acciones para que la IA mueva los faders
     setFaderValue: (id: string, value: number) => void;
@@ -61,6 +74,15 @@ interface DAWStore {
     setFullMixer: (status: boolean) => void;
     setTrackHeight: (id: string, height: number) => void;
     setAllTrackHeights: (delta: number, min: number, max: number) => void;
+    setRightPanelWidth: (width: number) => void;
+
+    // Hardware & Routing
+    toggleRecordArm: (id: string) => void;
+    setInputSource: (id: string, source: string) => void;
+    setOutputTarget: (id: string, target: string) => void;
+    setMidiInputId: (id: string | null) => void;
+    setAudioDevices: (inputId: string | null, outputId: string | null) => void;
+    setIsGlobalRecording: (recording: boolean) => void;
 
     // Track Management
     addTrack: (name?: string, color?: string, trackType?: TrackType, audioUrl?: string) => void;
@@ -97,10 +119,15 @@ export const useDAWStore = create<DAWStore>()(
             systemMessage: '',
             isMetronomeOn: false,
             isPlaying: false,
+            isGlobalRecording: false,
+            midiInputId: null,
+            audioInputDeviceId: null,
+            audioOutputDeviceId: null,
             masterLevel: 0,
             currentPreviewTrack: null,
             isFullMixer: false,
             trackHeights: {},
+            rightPanelWidth: 0,
 
             setTracks: (tracks: DAWTrack[]) => set((state) => {
                 const newFaders: FaderState[] = tracks.map((track) => ({
@@ -110,9 +137,20 @@ export const useDAWStore = create<DAWStore>()(
                     isMuted: false,
                     pan: 0,
                     isSoloed: false,
+                    isArmed: false,
+                    inputSource: 'none',
+                    outputTarget: 'master',
                     inserts: []
                 }));
-                return { tracks, faders: newFaders };
+                const initializedTracks = tracks.map(t => ({
+                    ...t,
+                    isArmed: t.isArmed ?? false,
+                    inputSource: t.inputSource ?? 'none',
+                    outputTarget: t.outputTarget ?? 'master',
+                    isMuted: t.isMuted ?? false,
+                    isSoloed: t.isSoloed ?? false
+                }));
+                return { tracks: initializedTracks, faders: newFaders };
             }),
 
             addTrack: (name, color, trackType = 'mono', audioUrl) => set((state) => {
@@ -120,7 +158,18 @@ export const useDAWStore = create<DAWStore>()(
                 const trackColor = color || ['#00F0FF', '#FF6B00', '#A4ECA1', '#E2A04A', '#D94AE2', '#FF0055', '#55FF00'][Math.floor(Math.random() * 7)];
                 const trackName = name || `Audio Track ${state.tracks.length + 1}`;
 
-                const newTrack: DAWTrack = { id: newId, name: trackName, color: trackColor, trackType, audioUrl };
+                const newTrack: DAWTrack = {
+                    id: newId,
+                    name: trackName,
+                    color: trackColor,
+                    trackType,
+                    audioUrl,
+                    isArmed: false,
+                    inputSource: 'none',
+                    outputTarget: 'master',
+                    isMuted: false,
+                    isSoloed: false
+                };
                 const newFader: FaderState = {
                     id: newId,
                     label: trackName.toUpperCase(),
@@ -128,6 +177,9 @@ export const useDAWStore = create<DAWStore>()(
                     isMuted: false,
                     pan: 0,
                     isSoloed: false,
+                    isArmed: false,
+                    inputSource: 'none',
+                    outputTarget: 'master',
                     inserts: []
                 };
 
@@ -184,6 +236,7 @@ export const useDAWStore = create<DAWStore>()(
             setMasterLevel: (level) => set({ masterLevel: level }),
             setPreviewTrack: (track) => set({ currentPreviewTrack: track }),
             setFullMixer: (status) => set({ isFullMixer: status }),
+            setRightPanelWidth: (width) => set({ rightPanelWidth: width }),
 
             setTrackHeight: (id, height) => set((state) => ({
                 trackHeights: { ...state.trackHeights, [id]: height }
@@ -197,6 +250,27 @@ export const useDAWStore = create<DAWStore>()(
                 });
                 return { trackHeights: newHeights };
             }),
+
+            toggleRecordArm: (id) => set((state) => ({
+                faders: state.faders.map((f) => f.id === id ? { ...f, isArmed: !f.isArmed } : f)
+            })),
+
+            setInputSource: (id, source) => set((state) => ({
+                faders: state.faders.map((f) => f.id === id ? { ...f, inputSource: source } : f)
+            })),
+
+            setOutputTarget: (id, target) => set((state) => ({
+                faders: state.faders.map((f) => f.id === id ? { ...f, outputTarget: target } : f)
+            })),
+
+            setMidiInputId: (id) => set({ midiInputId: id }),
+
+            setAudioDevices: (inputId, outputId) => set({
+                audioInputDeviceId: inputId,
+                audioOutputDeviceId: outputId
+            }),
+
+            setIsGlobalRecording: (recording) => set({ isGlobalRecording: recording }),
 
             // FX Insert Management
             addInsert: (trackId, pluginId) => set((state) => {

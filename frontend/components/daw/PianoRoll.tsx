@@ -2,8 +2,9 @@ import React from 'react';
 import {
     Settings2, Play, MousePointer2, Scissors, PenTool,
     Eraser, Volume2, Maximize2, Crosshair, ArrowRightLeft,
-    Link2, Navigation, Focus
+    Link2, Navigation, Focus, X
 } from 'lucide-react';
+import { useDAWStore } from '@/store/useDAWStore';
 
 /**
  * PianoRoll Component
@@ -11,6 +12,8 @@ import {
  * Features a lighter gray grid, comprehensive toolbar, and velocity-colored notes.
  */
 export function PianoRoll() {
+    const setActiveBottomPanel = useDAWStore((state) => state.setActiveBottomPanel);
+
     // Generate 4 octaves of keys
     const keys = Array.from({ length: 48 }, (_, i) => {
         const noteIndex = i % 12;
@@ -74,6 +77,13 @@ export function PianoRoll() {
                             <option>1/16</option>
                         </select>
                     </div>
+
+                    <button
+                        onClick={() => setActiveBottomPanel('closed')}
+                        className="p-1 px-3 ml-2 bg-white/5 hover:bg-white/10 text-white/40 hover:text-white rounded-md border border-white/5 transition-all flex items-center justify-center group"
+                    >
+                        <X size={14} className="group-hover:rotate-90 transition-transform" />
+                    </button>
                 </div>
             </div>
 

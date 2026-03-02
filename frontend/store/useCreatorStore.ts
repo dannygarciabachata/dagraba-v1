@@ -27,7 +27,7 @@ const MOCK_TRACKS: CreatorTrack[] = [
         lyrics: "[Verse 1]\nCaminando en la penumbra de la ciudad\nBuscando una salida, una realidad\nLos bajos retumban en mi pecho hoy\nNo sé a dónde voy, pero aquí estoy.\n\n[Chorus]\nSombras en la calle, luces que se van\nEl eco de un sueño que no volverá.",
         views: '1.2k',
         likes: 124,
-        url: 'https://cdn.pixabay.com/audio/2022/03/10/audio_c8c8a73a56.mp3'
+        url: '/test.mp3'
     },
     {
         id: 'track-2',
@@ -39,7 +39,7 @@ const MOCK_TRACKS: CreatorTrack[] = [
         lyrics: "[Verse 1]\nReflejos de neón en el asfalto frío\nUn mundo de cristal, un vacío mío\nLas máquinas cantan una melodía\nQue me atrapa el alma, pura fantasía.\n\n[Chorus]\nBrilla el neón, brilla el metal\nUn viaje eterno, algo sideral.",
         views: '850',
         likes: 92,
-        url: 'https://cdn.pixabay.com/audio/2021/11/24/audio_12345678.mp3'
+        url: '/test.mp3'
     }
 ];
 
@@ -74,7 +74,7 @@ export const useCreatorStore = create<CreatorState>()(
             }))
         }),
         {
-            name: 'creator-tracks-storage',
+            name: 'creator-tracks-storage-v2',
         }
     )
 );

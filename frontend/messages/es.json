@@ -37,11 +37,13 @@
     },
     "Navigation": {
         "dashboard": "Tablero",
+        "library": "Librería",
         "explorer": "Explorador",
         "planer": "Planificador",
         "crear": "Crear",
         "studio": "Estudio",
         "mastering": "Masterización",
+        "notifications": "Notificaciones",
         "profile": "Perfil",
         "settings": "Ajustes"
     },

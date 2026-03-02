@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Volume2, Power, Trash2 } from 'lucide-react';
-import { audioEngine } from '@/lib/audio-engine-bridge';
+import { audioEngine } from '@/lib/audio/WebAudioEngine';
 import { useDAWStore } from '@/store/useDAWStore';
+import { Mic, ArrowRightLeft, Music } from 'lucide-react';
 
 interface DawTrackControlProps {
     trackId: string;
@@ -16,6 +17,10 @@ export function DawTrackControl({ trackId, trackName, color }: DawTrackControlPr
     const setPanStore = useDAWStore((state) => state.setPan);
     const toggleSoloStore = useDAWStore((state) => state.toggleSolo);
     const toggleMuteStore = useDAWStore((state) => state.toggleMute);
+    const toggleRecordArm = useDAWStore((state) => state.toggleRecordArm);
+    const setInputSource = useDAWStore((state) => state.setInputSource);
+    const setOutputTarget = useDAWStore((state) => state.setOutputTarget);
+    const audioInputDeviceId = useDAWStore((state) => state.audioInputDeviceId);
     const removeTrack = useDAWStore((state) => state.removeTrack);
 
     if (!fader) return null;
@@ -25,6 +30,20 @@ export function DawTrackControl({ trackId, trackName, color }: DawTrackControlPr
     useEffect(() => { audioEngine.setTrackPan(trackId, fader.pan); }, [fader.pan, trackId]);
     useEffect(() => { audioEngine.setTrackMute(trackId, fader.isMuted); }, [fader.isMuted, trackId]);
     useEffect(() => { audioEngine.setTrackSolo(trackId, fader.isSoloed); }, [fader.isSoloed, trackId]);
+
+    const handleArmRecording = async () => {
+        if (!fader.isArmed) {
+            // Trying to arm
+            const success = await audioEngine.setupRecordingStream(trackId, audioInputDeviceId || '');
+            if (success) {
+                toggleRecordArm(trackId);
+            } else {
+                alert('Error al acceder al hardware de audio. Verifica los permisos de tu micrófono.');
+            }
+        } else {
+            toggleRecordArm(trackId);
+        }
+    };
 
     // Simple Circular Knob Renderer (SVG)
     const renderKnob = (
@@ -101,12 +120,54 @@ export function DawTrackControl({ trackId, trackName, color }: DawTrackControlPr
                     </button>
                     <button
                         onClick={() => toggleSoloStore(trackId)}
-                        className={`w-7 py-1 rounded-sm text-[8px] font-bold transition-all ${fader.isSoloed ? 'bg-[#ffaa00] border-[#ffaa00] text-black shadow-[0_0_10px_rgba(255,170,0,0.5)]' : 'bg-[#1a1a1a] border border-[#333] text-[#666]'}`}
+                        className={`w-7 py-0.5 rounded-sm text-[8px] font-bold transition-all ${fader.isSoloed ? 'bg-[#ffaa00] border-[#ffaa00] text-black shadow-[0_0_10px_rgba(255,170,0,0.5)]' : 'bg-[#1a1a1a] border border-[#333] text-[#666]'}`}
                     >
                         S
                     </button>
+                    <button
+                        onClick={handleArmRecording}
+                        className={`w-7 py-0.5 rounded-sm text-[8px] font-bold transition-all ${fader.isArmed ? 'bg-red-500 border-red-500 text-white shadow-[0_0_10px_rgba(255,0,0,0.5)] animate-pulse' : 'bg-[#1a1a1a] border border-[#333] text-[#666]'}`}
+                    >
+                        R
+                    </button>
                 </div>
             </div>
+
+            {/* Routing Section - Only visible if track is expanded enough */}
+            {trackHeight >= 80 && (
+                <div className="flex flex-col gap-1 w-20 px-2 border-l border-white/5">
+                    <div className="flex items-center gap-1 opacity-40">
+                        <Mic size={8} />
+                        <span className="text-[7px] font-bold tracking-tighter uppercase">Input</span>
+                    </div>
+                    <select
+                        value={fader.inputSource}
+                        onChange={(e) => setInputSource(trackId, e.target.value)}
+                        className="bg-black text-[7px] border border-white/10 rounded px-1 py-0.5 focus:outline-none focus:border-[#FF6B00]"
+                    >
+                        <option value="none">NONE</option>
+                        <option value="in-1">LINE-1 (MONO)</option>
+                        <option value="stereo-1-2">STEREO 1-2</option>
+                        <option value="mic-1">MICROPHONE IN</option>
+                        <option value="midi">MIDI HARDWARE</option>
+                    </select>
+
+                    <div className="flex items-center gap-1 opacity-40 mt-1">
+                        <ArrowRightLeft size={8} />
+                        <span className="text-[7px] font-bold tracking-tighter uppercase">Output</span>
+                    </div>
+                    <select
+                        value={fader.outputTarget}
+                        onChange={(e) => setOutputTarget(trackId, e.target.value)}
+                        className="bg-black text-[7px] border border-white/10 rounded px-1 py-0.5 focus:outline-none"
+                    >
+                        <option value="master">MASTER</option>
+                        <option value="out-1-2">OUT 1-2 (ST)</option>
+                        <option value="mono-1">MONO 1</option>
+                        <option value="mono-2">MONO 2</option>
+                    </select>
+                </div>
+            )}
 
             {/* Hide knobs if track gets too short */}
             {trackHeight >= 40 && (

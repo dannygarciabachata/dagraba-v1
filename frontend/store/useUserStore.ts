@@ -25,7 +25,7 @@ export const useUserStore = create<UserState>()(
     persist(
         (set, get) => ({
             credits: 100, // Initial guest credits
-            plan: 'free',
+            plan: 'premium',
             hasUsedTrial: false,
 
             setCredits: (credits) => set({ credits }),
