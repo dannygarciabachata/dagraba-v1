@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, Suspense } from 'react';
 import { AITrainingModule } from '@/components/admin/AITrainingModule';
 import { InstrumentBank } from '@/components/admin/InstrumentBank';
 import { AssetManager } from '@/components/admin/AssetManager';
@@ -10,16 +10,10 @@ import { SystemConfig } from '@/components/admin/SystemConfig';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
-    Bot,
-    Music,
-    FolderSearch,
-    Wallet,
-    Users,
-    Settings,
     ShieldCheck
 } from 'lucide-react';
 
-export default function AdminPage() {
+function AdminPageContent() {
     const { user, isSuperAdmin, loading } = useAuth();
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -66,5 +60,17 @@ export default function AdminPage() {
                 {activeTab === 'config' && <SystemConfig />}
             </div>
         </div>
+    );
+}
+
+export default function AdminPage() {
+    return (
+        <Suspense fallback={
+            <div className="flex items-center justify-center min-h-[60vh]">
+                <div className="w-12 h-12 border-4 border-orange-500/20 border-t-orange-500 rounded-full animate-spin" />
+            </div>
+        }>
+            <AdminPageContent />
+        </Suspense>
     );
 }
