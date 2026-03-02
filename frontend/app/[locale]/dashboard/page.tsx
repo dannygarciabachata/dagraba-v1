@@ -3,15 +3,36 @@
 import React from 'react';
 import { Play, Activity, Clock, Database, Plus, Settings, Sparkles, ChevronRight, Music } from 'lucide-react';
 import Link from 'next/link';
+import { useAuth } from '@/context/AuthContext';
+import { useRouter } from 'next/navigation';
 
 export default function Dashboard() {
+    const { user, loading } = useAuth();
+    const router = useRouter();
+
+    React.useEffect(() => {
+        if (!loading && !user) {
+            router.push('/');
+        }
+    }, [user, loading, router]);
+
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center min-h-[60vh]">
+                <div className="w-12 h-12 border-4 border-orange-500/20 border-t-orange-500 rounded-full animate-spin" />
+            </div>
+        );
+    }
+
+    if (!user) return null;
+
     return (
         <div className="flex flex-col gap-8 max-w-7xl mx-auto w-full pb-12">
             {/* Header / Welcome Section */}
             <header className="relative flex justify-between items-end bg-[#0A0A0C] border border-white/5 p-8 rounded-3xl overflow-hidden shadow-2xl">
                 <div className="absolute inset-0 bg-gradient-to-r from-orange-600/20 to-transparent pointer-events-none" />
                 <div className="absolute -top-32 -left-32 w-96 h-96 bg-orange-600/10 blur-[100px] rounded-full" />
-                
+
                 <div className="relative z-10 flex flex-col gap-2">
                     <p className="text-orange-500 font-bold tracking-widest text-xs uppercase flex items-center gap-2">
                         <Sparkles size={12} className="animate-pulse" /> Nivel: Leyenda del Estudio
@@ -114,7 +135,7 @@ export default function Dashboard() {
                                 </div>
                             </div>
                         </Link>
-                        
+
                         <Link href="/studio">
                             <div className="bg-gradient-to-br from-[#111] to-[#0A0A0C] border border-[#333] hover:border-blue-500/50 p-6 rounded-2xl flex items-center justify-between group cursor-pointer transition-all hover:shadow-[0_0_20px_rgba(59,130,246,0.1)]">
                                 <div>
@@ -126,7 +147,7 @@ export default function Dashboard() {
                                 </div>
                             </div>
                         </Link>
-                        
+
                         <Link href="/mastering">
                             <div className="bg-gradient-to-br from-[#111] to-[#0A0A0C] border border-[#333] hover:border-purple-500/50 p-6 rounded-2xl flex items-center justify-between group cursor-pointer transition-all hover:shadow-[0_0_20px_rgba(168,85,247,0.1)]">
                                 <div>

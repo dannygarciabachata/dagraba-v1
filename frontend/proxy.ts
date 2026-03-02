@@ -8,7 +8,7 @@ const intlMiddleware = createMiddleware({
     localePrefix: 'as-needed'
 });
 
-export function middleware(request: NextRequest) {
+export default function proxy(request: NextRequest) {
     const { pathname } = request.nextUrl;
 
     // Protect all /admin routes

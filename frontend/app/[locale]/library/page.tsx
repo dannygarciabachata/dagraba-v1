@@ -2,15 +2,36 @@
 
 import React from 'react';
 import { useTranslations } from 'next-intl';
-import { Library, FolderOpen, Music, HardDrive } from 'lucide-react';
+import { Library as LibraryIcon, FolderOpen, Music, HardDrive } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
+import { useRouter } from 'next/navigation';
 
-export default function LibraryPage() {
+export default function Library() {
+    const { user, loading } = useAuth();
+    const router = useRouter();
+
+    React.useEffect(() => {
+        if (!loading && !user) {
+            router.push('/');
+        }
+    }, [user, loading, router]);
+
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center min-h-[60vh]">
+                <div className="w-8 h-8 border-2 border-white/10 border-t-white rounded-full animate-spin" />
+            </div>
+        );
+    }
+
+    if (!user) return null;
+
     const t = useTranslations('Navigation');
 
     return (
         <div className="flex flex-col w-full h-full overflow-y-auto custom-scrollbar bg-[#050505] p-8 md:p-12">
-            <div className="flex items-center gap-3 mb-2">
-                <Library size={28} className="text-orange-500" />
+            <div className="flex items-center gap-3">
+                <LibraryIcon size={40} className="text-orange-500 mb-2" />
                 <h1 className="text-3xl font-black text-white">{t('library') || 'Librería'}</h1>
             </div>
             <p className="text-sm text-[#888] mb-12 max-w-2xl">

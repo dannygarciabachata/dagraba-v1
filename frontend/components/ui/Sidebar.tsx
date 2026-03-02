@@ -64,7 +64,13 @@ export function Sidebar() {
                 </div>
                 {/* Navigation Links */}
                 <nav className="flex flex-col gap-2 w-full px-3">
-                    {navItems.map((item) => {
+                    {navItems.filter(item => {
+                        // Restricted items for guest users
+                        if (!user && (item.id === 'dashboard' || item.id === 'library' || item.id === 'notifications')) {
+                            return false;
+                        }
+                        return true;
+                    }).map((item) => {
                         const hrefWithLocale = getLocalizedHref(item.href);
                         const isActive = pathname.startsWith(hrefWithLocale);
                         const Icon = item.icon;
