@@ -44,9 +44,28 @@ export function GiftModal({ artistName, onClose }: GiftModalProps) {
         setStep('confirm');
     };
 
-    const handlePay = () => {
-        // In production: call Stripe payment link or API
-        setStep('done');
+    const handlePay = async () => {
+        try {
+            const res = await fetch('/api/payments/donate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    artistId: 'TARGET_ARTIST_ID', // This should be passed as a prop in a real scenario
+                    amount: finalAmount,
+                    message: message,
+                    type: 'GIFT'
+                })
+            });
+            const data = await res.json();
+            if (data.success) {
+                setStep('done');
+            } else {
+                alert('Error al procesar el regalo: ' + data.error);
+            }
+        } catch (error) {
+            console.error('Payment failed', error);
+            alert('Error de conexión.');
+        }
     };
 
     return (

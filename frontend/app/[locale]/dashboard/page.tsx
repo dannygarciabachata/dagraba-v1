@@ -10,10 +10,36 @@ export default function Dashboard() {
     const { user, loading } = useAuth();
     const router = useRouter();
 
+    const [trending, setTrending] = React.useState<any>(null);
+
     React.useEffect(() => {
         if (!loading && !user) {
             router.push('/');
         }
+
+        const fetchTrending = async () => {
+            try {
+                const token = await user?.getIdToken();
+                if (!token) return;
+
+                const profileRes = await fetch('/api/user/profile', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const profileData = await profileRes.json();
+
+                const city = profileData.user?.city;
+                const country = profileData.user?.country;
+
+                const res = await fetch(`/api/ai/trending?city=${city || ''}&country=${country || ''}`);
+                const data = await res.json();
+                if (data.success) {
+                    setTrending(data);
+                }
+            } catch (err) {
+                console.error("Failed to fetch trending", err);
+            }
+        };
+        if (user) fetchTrending();
     }, [user, loading, router]);
 
     if (loading) {

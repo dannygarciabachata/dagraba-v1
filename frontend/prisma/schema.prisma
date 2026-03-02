@@ -47,6 +47,19 @@ model User {
   email     String   @unique
   role      Role     @default(ROOKIE)
   status    Status   @default(ACTIVE)
+  
+  // Geolocation & Profile
+  location          String?
+  city              String?
+  country           String?
+  isArtist          Boolean  @default(false)
+  
+  // Monetization
+  balance           Float    @default(0)
+  subscriptions     Subscription[] @relation("UserSubscriptions")
+  subscribers       Subscription[] @relation("ArtistSubscribers")
+  transactions      Transaction[]
+
   projects         Project[]
   tickets          SupportTicket[]
   instrumentModels InstrumentModel[]
@@ -101,6 +114,7 @@ model InstrumentSample {
   instrumentModelId String
   instrumentModel   InstrumentModel @relation(fields: [instrumentModelId], references: [id])
   playlistTracks    PlaylistTrack[]
+  publishing        Publishing?
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 }
@@ -132,4 +146,42 @@ model MasteringDNA {
   isGoldStandard  Boolean  @default(false)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+}
+
+model Subscription {
+  id           String   @id @default(cuid())
+  subscriberId String
+  subscriber   User     @relation("UserSubscriptions", fields: [subscriberId], references: [id])
+  artistId     String
+  artist       User     @relation("ArtistSubscribers", fields: [artistId], references: [id])
+  status       String   @default("active") // active, cancelled, past_due
+  price        Float
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([subscriberId, artistId])
+}
+
+model Transaction {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  amount    Float
+  type      String   // GIFT, SUBSCRIPTION, WITHDRAWAL
+  status    String   @default("PENDING") // PENDING, COMPLETED, FAILED
+  fee       Float    @default(0)
+  metadata  Json?
+  createdAt DateTime @default(now())
+}
+
+model Publishing {
+  id          String   @id @default(cuid())
+  trackId     String   @unique
+  track       InstrumentSample @relation(fields: [trackId], references: [id])
+  rightsOrg   String   // ASCAP, BMI, SESAC
+  workId      String?  // The ID assigned by the rights organization
+  status      String   @default("PENDING") // PENDING, APPROVED, REJECTED
+  systemShare Float    @default(0.50)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }

@@ -7,9 +7,10 @@ import {
     User, Settings, Shield, Zap, Save, Palette, Globe, HardDrive,
     Music, Heart, Eye, Share2, ExternalLink, CheckCircle2,
     Play, Pause, MoreVertical, Headphones, Users, Plus, X, RefreshCw, Upload, Download, BarChart3,
-    CreditCard, Bitcoin, AlertCircle, Check, LogOut
+    CreditCard, Bitcoin, AlertCircle, Check, LogOut, Wallet as WalletIcon
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import { UserWallet } from '@/components/profile/UserWallet';
 
 const SpotifyIcon = () => (
     <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
@@ -42,7 +43,7 @@ const MOCK_LASTFM = [
     { id: 'l3', title: 'Mi Mundo Sin Ti', scrobbles: '11,200' },
 ];
 
-type Tab = 'music' | 'public' | 'spotify' | 'lastfm' | 'daw' | 'billing' | 'pagos';
+type Tab = 'music' | 'public' | 'spotify' | 'lastfm' | 'daw' | 'billing' | 'pagos' | 'wallet';
 
 export default function Profile() {
     const [activeTab, setActiveTab] = useState<Tab>('music');
@@ -66,6 +67,7 @@ export default function Profile() {
     const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
         { id: 'music', label: 'Mi Música', icon: <Music size={14} /> },
         { id: 'public', label: 'Perfil Público', icon: <Globe size={14} /> },
+        { id: 'wallet', label: 'Billetera', icon: <WalletIcon size={14} /> }, // [NEW]
         { id: 'spotify', label: 'Spotify', icon: <SpotifyIcon /> },
         { id: 'lastfm', label: 'Last.fm', icon: <LastFmIcon /> },
         { id: 'daw', label: 'Preferencias', icon: <Palette size={14} /> },
@@ -375,6 +377,13 @@ export default function Profile() {
                                 </div>
                             ))}
                         </div>
+                    </div>
+                )}
+
+                {/* ─── BILLETERA TAB ─── */}
+                {activeTab === 'wallet' && (
+                    <div className="max-w-4xl mx-auto">
+                        <UserWallet />
                     </div>
                 )}
 

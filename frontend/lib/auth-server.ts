@@ -6,6 +6,8 @@ const admin = initializeAdmin();
 export interface AuthenticatedUser {
     uid: string;
     email?: string;
+    name?: string;
+    picture?: string;
     isSuperAdmin: boolean;
 }
 
@@ -35,6 +37,8 @@ export async function getAuthenticatedUser(request: Request, requireSuperAdmin =
         return {
             uid: decodedToken.uid,
             email: decodedToken.email,
+            name: decodedToken.name,
+            picture: decodedToken.picture,
             isSuperAdmin: isSuper,
         };
     } catch (error) {

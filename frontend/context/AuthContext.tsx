@@ -37,7 +37,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const router = useRouter();
 
     useEffect(() => {
-        const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+        const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
             setUser(currentUser);
 
             const superAdminEmail = 'dagrabastudio@gmail.com';
@@ -51,6 +51,34 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                     store.setPlan('premium');
                     store.setCredits(999999); // "Unlimited" for admin
                 });
+            }
+
+            // [NEW] Detect Geolocation and Sink Profile
+            if (currentUser) {
+                try {
+                    // Fetch location from IP (privacy-friendly, no popup)
+                    const geoRes = await fetch('https://ipapi.co/json/');
+                    const geoData = await geoRes.json();
+
+                    if (geoData.city && geoData.country_name) {
+                        const token = await currentUser.getIdToken();
+                        await fetch('/api/user/profile', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${token}`
+                            },
+                            body: JSON.stringify({
+                                location: `${geoData.city}, ${geoData.region}`,
+                                city: geoData.city,
+                                country: geoData.country_name
+                            })
+                        });
+                        console.log(`[GEO] Location synced: ${geoData.city}, ${geoData.region}`);
+                    }
+                } catch (geoError) {
+                    console.error("Failed to sync geolocation:", geoError);
+                }
             }
 
             setLoading(false);
