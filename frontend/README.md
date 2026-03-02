@@ -28,6 +28,8 @@ DA GRABA STUDIO V1 is a premium, professional-grade digital audio workstation (D
 
 ### ☁️ Cloud & Admin
 - **Cloud Status Panel**: Integrated sidebar status for "Modal Engine" connectivity.
+- **Control Center (Admin)**: A high-performance tabbed interface for system-wide configuration, AI training, and user management.
+- **SuperAdmin Security**: Strict role-based access control (RBAC) protecting sensitive administrative routes and financial data.
 - **Financial Vault**: Revenue tracking and financial metrics for admins.
 - **Asset Manager**: Centralized management for WAVs, MIDIs, and trained AI models.
 
