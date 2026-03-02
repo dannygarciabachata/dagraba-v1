@@ -5,7 +5,7 @@ import { Settings, Globe, Power, HardDrive, AlertTriangle, Settings2 } from 'luc
 import { useAuth } from '@/context/AuthContext';
 
 export function SystemConfig() {
-    const { user } = useAuth();
+    const { getIdToken } = useAuth();
     const [maintenanceMode, setMaintenanceMode] = useState(false);
     const [selectedRegion, setSelectedRegion] = useState('us-east-1');
     const [apiKey, setApiKey] = useState('');
@@ -15,8 +15,11 @@ export function SystemConfig() {
     React.useEffect(() => {
         const fetchApiKey = async () => {
             try {
+                const token = await getIdToken();
+                if (!token) return;
+
                 const resKie = await fetch('/api/admin/settings?key=KIE_API_KEY', {
-                    headers: { 'x-admin-email': user?.email || '' }
+                    headers: { 'Authorization': `Bearer ${token}` }
                 });
                 const dataKie = await resKie.json();
                 if (dataKie.success && dataKie.setting) {
@@ -24,7 +27,7 @@ export function SystemConfig() {
                 }
 
                 const resMusicGpt = await fetch('/api/admin/settings?key=MUSICGPT_API_KEY', {
-                    headers: { 'x-admin-email': user?.email || '' }
+                    headers: { 'Authorization': `Bearer ${token}` }
                 });
                 const dataMusicGpt = await resMusicGpt.json();
                 if (dataMusicGpt.success && dataMusicGpt.setting) {
@@ -41,11 +44,17 @@ export function SystemConfig() {
 
     const handleSaveKey = async (keyName: string, keyValue: string) => {
         try {
+            const token = await getIdToken();
+            if (!token) {
+                alert('No se pudo obtener el token de sesión.');
+                return;
+            }
+
             const res = await fetch('/api/admin/settings', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'x-admin-email': user?.email || ''
+                    'Authorization': `Bearer ${token}`
                 },
                 body: JSON.stringify({ key: keyName, value: keyValue, category: 'ai_engine' })
             });
@@ -177,11 +186,14 @@ export function SystemConfig() {
                         onClick={async () => {
                             if (confirm('¿Estás seguro de que quieres reiniciar el asistente de configuración? Esto permitirá volver a entrar a /setup.')) {
                                 try {
+                                    const token = await getIdToken();
+                                    if (!token) return;
+
                                     const res = await fetch('/api/admin/settings', {
                                         method: 'POST',
                                         headers: {
                                             'Content-Type': 'application/json',
-                                            'x-admin-email': user?.email || ''
+                                            'Authorization': `Bearer ${token}`
                                         },
                                         body: JSON.stringify({ key: 'INITIAL_SETUP_COMPLETED', value: 'false', category: 'system' })
                                     });

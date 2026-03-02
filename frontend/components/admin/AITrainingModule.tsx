@@ -3,8 +3,10 @@
 import { useState } from 'react';
 import { Play, UploadCloud, Terminal as TermIcon, FileAudio, Users, Music, Mic2, Scan, Activity, Zap, BarChart3, Binary, Plus, Bot } from 'lucide-react';
 import { useRef } from 'react';
+import { useAuth } from '@/context/AuthContext';
 
 export function AITrainingModule() {
+    const { getIdToken } = useAuth();
     const [trainingType, setTrainingType] = useState<'voice' | 'instrument' | 'mastering' | 'dagraba'>('voice');
     const datasetInputRef = useRef<HTMLInputElement>(null);
     const [selectedArtist, setSelectedArtist] = useState<string>('');
@@ -30,7 +32,13 @@ export function AITrainingModule() {
         setLogs((prev: string[]) => [...prev, `[DSP] Comparando señales Mix vs Master...`]);
 
         try {
-            // Convert files to base64 for the prototype
+            const token = await getIdToken();
+            if (!token) {
+                setLogs((prev: string[]) => [...prev, `[ERROR] No se pudo obtener el token de seguridad.`]);
+                setIsAnalyzing(false);
+                return;
+            }
+
             const toBase64 = (file: File) => new Promise<string>((resolve, reject) => {
                 const reader = new FileReader();
                 reader.readAsDataURL(file);
@@ -43,7 +51,10 @@ export function AITrainingModule() {
 
             const response = await fetch('/api/ai/analyze-dna', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
                 body: JSON.stringify({
                     rawAudio: rawBase64,
                     masteredAudio: masteredBase64,
@@ -79,12 +90,22 @@ export function AITrainingModule() {
         setIsTraining(true);
         setLogs((prev: string[]) => [...prev, `[INIT] Iniciando proceso de entrenamiento: ${trainingType === 'voice' ? selectedArtist : modelName}`]);
 
-        if (trainingType === 'instrument') {
-            try {
+        try {
+            const token = await getIdToken();
+            if (!token) {
+                setLogs((prev: string[]) => [...prev, `[ERROR] No se pudo obtener el token de seguridad.`]);
+                setIsTraining(false);
+                return;
+            }
+
+            if (trainingType === 'instrument') {
                 setLogs((prev: string[]) => [...prev, `[API] Contactando backend de entrenamiento Instrumental...`]);
                 const response = await fetch('/api/ai/train/sao', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
                     body: JSON.stringify({
                         name: modelName,
                         description: `Entrenamiento de orquesta instrumental: ${modelName}`,
@@ -95,15 +116,14 @@ export function AITrainingModule() {
                 const data = await response.json();
                 setLogs((prev: string[]) => [...prev, `[MODAL] Job ID generado: ${data.modelId || 'pending'}`]);
                 setLogs((prev: string[]) => [...prev, `[GPU] Reservando cluster para Stable Audio Open...`]);
-            } catch (error) {
-                setLogs((prev: string[]) => [...prev, `[ERROR] Fallo al iniciar entrenamiento instrumental.`]);
-            }
-        } else if (trainingType === 'dagraba') {
-            try {
+            } else if (trainingType === 'dagraba') {
                 setLogs((prev: string[]) => [...prev, `[INIT] Iniciando Pipeline de Entrenamiento Dagraba (Local)...`]);
                 const response = await fetch('/api/ai/train', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
                     body: JSON.stringify({
                         modelName: modelName || 'Custom Admin Model',
                         filesCount: audioFiles.length,
@@ -115,24 +135,25 @@ export function AITrainingModule() {
                 setLogs((prev: string[]) => [...prev, `[API] Entrenamiento registrado ID: ${data.trainingId}`]);
                 setLogs((prev: string[]) => [...prev, `[WORKER] Analizando ${referenceTrack ? 'Referencia + ' : ''}${audioFiles.length} archivos...`]);
                 setLogs((prev: string[]) => [...prev, `[CATEGORY] Tipo de Modelo: ${modelCategory.toUpperCase()}`]);
-            } catch (error) {
-                setLogs((prev: string[]) => [...prev, `[ERROR] Fallo al iniciar entrenamiento Dagraba.`]);
+            } else {
+                setTimeout(() => {
+                    setLogs((prev: string[]) => [...prev, `[MODAL] Dispatching job: Voice_Cloning_V1`]);
+                }, 1000);
             }
-        } else {
+
             setTimeout(() => {
-                setLogs((prev: string[]) => [...prev, `[MODAL] Dispatching job: Voice_Cloning_V1`]);
-            }, 1000);
-        }
+                setLogs((prev: string[]) => [...prev, `[GPU] Asignando A100... Éxito`]);
+                setLogs((prev: string[]) => [...prev, `[TRAIN] Iniciando Epoch 1/${epochs}`]);
+            }, 2500);
 
-        setTimeout(() => {
-            setLogs((prev: string[]) => [...prev, `[GPU] Asignando A100... Éxito`]);
-            setLogs((prev: string[]) => [...prev, `[TRAIN] Iniciando Epoch 1/${epochs}`]);
-        }, 2500);
-
-        setTimeout(() => {
-            setLogs((prev: string[]) => [...prev, `[TRAIN] Completado. Guardando pesos del modelo...`]);
+            setTimeout(() => {
+                setLogs((prev: string[]) => [...prev, `[TRAIN] Completado. Guardando pesos del modelo...`]);
+                setIsTraining(false);
+            }, 6000);
+        } catch (error) {
+            setLogs((prev: string[]) => [...prev, `[ERROR] Fallo en la comunicación con la API de entrenamiento.`]);
             setIsTraining(false);
-        }, 6000);
+        }
     };
 
     return (

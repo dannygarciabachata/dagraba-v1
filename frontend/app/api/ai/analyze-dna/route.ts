@@ -4,12 +4,19 @@ import { exec } from 'child_process';
 import { promisify } from 'util';
 import path from 'path';
 import fs from 'fs/promises';
-import prisma from '@/lib/prisma';
+import { prisma } from '@/lib/prisma';
 import { v4 as uuidv4 } from 'uuid';
+import { getAuthenticatedUser, unauthorizedResponse } from '@/lib/auth-server';
 
 const execPromise = promisify(exec);
 
 export async function POST(req: Request) {
+    // SECURITY: Strictly for authenticated users
+    const user = await getAuthenticatedUser(req);
+    if (!user) {
+        return unauthorizedResponse('Unauthorized: Please log in to analyze DNA');
+    }
+
     try {
         const formData = await req.json();
         const { rawAudio, masteredAudio, profileName, genre } = formData;
@@ -17,9 +24,6 @@ export async function POST(req: Request) {
         if (!rawAudio || !masteredAudio || !profileName || !genre) {
             return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
         }
-
-        // In a real browser environment, rawAudio and masteredAudio would be Base64 or Blob
-        // For this implementation, we expect Base64 strings for simplicity in the prototype
 
         const tempDir = path.join(process.cwd(), 'tmp', 'dna-analysis');
         await fs.mkdir(tempDir, { recursive: true });
@@ -39,8 +43,6 @@ export async function POST(req: Request) {
 
         const scriptPath = path.join(process.cwd(), 'sao-instrumental-finetune', 'dataset-creator', 'analyze_mastering_dna.py');
 
-        // Execute Python script
-        // Note: Assumes python3 and required libs (librosa, numpy, pyloudnorm) are installed
         try {
             const { stdout, stderr } = await execPromise(`python3 "${scriptPath}" "${rawPath}" "${masteredPath}"`);
 

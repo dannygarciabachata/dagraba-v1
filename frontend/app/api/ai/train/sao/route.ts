@@ -1,8 +1,15 @@
 import { NextResponse } from 'next/server';
 export const dynamic = "force-dynamic";
 import { SAOClient } from '@/lib/ai/sao-client';
+import { getAuthenticatedUser, unauthorizedResponse } from '@/lib/auth-server';
 
 export async function POST(req: Request) {
+    // SECURITY: Strictly for authenticated users
+    const user = await getAuthenticatedUser(req);
+    if (!user) {
+        return unauthorizedResponse('Unauthorized: Please log in to train instruments');
+    }
+
     try {
         const body = await req.json();
         const { name, description, tags, midiFolder, vst3Plugins } = body;
@@ -21,7 +28,6 @@ export async function POST(req: Request) {
         });
 
         // 2. Simulate or trigger the Modal job
-        // In a real production environment, this would hit a Modal webhook or use their SDK
         console.log(`[SAO Training] Job queued for model: ${model.id}`);
 
         return NextResponse.json({
@@ -35,10 +41,14 @@ export async function POST(req: Request) {
     }
 }
 
-export async function GET() {
+export async function GET(req: Request) {
+    // SECURITY: Authenticated check
+    const user = await getAuthenticatedUser(req);
+    if (!user) {
+        return unauthorizedResponse();
+    }
+
     try {
-        // Return available models from the database
-        // This would be used to populate the "Available Instruments" rack in the admin panel
         return NextResponse.json({
             instruments: [
                 { id: 'bolero-v1', name: 'Bolero Orchestra', tags: ['Bolero', 'Orchestra', 'Acoustic'] },

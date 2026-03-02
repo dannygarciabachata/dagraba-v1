@@ -13,6 +13,7 @@ interface AuthContextType {
     isSuperAdmin: boolean;
     loginModalOpen: boolean;
     setLoginModalOpen: (open: boolean) => void;
+    getIdToken: () => Promise<string | null>;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -23,6 +24,7 @@ const AuthContext = createContext<AuthContextType>({
     isSuperAdmin: false,
     loginModalOpen: false,
     setLoginModalOpen: () => { },
+    getIdToken: async () => null,
 });
 
 export const useAuth = () => useContext(AuthContext);
@@ -86,8 +88,27 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
     };
 
+    const getIdToken = async () => {
+        if (!user) return null;
+        try {
+            return await user.getIdToken();
+        } catch (error) {
+            console.error("Failed to get ID token", error);
+            return null;
+        }
+    };
+
     return (
-        <AuthContext.Provider value={{ user, isSuperAdmin, loading, logout, signInWithGoogle, loginModalOpen, setLoginModalOpen }}>
+        <AuthContext.Provider value={{
+            user,
+            isSuperAdmin,
+            loading,
+            logout,
+            signInWithGoogle,
+            loginModalOpen,
+            setLoginModalOpen,
+            getIdToken
+        }}>
             {children}
         </AuthContext.Provider>
     );
