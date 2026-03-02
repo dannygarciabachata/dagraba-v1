@@ -48,7 +48,7 @@ type Tab = 'music' | 'public' | 'spotify' | 'lastfm' | 'daw' | 'billing' | 'pago
 export default function Profile() {
     const [activeTab, setActiveTab] = useState<Tab>('music');
     const router = useRouter();
-    const { logout } = useAuth();
+    const { user, loading, logout } = useAuth();
     const [spotifyConnected, setSpotifyConnected] = useState(false);
     const [lastfmConnected, setLastfmConnected] = useState(false);
     const [lastfmUser, setLastfmUser] = useState('');
@@ -80,6 +80,16 @@ export default function Profile() {
         if (next.has(id)) next.delete(id); else next.add(id);
         setFn(next);
     };
+
+    React.useEffect(() => {
+        if (!loading && !user) {
+            router.push('/');
+        }
+    }, [user, loading, router]);
+
+    if (loading || !user) {
+        return null;
+    }
 
     return (
         <div className="flex flex-col w-full h-full overflow-y-auto custom-scrollbar bg-[#050505]">

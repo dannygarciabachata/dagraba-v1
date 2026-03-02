@@ -57,12 +57,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             if (currentUser) {
                 try {
                     // Fetch location from IP (privacy-friendly, no popup)
-                    const geoRes = await fetch('https://ipapi.co/json/');
+                    const geoRes = await fetch('https://ipapi.co/json/').catch(() => null);
+                    if (!geoRes?.ok) {
+                        console.warn("[GEO] Geolocation service unavailable (CORS or network error)");
+                        setLoading(false); // Ensure we don't block
+                        return;
+                    }
                     const geoData = await geoRes.json();
 
                     if (geoData.city && geoData.country_name) {
                         const token = await currentUser.getIdToken();
-                        await fetch('/api/user/profile', {
+                        const profileRes = await fetch('/api/user/profile', {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',
@@ -71,9 +76,21 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                             body: JSON.stringify({
                                 location: `${geoData.city}, ${geoData.region}`,
                                 city: geoData.city,
-                                country: geoData.country_name
+                                country: geoData.country_name,
+                                isFirstSync: !localStorage.getItem(`dagraba_synced_${currentUser.uid}`)
                             })
                         });
+                        const profileData = await profileRes.json();
+
+                        if (profileData.isNewUser && !isSuper) {
+                            import('@/store/useUserStore').then((m) => {
+                                const store = m.useUserStore.getState();
+                                store.setCredits(100); // Welcome Gift
+                                console.log("[AUTH] Welcome credits granted: 100");
+                            });
+                        }
+
+                        localStorage.setItem(`dagraba_synced_${currentUser.uid}`, 'true');
                         console.log(`[GEO] Location synced: ${geoData.city}, ${geoData.region}`);
                     }
                 } catch (geoError) {

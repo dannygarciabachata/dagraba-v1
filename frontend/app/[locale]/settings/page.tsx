@@ -25,7 +25,7 @@ const SECTIONS = [
 export default function SettingsPage() {
     const [activeSection, setActiveSection] = useState('cuenta');
     const { theme, setTheme } = useThemeStore();
-    const { user, logout } = useAuth();
+    const { user, isSuperAdmin, loading, logout } = useAuth();
     const { plan, setPlan } = useUserStore();
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [mounted, setMounted] = useState(false);
@@ -33,6 +33,16 @@ export default function SettingsPage() {
     useEffect(() => {
         setMounted(true);
     }, []);
+
+    useEffect(() => {
+        if (!loading && !isSuperAdmin) {
+            window.location.href = '/';
+        }
+    }, [isSuperAdmin, loading]);
+
+    if (!mounted || loading || !isSuperAdmin) {
+        return null;
+    }
 
     return (
         <div className="flex h-full w-full bg-[#0A0A0C] text-white overflow-hidden">

@@ -29,8 +29,14 @@ export async function POST(req: Request) {
                 isArtist: isArtist || false,
             },
         });
+        // Determine if this is a new user (created vs updated)
+        const isNewUser = updatedUser.createdAt.getTime() === updatedUser.updatedAt.getTime() || body.isFirstSync;
 
-        return NextResponse.json({ success: true, user: updatedUser });
+        return NextResponse.json({
+            success: true,
+            user: updatedUser,
+            isNewUser
+        });
     } catch (error) {
         console.error('Profile Update Error:', error);
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

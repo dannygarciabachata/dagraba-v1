@@ -34,12 +34,31 @@ export function Sidebar() {
 
     const { user, isSuperAdmin, logout, setLoginModalOpen } = useAuth();
     const [mounted, setMounted] = React.useState(false);
+    const [langMenuOpen, setLangMenuOpen] = React.useState(false);
     const credits = useUserStore(state => state.credits);
     const plan = useUserStore(state => state.plan);
 
+    const langMenuRef = React.useRef<HTMLDivElement>(null);
+
     React.useEffect(() => {
         setMounted(true);
-    }, []);
+
+        const handleClickOutside = (event: MouseEvent) => {
+            if (langMenuRef.current && !langMenuRef.current.contains(event.target as Node)) {
+                setLangMenuOpen(false);
+            }
+        };
+
+        if (langMenuOpen) {
+            document.addEventListener('mousedown', handleClickOutside);
+        } else {
+            document.removeEventListener('mousedown', handleClickOutside);
+        }
+
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [langMenuOpen]);
 
     // Helper to get localized href
     const getLocalizedHref = (href: string) => `/${currentLocale}${href}`;
@@ -71,7 +90,11 @@ export function Sidebar() {
                             return false;
                         }
                         // Superadmin only items
-                        if (item.id === 'admin' && !isSuperAdmin) {
+                        if ((item.id === 'admin' || item.id === 'settings') && !isSuperAdmin) {
+                            return false;
+                        }
+                        // Auth only items
+                        if (!user && (item.id === 'dashboard' || item.id === 'library' || item.id === 'notifications' || item.id === 'profile')) {
                             return false;
                         }
                         return true;
@@ -108,27 +131,36 @@ export function Sidebar() {
 
                 <div className="flex flex-col gap-1 px-3">
                     {/* Language Switcher */}
-                    <div className="relative group/lang">
-                        <button className="flex items-center gap-4 px-4 py-3 rounded-xl w-full text-silver-dark hover:text-white hover:bg-white/5 transition-all group">
-                            <Languages size={20} className="group-hover:rotate-12 transition-transform opacity-60 group-hover:opacity-100" />
+                    <div ref={langMenuRef} className="relative">
+                        <button
+                            onClick={() => setLangMenuOpen(!langMenuOpen)}
+                            className={`flex items-center gap-4 px-4 py-3 rounded-xl w-full transition-all group ${langMenuOpen ? 'bg-white/10 text-white' : 'text-silver-dark hover:text-white hover:bg-white/5'}`}
+                        >
+                            <Languages size={20} className={`${langMenuOpen ? 'rotate-12 opacity-100' : 'opacity-60 group-hover:opacity-100 group-hover:rotate-12'} transition-transform`} />
                             <span className="hidden lg:block text-[10px] font-black uppercase tracking-widest">{tl(currentLocale)}</span>
                         </button>
 
                         {/* Dropdown content */}
-                        <div className="absolute bottom-full left-4 mb-2 w-48 bg-[#0D0D0F] border border-white/5 rounded-2xl shadow-2xl opacity-0 invisible group-hover/lang:opacity-100 group-hover/lang:visible transition-all duration-300 z-[110] p-1.5 overflow-hidden backdrop-blur-xl">
-                            <div className="max-h-60 overflow-y-auto custom-scrollbar">
-                                {locales.map((loc) => (
-                                    <Link
-                                        key={loc}
-                                        href={getSwitchLocaleHref(loc)}
-                                        className={`flex items-center gap-3 px-4 py-2 text-[10px] font-bold rounded-lg transition-colors ${currentLocale === loc ? 'bg-orange-500/20 text-orange-500' : 'text-white/40 hover:bg-white/5 hover:text-white'}`}
-                                    >
-                                        <span className="uppercase text-[8px] w-6 opacity-30">{loc}</span>
-                                        {tl(loc)}
-                                    </Link>
-                                ))}
+                        {langMenuOpen && (
+                            <div className="absolute bottom-full left-4 mb-2 w-48 bg-[#0D0D0F] border border-white/10 rounded-2xl shadow-2xl z-[110] p-1.5 overflow-hidden backdrop-blur-3xl animate-in fade-in slide-in-from-bottom-2 duration-300">
+                                <div className="max-h-60 overflow-y-auto custom-scrollbar">
+                                    {locales.map((loc) => (
+                                        <Link
+                                            key={loc}
+                                            href={getSwitchLocaleHref(loc)}
+                                            onClick={() => setLangMenuOpen(false)}
+                                            className={`flex items-center gap-3 px-4 py-2.5 text-[10px] font-bold rounded-lg transition-all ${currentLocale === loc ? 'bg-cyan-glow/10 text-cyan-glow' : 'text-white/40 hover:bg-white/5 hover:text-white'}`}
+                                        >
+                                            <span className="uppercase text-[8px] w-6 opacity-30">{loc}</span>
+                                            {tl(loc)}
+                                            {currentLocale === loc && (
+                                                <div className="ml-auto w-1 h-1 rounded-full bg-cyan-glow shadow-[0_0_8px_rgba(0,240,255,0.8)]" />
+                                            )}
+                                        </Link>
+                                    ))}
+                                </div>
                             </div>
-                        </div>
+                        )}
                     </div>
 
                     <div className="w-full px-2 lg:px-4 flex flex-col gap-2">
@@ -150,16 +182,18 @@ export function Sidebar() {
                             </div>
                         </div>
 
-                        <Link
-                            href={getLocalizedHref('/settings')}
-                            className={`flex items-center gap-4 px-4 py-3 rounded-xl w-full transition-all duration-300 group ${pathname.startsWith(getLocalizedHref('/settings'))
-                                ? 'bg-white/5 text-cyan-glow'
-                                : 'text-silver-dark hover:text-white hover:bg-white/5'
-                                }`}
-                        >
-                            <Settings size={20} className="group-hover:rotate-[30deg] transition-transform duration-500 opacity-60 group-hover:opacity-100" />
-                            <span className="hidden lg:block text-[10px] font-black uppercase tracking-widest">{t('settings')}</span>
-                        </Link>
+                        {isSuperAdmin && (
+                            <Link
+                                href={getLocalizedHref('/settings')}
+                                className={`flex items-center gap-4 px-4 py-3 rounded-xl w-full transition-all duration-300 group ${pathname.startsWith(getLocalizedHref('/settings'))
+                                    ? 'bg-white/5 text-cyan-glow'
+                                    : 'text-silver-dark hover:text-white hover:bg-white/5'
+                                    }`}
+                            >
+                                <Settings size={20} className="group-hover:rotate-[30deg] transition-transform duration-500 opacity-60 group-hover:opacity-100" />
+                                <span className="hidden lg:block text-[10px] font-black uppercase tracking-widest">{t('settings')}</span>
+                            </Link>
+                        )}
 
                         {user ? (
                             <button

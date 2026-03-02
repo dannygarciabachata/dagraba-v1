@@ -49,7 +49,7 @@ export const useUserStore = create<UserState>()(
             resetTrial: () => set({ hasUsedTrial: false, credits: 100 }),
 
             completeTrial: () => set({ hasUsedTrial: true }),
-            clearUser: () => set({ credits: 200, plan: 'free', hasUsedTrial: false })
+            clearUser: () => set({ credits: 0, plan: 'free', hasUsedTrial: false })
         }),
         {
             name: 'dagraba-user-storage',
