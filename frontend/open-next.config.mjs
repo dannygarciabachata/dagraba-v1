@@ -3,8 +3,8 @@ const config = {
         override: {
             wrapper: "cloudflare-node",
             converter: "edge",
-        }
-    }
+        },
+    },
 };
 
 export default config;
