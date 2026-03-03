@@ -14,6 +14,22 @@ export interface DAWTrack {
     outputTarget?: string;
     isMuted?: boolean;
     isSoloed?: boolean;
+    // Orchestral / ADN Fields
+    pdfUrl?: string;
+    audioReferenceUrl?: string; // New: Reference for Audio-to-Instrument
+    referenceType?: 'pdf' | 'audio' | 'none'; // New: Current source type
+    adnModelId?: string;
+    adnStatus?: 'idle' | 'processing' | 'ready' | 'error';
+    stemUrl?: string;
+    instrumentMaterial?: 'nylon' | 'metal';
+    commands?: TrackCommand[];
+}
+
+export interface TrackCommand {
+    id: string;
+    measure: number; // Compás vinculante
+    category: 'groove' | 'articulation' | 'dynamics' | 'fills';
+    value: string;
 }
 
 export interface AudioClip {
@@ -73,6 +89,8 @@ interface DAWStore {
     rightPanelWidth: number;
     sidebarWidth: number;
     isProcessing: boolean;
+    isCreativeMode: boolean; // Global creative state
+    creativeInstruction: string; // Global prompt
 
     // Acciones para que la IA mueva los faders
     setFaderValue: (id: string, value: number) => void;
@@ -115,7 +133,13 @@ interface DAWStore {
     setPreviewTrack: (track: any | null) => void;
     setRightPanelWidth: (width: number) => void;
     setSidebarWidth: (width: number) => void;
+    updateTrack: (id: string, updates: Partial<DAWTrack>) => void;
+    detectADNTrigger: (id: string, name: string) => void;
+    addTrackCommand: (trackId: string, command: Omit<TrackCommand, 'id'>) => void;
+    removeTrackCommand: (trackId: string, commandId: string) => void;
     setIsProcessing: (isProcessing: boolean) => void;
+    setCreativeInstruction: (prompt: string) => void;
+    toggleCreativeMode: (enabled: boolean) => void;
 
     // FX Insert Management
     addInsert: (trackId: string, pluginId: FXInsert['pluginId']) => void;
@@ -140,9 +164,10 @@ export const useDAWStore = create<DAWStore>()(
             activeBottomPanel: 'mixer', // Mixer opens by default
             mixerBank: 1,
             cloudStatus: 'disconnected',
-            systemMessage: '',
+            systemMessage: 'DA GRABA STUDIO V1 READY',
             isMetronomeOn: false,
             tempo: 120,
+            timeSignature: '4/4',
             isPlaying: false,
             isGlobalRecording: false,
             midiInputId: null,
@@ -155,6 +180,8 @@ export const useDAWStore = create<DAWStore>()(
             rightPanelWidth: 0,
             sidebarWidth: 0,
             isProcessing: false,
+            isCreativeMode: false,
+            creativeInstruction: '',
 
             setTracks: (tracks: DAWTrack[]) => set((state) => {
                 const newFaders: FaderState[] = tracks.map((track) => ({
@@ -288,6 +315,8 @@ export const useDAWStore = create<DAWStore>()(
             setRightPanelWidth: (width) => set({ rightPanelWidth: width }),
             setSidebarWidth: (width) => set({ sidebarWidth: width }),
             setIsProcessing: (isProcessing) => set({ isProcessing }),
+            setCreativeInstruction: (creativeInstruction) => set({ creativeInstruction }),
+            toggleCreativeMode: (isCreativeMode) => set({ isCreativeMode }),
 
             setTrackHeight: (id, height) => set((state) => ({
                 trackHeights: { ...state.trackHeights, [id]: height }
@@ -373,6 +402,34 @@ export const useDAWStore = create<DAWStore>()(
             })),
             closePlugin: (insertId) => set((state) => ({
                 openPluginIds: state.openPluginIds.filter(id => id !== insertId)
+            })),
+
+            updateTrack: (id, updates) => set((state) => ({
+                tracks: state.tracks.map((t) => (t.id === id ? { ...t, ...updates } : t)),
+                faders: state.faders.map((f) => (f.id === id ? { ...f, label: (updates.name || f.label).toUpperCase() } : f))
+            })),
+
+            detectADNTrigger: (id, name) => {
+                const material = (name.toLowerCase().includes('requinto') ||
+                    name.toLowerCase().includes('metal') ||
+                    name.toLowerCase().includes('bachata')) ? 'metal' : 'nylon';
+                set((state) => ({
+                    tracks: state.tracks.map((t) => (t.id === id ? { ...t, instrumentMaterial: material, name } : t))
+                }));
+            },
+
+            addTrackCommand: (trackId, command) => set((state) => ({
+                tracks: state.tracks.map((t) => (t.id === trackId ? {
+                    ...t,
+                    commands: [...(t.commands || []), { ...command, id: `cmd-${Date.now()}` }]
+                } : t))
+            })),
+
+            removeTrackCommand: (trackId, commandId) => set((state) => ({
+                tracks: state.tracks.map((t) => (t.id === trackId ? {
+                    ...t,
+                    commands: (t.commands || []).filter(c => c.id !== commandId)
+                } : t))
             })),
         }),
         {

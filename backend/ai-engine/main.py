@@ -3,7 +3,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import uvicorn
 import logging
-from inference import HeartMuLaMusicGenerator
 
 # Configure Logging
 logging.basicConfig(level=logging.INFO)
@@ -25,8 +24,18 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Initialize the Music Generator Engine
-engine = HeartMuLaMusicGenerator(use_gpu=True)
+# Initialize the Music Generator Engine (lazy loaded)
+engine = None
+
+def get_engine():
+    global engine
+    if engine is None:
+        logger.info("Lazy-loading HeartMuLa engine...")
+        from inference import HeartMuLaMusicGenerator
+        engine = HeartMuLaMusicGenerator(use_gpu=False)  # Cloud Run has no GPU
+        engine.load_base_model()
+        logger.info("Engine loaded successfully.")
+    return engine
 
 # In-memory mock DB for task status polling
 MOCK_DB = {}
@@ -45,15 +54,13 @@ class GenerateResponse(BaseModel):
 
 @app.on_event("startup")
 async def startup_event():
-    logger.info("Starting up Da Graba AI Inference Engine...")
-    # Preload the base models into VRAM to reduce latency on first request
-    engine.load_base_model()
-    logger.info("Engine is ready to receive inference requests.")
+    logger.info("Starting up Da Graba AI Inference Engine (lazy mode)...")
+    logger.info("Engine will be loaded on first request.")
 
 @app.get("/health")
 async def health_check():
-    """Simple health check endpoint."""
-    return {"status": "ok", "engine_loaded": engine.is_loaded}
+    """Simple health check endpoint — responds immediately without loading the engine."""
+    return {"status": "ok", "engine_loaded": engine is not None}
 
 @app.post("/generate", response_model=GenerateResponse)
 async def generate_music(req: GenerateRequest):
@@ -65,7 +72,7 @@ async def generate_music(req: GenerateRequest):
     
     try:
         # 1. Execute the inference pass
-        result = engine.generate(
+        result = get_engine().generate(
             prompt=req.prompt,
             dna_id=req.modelId,
             genre=req.genre
@@ -114,7 +121,48 @@ async def get_status(task_id: str):
         return MOCK_DB[task_id]
     return {"status": "PENDING"}
 
+from typing import List, Optional
+
+class TrackCommand(BaseModel):
+    id: str
+    measure: int
+    category: str
+    value: str
+
+class OrchestraRequest(BaseModel):
+    track_name: str
+    genre: str = "bachata"
+    pdf_data: Optional[str] = None # Base64
+    audio_reference_data: Optional[str] = None # Base64 data if audio reference
+    reference_type: str = "pdf" # "pdf" or "audio"
+    commands: List[TrackCommand] = []
+    creative_instruction: Optional[str] = None
+
+@app.post("/orchestra")
+async def orchestra_process(req: OrchestraRequest):
+    """
+    New Endpoint for the AI Orchestral Engine.
+    Processes a specific track (optionally with PDF score, audio reference, and musical commands).
+    """
+    logger.info(f"Orchestra: Received track '{req.track_name}' for genre: {req.genre}")
+    logger.info(f"Orchestra: Mode: {req.reference_type} | Commands: {len(req.commands)}")
+    
+    try:
+        # Pass full payload to generator (which calls Modal)
+        result = await get_engine().generate_orchestra(
+            track_name=req.track_name,
+            genre=req.genre,
+            pdf_data=req.pdf_data,
+            audio_reference_data=req.audio_reference_data,
+            reference_type=req.reference_type,
+            commands=[cmd.dict() for cmd in req.commands],
+            creative_instruction=req.creative_instruction
+        )
+        return result
+    except Exception as e:
+        logger.error(f"Orchestra processing failed: {e}")
+        return {"status": "error", "message": str(e)}
+
 if __name__ == "__main__":
     logger.info("Starting local server on port 8000...")
     uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
-

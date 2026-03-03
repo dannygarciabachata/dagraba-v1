@@ -1,0 +1,28 @@
+# Exclude heavy directories and local development files
+venv/
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+pip-log.txt
+pip-delete-this-directory.txt
+.toast
+.lucid
+.vscode/
+.idea/
+.git/
+.gitignore
+.gcloudignore
+node_modules/
+dist/
+build/
+*.mp3
+*.wav
+*.pdf
+# Skip huge weights if they are local
+adn_models/
+estilos/
+exports/

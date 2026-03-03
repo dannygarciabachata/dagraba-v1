@@ -47,6 +47,42 @@ class HeartMuLaMusicGenerator:
         # Placeholder for actual PyTorch layer adaptation
         return True
 
+    async def generate_orchestra(self, 
+                                track_name: str, 
+                                genre: str, 
+                                pdf_data: str = None, 
+                                audio_reference_data: str = None,
+                                reference_type: str = "pdf",
+                                commands: list = [],
+                                creative_instruction: str = None):
+        """
+        Orquesta un track usando Modal. Soporta PDF (OMR) y Audio (Pitch Tracking).
+        """
+        try:
+            from modal_orchestra import process_track_orchestra
+            
+            # Enviar a Modal Cloud
+            # request = { ... } se maneja por el modelo ProcessTrackRequest en modal_orchestra
+            result = await process_track_orchestra.remote.aio(
+                track_name=track_name,
+                genre=genre,
+                pdf_data=pdf_data,
+                audio_reference_data=audio_reference_data,
+                reference_type=reference_type,
+                commands=commands,
+                creative_instruction=creative_instruction
+            )
+            return result
+        except Exception as e:
+            print(f"Error en orquestación remota: {e}")
+            # Fallback simple
+            return {
+                "status": "error",
+                "message": str(e),
+                "job_id": "error_fallback",
+                "output_url": None
+            }
+            
     def generate(self, prompt: str, dna_id: str = None, genre: str = "acoustic"):
         """
         Executes the inference pass using persisted agents.
@@ -91,4 +127,18 @@ class HeartMuLaMusicGenerator:
             "lyrics": lyrics,
             "title": f"{genre.capitalize()} AI: {prompt[:20]}...",
             "tags": tags_str
+        }
+
+        #     track_name, pdf_data, genre
+        # )
+        
+        logger.info(f"Track '{track_name}' categorized as {material}. OMR data extracted.")
+
+        return {
+            "success": True,
+            "track": track_name,
+            "material": material,
+            "adn_model": adn_model,
+            "score_data": score_data,
+            "message": f"Orchestral processing initiated for {track_name} ({material})"
         }

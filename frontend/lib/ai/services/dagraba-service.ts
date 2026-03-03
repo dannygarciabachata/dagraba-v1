@@ -114,8 +114,9 @@ export class DagrabaService implements BaseMusicService {
         const genre = request.style || 'bolero';
 
         try {
-            console.log('[DagrabaService] Attempting to reach local Python Inference Engine at localhost:8000...');
-            const response = await fetch('http://localhost:8000/generate', {
+            const aiUrl = process.env.NEXT_PUBLIC_AI_ENGINE_URL || 'http://localhost:8000';
+            console.log(`[DagrabaService] Attempting to reach AI Engine at ${aiUrl}...`);
+            const response = await fetch(`${aiUrl}/generate`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -148,7 +149,8 @@ export class DagrabaService implements BaseMusicService {
         // If it's a real Python task
         if (taskId.startsWith('ai_gen_')) {
             try {
-                const response = await fetch(`http://localhost:8000/status/${taskId}`);
+                const aiUrl = process.env.NEXT_PUBLIC_AI_ENGINE_URL || 'http://localhost:8000';
+                const response = await fetch(`${aiUrl}/status/${taskId}`);
                 if (response.ok) {
                     const data = await response.json();
 

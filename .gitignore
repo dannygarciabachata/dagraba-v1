@@ -45,3 +45,12 @@ dsp/
 *.wav
 *.mp3
 
+# Python
+venv/
+.venv/
+__pycache__/
+*.pyc
+
+# Cloudflare
+.open-next/
+.wrangler/

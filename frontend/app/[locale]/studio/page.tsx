@@ -13,10 +13,12 @@ import { PluginWindow } from '@/components/daw/PluginWindow';
 import { TrackTypeModal } from '@/components/daw/TrackTypeModal';
 import { StemExtractModal } from '@/components/daw/StemExtractModal';
 import { DrumPadMidi } from '@/components/daw/DrumPadMidi';
+import { OrchestraTrackControl } from '@/components/daw/OrchestraTrackControl';
 import { MidiKeyboardComponent } from '@/components/daw/MidiKeyboardComponent';
 import { useUserStore } from '@/store/useUserStore';
 import { PlanLock } from '@/components/ui/PlanLock';
 import { useState, useEffect } from 'react';
+import { CreativeBrainPanel } from '@/components/studio/CreativeBrainPanel';
 
 export default function Studio() {
     const plan = useUserStore((state) => state.plan);
@@ -26,8 +28,6 @@ export default function Studio() {
     const isTraining = useDAWStore((state) => state.isTraining);
     const activeBottomPanel = useDAWStore((state) => state.activeBottomPanel);
     const mixerBank = useDAWStore((state) => state.mixerBank);
-    const setMixerBank = useDAWStore((state) => state.setMixerBank);
-    const isFullMixer = useDAWStore((state) => state.isFullMixer);
     const [showTrackModal, setShowTrackModal] = useState(false);
     const [showStemModal, setShowStemModal] = useState(false);
     const [hasHydrated, setHasHydrated] = useState(false);
@@ -38,6 +38,7 @@ export default function Studio() {
 
     const openPluginIds = useDAWStore((state) => state.openPluginIds);
     const closePlugin = useDAWStore((state) => state.closePlugin);
+    const isFullMixer = useDAWStore((state) => state.isFullMixer);
 
     if (!hasHydrated) return null;
 
@@ -56,12 +57,18 @@ export default function Studio() {
             <TransportBar />
 
             {/* CENTER: Audio Timeline & Track Control Column */}
-            <div className={`flex w-full px-8 py-2 gap-4 z-20 max-w-[2000px] mx-auto overflow-hidden transition-all duration-300 ${isFullMixer ? 'absolute -top-[9999px] opacity-0 h-0 pointer-events-none' : (activeBottomPanel !== 'closed' ? 'min-h-[250px] flex-1' : 'flex-1 h-full pb-8')
+            <div className={`flex w-full px-6 py-2 gap-4 z-20 max-w-[2400px] mx-auto overflow-hidden transition-all duration-300 ${isFullMixer ? 'absolute -top-[9999px] opacity-0 h-0 pointer-events-none' : (activeBottomPanel !== 'closed' ? 'min-h-[250px] flex-1' : 'flex-1 h-full pb-8')
                 }`}>
                 {/* Left Column: Track Controls */}
-                <div className="w-[200px] bg-[#111113]/80 backdrop-blur-md border border-[#333] flex flex-col overflow-y-auto shadow-2xl rounded-md shrink-0 py-4 custom-scrollbar">
+                <div className="w-[320px] bg-[#111113]/80 backdrop-blur-md border border-[#333] flex flex-col overflow-y-auto shadow-2xl rounded-md shrink-0 py-4 px-3 gap-3 custom-scrollbar">
+                    <div className="flex items-center justify-between px-2 mb-2">
+                        <h3 className="text-[10px] font-black tracking-[0.2em] text-silver-dark uppercase flex items-center gap-2">
+                            <Layers size={12} /> ORCHESTRA VIEW
+                        </h3>
+                    </div>
+
                     {tracks.map((track) => (
-                        <DawTrackControl key={track.id} trackId={track.id} trackName={track.name} color={track.color} />
+                        <OrchestraTrackControl key={track.id} trackId={track.id} />
                     ))}
 
                     {/* Extract Stems button */}
@@ -83,6 +90,11 @@ export default function Studio() {
                 {/* Main Timeline Canvas */}
                 <div className="flex-1 bg-[#1A1A1C]/90 backdrop-blur-md relative border border-[#333] shadow-2xl rounded-md overflow-hidden">
                     <AudioTimeline />
+                </div>
+
+                {/* Right Column: Creative Brain */}
+                <div className="w-[350px] shrink-0 flex flex-col gap-4 overflow-y-auto custom-scrollbar">
+                    <CreativeBrainPanel />
                 </div>
             </div>
 
