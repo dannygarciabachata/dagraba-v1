@@ -4,3 +4,4 @@ compatibility_flags = ["nodejs_compat"]
 
 # Cloudflare Pages build output (required for Pages)
 pages_build_output_dir = ".open-next"
+main = ".open-next/worker.js"
