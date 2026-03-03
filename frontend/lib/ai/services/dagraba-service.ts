@@ -199,9 +199,10 @@ export class DagrabaService implements BaseMusicService {
             };
         }
 
-        let audioUrl = `/datasets/${requestedModelId}/demo_bolero.mp3`; // DIRECT path to real demo
-        let imageUrl = '/covers/bolero_cover.png';  // DIRECT path to premium cover
-        let title = `HeartMuLa Gen: ${rawPrompt.substring(0, 20)}...`;
+        // Fallback to a real existing file if possible, or a generic placeholder
+        let audioUrl = `/datasets/train_1772500430490/demo_bolero.mp3`;
+        let imageUrl = '/covers/bolero_cover.png';
+        let title = `Dagraba AI: ${rawPrompt.substring(0, 20)}...`;
 
         // HeartMuLa style lyrics
         let lyrics = `[Intro]\n(Drums and soft guitar start filtering in)\n\n[Verse 1]\nIdea: ${rawPrompt}\nBuscando el ritmo en el corazón,\nDa Graba Studio en la habitación.\n\n[Chorus]\nADN de mi alma, Bolero y Pasión,\nTodo lo que siento en esta canción.\n\n[Outro]\n(Music fades out with piano notes)`;

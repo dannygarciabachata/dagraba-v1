@@ -60,7 +60,7 @@ class AudioMixerAgent:
                 "-b:a", "320k",
                 output_mp3
             ]
-            subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True)
+            subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True, stdin=subprocess.DEVNULL)
             logger.info(f"Successfully mastered via FFmpeg to: {output_mp3}")
             return True
         except Exception as e:

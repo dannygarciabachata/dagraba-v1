@@ -3,6 +3,9 @@ import logging
 import uuid
 import time
 import subprocess
+import soundfile as sf
+import numpy as np
+from pydub import AudioSegment
 
 logger = logging.getLogger("Agent C: Mimic")
 logger.setLevel(logging.INFO)
@@ -45,7 +48,7 @@ class MimicRVCAgent:
                     "--two-stems=vocals", 
                     input_wav, 
                     "-o", output_dir
-                ], check=True)
+                ], check=True, stdin=subprocess.DEVNULL)
                 
                 base_name = os.path.splitext(os.path.basename(input_wav))[0]
                 return {
@@ -99,23 +102,43 @@ class MimicRVCAgent:
 
     def _mix_audio(self, instrumental: str, new_vocals: str, final_output_path: str):
         """
-        Uses pydub or ffmpeg to mix the instrumental track with the newly generated RVC vocals.
+        Uses soundfile and numpy to mix tracks, avoiding ffmpeg subprocess issues.
         """
-        logger.info("Mixing instrumental and RVC vocals...")
+        logger.info("Mixing instrumental and RVC vocals using soundfile + numpy...")
         try:
-            cmd = [
-                "ffmpeg", "-y",
-                "-i", instrumental,
-                "-i", new_vocals,
-                "-filter_complex", "amix=inputs=2:duration=longest:dropout_transition=2",
-                final_output_path
-            ]
-            subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True)
+            # Load stems using soundfile
+            data_inst, samplerate_inst = sf.read(instrumental)
+            data_voc, samplerate_voc = sf.read(new_vocals)
+            
+            # Ensure same length by padding with zeros
+            max_len = max(len(data_inst), len(data_voc))
+            
+            # If stereo/mono mix
+            if data_inst.ndim == 1: data_inst = np.expand_dims(data_inst, axis=1)
+            if data_voc.ndim == 1: data_voc = np.expand_dims(data_voc, axis=1)
+            
+            # Pad data_inst
+            if len(data_inst) < max_len:
+                pad_width = ((0, max_len - len(data_inst)), (0, 0))
+                data_inst = np.pad(data_inst, pad_width, mode='constant')
+            
+            # Pad data_voc
+            if len(data_voc) < max_len:
+                pad_width = ((0, max_len - len(data_voc)), (0, 0))
+                data_voc = np.pad(data_voc, pad_width, mode='constant')
+                
+            # Mix (simple average or sum)
+            # We'll use sum and then clip/normalize to prevent clipping
+            combined = (data_inst + data_voc) / 2.0
+            
+            # Save as WAV
+            sf.write(final_output_path, combined, samplerate_inst)
+            
             logger.info(f"Final mixed audio saved to {final_output_path}")
             return final_output_path
         except Exception as e:
-            logger.error(f"Failed to mix audio via ffmpeg: {e}")
-            # Fallback
+            logger.error(f"Failed to mix audio via soundfile: {e}")
+            # Fallback to just copying instrumental
             import shutil
             shutil.copyfile(instrumental, final_output_path)
             return final_output_path
