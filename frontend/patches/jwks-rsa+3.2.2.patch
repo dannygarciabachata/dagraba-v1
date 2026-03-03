@@ -1,0 +1,20 @@
+diff --git a/node_modules/jwks-rsa/src/integrations/passport.js b/node_modules/jwks-rsa/src/integrations/passport.js
+index 7253456..9302e1c 100644
+--- a/node_modules/jwks-rsa/src/integrations/passport.js
++++ b/node_modules/jwks-rsa/src/integrations/passport.js
+@@ -1,4 +1,4 @@
+-const jose = require('jose');
++const jose = {};
+ const jwt = require('jsonwebtoken');
+ 
+ const JwksClient = require('../JwksClient');
+diff --git a/node_modules/jwks-rsa/src/utils.js b/node_modules/jwks-rsa/src/utils.js
+index b81bdf9..34a3e2a 100644
+--- a/node_modules/jwks-rsa/src/utils.js
++++ b/node_modules/jwks-rsa/src/utils.js
+@@ -1,4 +1,4 @@
+-const jose = require('jose');
++const jose = {};
+ 
+ function certToPEM(cert) {
+   cert = cert.match(/.{1,64}/g).join('\n');
