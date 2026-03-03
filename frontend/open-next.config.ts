@@ -22,5 +22,10 @@ export default {
       queue: "dummy"
     }
   },
-  edgeExternals: ["node:crypto", "jose", "jwks-rsa"]
+  edgeExternals: ["node:crypto", "jose", "jwks-rsa"],
+  build: {
+    middleware: {
+      external: ["jose", "jwks-rsa"]
+    }
+  }
 } as OpenNextConfig;
