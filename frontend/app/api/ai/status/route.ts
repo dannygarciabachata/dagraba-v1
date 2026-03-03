@@ -11,8 +11,8 @@ export async function GET(request: Request) {
     let provider = searchParams.get('provider') || 'kie';
     const type = searchParams.get('type') || 'music'; // 'music', 'video', 'market'
 
-    // Auto-detect Dagraba tasks
-    if (taskId?.startsWith('local_') || taskId?.startsWith('train_')) {
+    // Auto-detect Dagraba tasks and Python Engine tasks
+    if (taskId?.startsWith('local_') || taskId?.startsWith('train_') || taskId?.startsWith('ai_gen_')) {
         provider = 'dagraba';
     }
 

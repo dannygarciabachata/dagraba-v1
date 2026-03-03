@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, onAuthStateChanged, signOut, GoogleAuthProvider, signInWithPopup, signInWithRedirect } from 'firebase/auth';
 import { auth } from '@/lib/firebase/config';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 
 interface AuthContextType {
     user: User | null;
@@ -33,11 +33,30 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const [user, setUser] = useState<User | null>(null);
     const [isSuperAdmin, setIsSuperAdmin] = useState(false);
     const [loading, setLoading] = useState(true);
-    const [loginModalOpen, setLoginModalOpen] = useState(false);
+    const [loginModalOpen, setLoginModalOpenState] = useState(false);
+
+    // Enhanced setLoginModalOpen with tracing
+    const setLoginModalOpen = (value: boolean) => {
+        console.log('[DEBUG] setLoginModalOpen called with:', value, new Error().stack);
+        setLoginModalOpenState(value);
+    };
+
     const router = useRouter();
+    const params = useParams();
+    const locale = (params?.locale as string) || 'es';
+
+    useEffect(() => {
+        console.log('[DEBUG] AuthProvider mounted with locale:', locale);
+        return () => console.log('[DEBUG] AuthProvider unmounted');
+    }, [locale]);
+
+    useEffect(() => {
+        console.log('[DEBUG] loginModalOpen state changed to:', loginModalOpen);
+    }, [loginModalOpen]);
 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+            console.log('[DEBUG] onAuthStateChanged fired, user:', currentUser?.email || 'null');
             setUser(currentUser);
 
             const superAdminEmail = 'dagrabastudio@gmail.com';
@@ -111,24 +130,28 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             useUserStore.getState().clearUser();
 
             // Redirect to landing page after sign out
-            window.location.href = '/';
+            window.location.href = `/${locale}`;
         } catch (error) {
-            console.error("Logout failed", error);
+            console.error('[DEBUG] logout error:', error);
+            router.push(`/${locale}`);
         }
     };
 
     const signInWithGoogle = async () => {
         const provider = new GoogleAuthProvider();
         try {
-            await signInWithPopup(auth, provider);
+            console.log('[DEBUG] signInWithGoogle starting...');
+            const result = await signInWithPopup(auth, provider);
+            console.log('[DEBUG] signInWithGoogle success, user:', result.user.email);
             setLoginModalOpen(false); // Close modal on success
-            router.push('/pricing'); // Redirect to pricing after login
+            router.push(`/${locale}/pricing`);
         } catch (error: any) {
+            console.error('[DEBUG] signInWithGoogle error:', error);
             if (error.code === 'auth/popup-blocked') {
-                console.warn("Popup blocked by browser. Falling back to redirect...");
+                console.warn("[DEBUG] Popup blocked, falling back to redirect...");
                 await signInWithRedirect(auth, provider);
             } else {
-                console.error("Google sync failed", error);
+                alert(`Error de autenticación: ${error.message}`);
             }
         }
     };

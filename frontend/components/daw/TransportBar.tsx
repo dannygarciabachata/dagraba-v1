@@ -29,6 +29,8 @@ export function TransportBar() {
     const setMasterLevel = useDAWStore((state) => state.setMasterLevel);
     const isFullMixer = useDAWStore((state) => state.isFullMixer);
     const setFullMixer = useDAWStore((state) => state.setFullMixer);
+    const tempo = useDAWStore((state) => state.tempo);
+    const setTempo = useDAWStore((state) => state.setTempo);
 
     const isGlobalRecording = useDAWStore((state) => state.isGlobalRecording);
     const setIsGlobalRecording = useDAWStore((state) => state.setIsGlobalRecording);
@@ -49,7 +51,16 @@ export function TransportBar() {
         return () => clearInterval(interval);
     }, [isPlaying, setMasterLevel]);
 
-    const handleTogglePlay = () => {
+    // Sync Store states with AudioEngine
+    useEffect(() => {
+        audioEngine.setMetronomeEnabled(isMetronomeOn);
+    }, [isMetronomeOn]);
+
+    useEffect(() => {
+        audioEngine.setTempo(tempo);
+    }, [tempo]);
+
+    const handlePlayPause = () => {
         if (isPlaying) {
             audioEngine.pause();
             setIsPlayingStore(false);
@@ -78,7 +89,7 @@ export function TransportBar() {
 
             // Auto-play if not playing
             if (!isPlaying) {
-                handleTogglePlay();
+                handlePlayPause();
             }
         }
     };
@@ -99,6 +110,23 @@ export function TransportBar() {
             setTrainingStatus(false);
         }
     };
+
+    // Handle basic keyboard shortcuts
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+
+            if (e.code === 'Space') {
+                e.preventDefault();
+                handlePlayPause();
+            } else if (e.key.toLowerCase() === 'k') {
+                toggleMetronome();
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [isPlaying, isMetronomeOn, toggleMetronome]);
 
     return (
         <div className="h-16 flex items-center justify-between px-4 border-b border-[#222] bg-[#1C1C1E] shadow-md z-30 shrink-0 font-sans">
@@ -145,10 +173,10 @@ export function TransportBar() {
                     >
                         <SkipForward size={16} />
                     </button>
-                    <button className={`p-1.5 transition-colors rounded hover:bg-[#222] ${isPlaying ? 'text-white' : 'text-[#AAA] hover:text-white'}`} onClick={handleTogglePlay}>
+                    <button className={`p-1.5 transition-colors rounded hover:bg-[#222] ${isPlaying ? 'text-white' : 'text-[#AAA] hover:text-white'}`} onClick={handlePlayPause}>
                         <Square size={16} fill={isPlaying ? "currentColor" : "none"} />
                     </button>
-                    <button className={`p-1.5 transition-colors rounded hover:bg-[#222] ${isPlaying ? 'text-[#A4ECA1]' : 'text-[#AAA] hover:text-white'}`} onClick={handleTogglePlay}>
+                    <button className={`p-1.5 transition-colors rounded hover:bg-[#222] ${isPlaying ? 'text-[#A4ECA1]' : 'text-[#AAA] hover:text-white'}`} onClick={handlePlayPause}>
                         <Play size={16} fill={isPlaying ? "currentColor" : "none"} />
                     </button>
                     <button className={`p-1.5 transition-colors rounded hover:bg-[#222] ${isGlobalRecording ? 'text-red-500 animate-pulse' : 'text-[#AAA] hover:text-red-400'}`} onClick={handleToggleRecord}>
@@ -180,9 +208,17 @@ export function TransportBar() {
                             <span className="font-mono text-sm text-[#4A90E2]">120.00</span>
                             <span className="text-[8px] text-[#666] uppercase tracking-widest">Tempo</span>
                         </div>
-                        <div className="flex flex-col items-center">
-                            <span className="font-mono text-sm text-[#E2A04A]">4/4</span>
-                            <span className="text-[8px] text-[#666] uppercase tracking-widest">Sig</span>
+                        <div className="flex flex-col items-center px-4 border-l border-r border-zinc-800 group relative">
+                            <span className="text-[10px] text-zinc-500 font-medium group-hover:text-zinc-400 transition-colors uppercase tracking-widest">Tempo</span>
+                            <div className="flex items-center">
+                                <input
+                                    type="number"
+                                    value={tempo}
+                                    onChange={(e) => setTempo(Number(e.target.value))}
+                                    className="w-12 bg-transparent text-sm font-mono font-bold text-[#4A90E2] focus:outline-none focus:text-white [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none text-right"
+                                />
+                                <span className="text-[10px] text-zinc-600 ml-0.5 mt-1">BPM</span>
+                            </div>
                         </div>
                     </div>
                 </div>

@@ -7,7 +7,7 @@ import {
     Music, Heart, Eye, Share2, MessageSquare,
     Plus, Sparkles, Send, Mic2, Wand2, ChevronDown,
     Settings2, FileAudio, Type, Music4, Zap, RefreshCw, Scissors, ArrowUpRight,
-    MoreVertical, Globe, Trash2, Layers, Bot, Loader2,
+    MoreVertical, Globe, Trash2, Layers, Bot, Loader2, Search, ExternalLink,
     History, FastForward, SkipBack, Repeat, Shuffle, Volume2, Maximize2, X, Download, Command, Disc, Flame, HelpCircle, ListPlus, Copy, Pencil, SlidersHorizontal
 } from 'lucide-react';
 import { useDAWStore } from '@/store/useDAWStore';
@@ -18,12 +18,12 @@ import { Slider } from '@/components/ui/Slider';
 import { useUserStore } from '@/store/useUserStore';
 import { useAuth } from '@/context/AuthContext';
 
-const GENRES = [
-    'Trap', 'Reggaeton', 'Drill', 'R&B', 'Pop Urbano',
-    'Afrobeat', 'Dembow', 'Salsa', 'Bachata', 'Hip Hop',
-    'House', 'Synthwave', 'Lofi', 'Corridos Tumbados'
-];
-
+const GENRE_CATEGORIES = {
+    'Urbano': ['Trap', 'Reggaeton', 'Drill', 'Dembow', 'Hip Hop', 'Afrobeat'],
+    'Tropical': ['Salsa', 'Bachata', 'Bolero', 'Corridos Tumbados'],
+    'Electronic': ['House', 'Synthwave', 'Lofi'],
+    'Pop/R&B': ['R&B', 'Pop Urbano']
+};
 
 export default function Crear() {
     const router = useRouter();
@@ -61,6 +61,40 @@ export default function Crear() {
     const [selectedTool, setSelectedTool] = useState('Create Anything');
     const [showToolsMenu, setShowToolsMenu] = useState(false);
     const [selectedGenre, setSelectedGenre] = useState<string | null>(null);
+    const [customModels, setCustomModels] = useState<any[]>([]);
+    const [selectedModelId, setSelectedModelId] = useState<string>('default');
+    const [isLoadingModels, setIsLoadingModels] = useState(false);
+
+    // AI Enrichment State
+    const [showEnrichForm, setShowEnrichForm] = useState(false);
+    const [enrichQuery, setEnrichQuery] = useState("");
+    const [isEnriching, setIsEnriching] = useState(false);
+
+    useEffect(() => {
+        const fetchCustomModels = async () => {
+            setIsLoadingModels(true);
+            try {
+                const token = await user?.getIdToken();
+                const res = await fetch('/api/ai/train/sao', {
+                    headers: {
+                        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                    }
+                });
+                const data = await res.json();
+                if (data.instruments) {
+                    setCustomModels(data.instruments);
+                }
+            } catch (err) {
+                console.error("Error fetching custom models:", err);
+            } finally {
+                setIsLoadingModels(false);
+            }
+        };
+
+        if (user) {
+            fetchCustomModels();
+        }
+    }, [user]);
 
     const generateAILyrics = () => {
         if (!prompt) return;
@@ -70,6 +104,32 @@ export default function Crear() {
             setLyrics(`[Verse 1]\nEscuchando este beat, siento la energía\nTodo lo que escribo se vuelve melancolía\nBasado en lo que pediste: ${prompt}\n\n[Chorus]\nEsta es la IA escribiendo por ti\nCambiamos el juego, ya estamos aquí...`);
             setIsGeneratingLyrics(false);
         }, 1500);
+    };
+
+    const handleAIEnrich = async () => {
+        if (!enrichQuery) return;
+        setIsEnriching(true);
+        try {
+            // Assume format "Artist - Song" or just query
+            const parts = enrichQuery.split('-').map(p => p.trim());
+            const artist = parts[0];
+            const track = parts[1] || parts[0];
+
+            const res = await fetch(`/api/ai/enrich?artist=${encodeURIComponent(artist)}&track=${encodeURIComponent(track)}`);
+            const data = await res.json();
+
+            if (data.success && data.generatedPrompt) {
+                setPrompt(data.generatedPrompt);
+                setShowEnrichForm(false);
+                setEnrichQuery("");
+            } else {
+                alert("No pudimos encontrar inspiración para esa canción. ¡Prueba otra!");
+            }
+        } catch (err) {
+            console.error("Enrichment error:", err);
+        } finally {
+            setIsEnriching(false);
+        }
     };
 
     const handleEditAction = async () => {
@@ -152,15 +212,19 @@ export default function Crear() {
 
             if (data.success && data.data) {
                 const status = data.data.status;
+                console.log(`[POLL] Task ${taskId} status:`, status, data.data);
                 if (status === 'SUCCESS' || status === 'PARTIAL') {
                     // Update the track with real data
                     if (data.data.tracks && data.data.tracks.length > 0) {
                         const generatedTrack = data.data.tracks[0];
+                        console.log(`[POLL] Updating track with data:`, generatedTrack);
                         updateTrack(taskId, {
+                            title: generatedTrack.title || undefined,
                             duration: generatedTrack.duration ? `${Math.floor(generatedTrack.duration / 60)}:${Math.floor(generatedTrack.duration % 60).toString().padStart(2, '0')}` : 'Ready',
-                            image: generatedTrack.imageUrl || '/logo_circular.png',
+                            image: generatedTrack.imageUrl || '/logo.jpg',
                             url: generatedTrack.audioUrl || generatedTrack.streamAudioUrl || '',
-                            tags: generatedTrack.tags ? generatedTrack.tags.split(',') : undefined // Will only update if provided
+                            lyrics: generatedTrack.lyrics || undefined,
+                            tags: generatedTrack.tags ? generatedTrack.tags.split(',') : undefined
                         });
 
                         // Stop polling if complete
@@ -228,7 +292,7 @@ export default function Crear() {
                 title: title || undefined,
                 instrumental: isInstrumental,
                 customMode: finalCustomMode,
-                model: 'V4_5',
+                model: selectedModelId !== 'default' ? selectedModelId : 'V4_5',
                 style: finalCustomMode ? finalStyle : undefined,
                 callbackUrl: `${window.location.origin}/api/ai/webhook`
             };
@@ -429,6 +493,23 @@ export default function Crear() {
                         </div>
                     )}
 
+                    {/* Model/Voice Selection */}
+                    <div className="flex flex-col gap-2">
+                        <label className="text-[10px] font-bold text-[#666] tracking-widest uppercase">Modelo / Voz de IA</label>
+                        <select
+                            value={selectedModelId}
+                            onChange={(e) => setSelectedModelId(e.target.value)}
+                            className="w-full bg-[#111] border border-[#222] rounded-xl p-3 text-sm text-silver-light focus:border-orange-500/50 outline-none transition-all appearance-none cursor-pointer"
+                        >
+                            <option value="default">Default (Da Graba V1)</option>
+                            {customModels.map(model => (
+                                <option key={model.id} value={model.id}>
+                                    {model.name} ({model.tags?.[0] || 'Custom'})
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+
                     {/* Title Input */}
                     <input
                         type="text"
@@ -483,37 +564,77 @@ export default function Crear() {
 
                     {/* Main Prompt */}
                     <div className="relative">
-                        {creationMode === 'custom' && (
-                            <span className="text-xs font-bold text-[#888] uppercase tracking-wider mb-2 block">Estilo Musical</span>
-                        )}
-                        <textarea
-                            value={prompt}
-                            onChange={(e) => setPrompt(e.target.value)}
-                            placeholder={creationMode === 'easy' ? "Describe una canción... ej: Un pop acústico cantado por una mujer sobre las estrellas" : "Describe el estilo musical (Ej. trap beat pesado)..."}
-                            className={`${creationMode === 'custom' ? 'h-24' : 'h-32'} w-full bg-[#111] border border-[#222] rounded-xl p-4 text-sm text-silver-light focus:border-orange-500/50 outline-none resize-none transition-all placeholder:text-[#444] custom-scrollbar`}
-                        />
-                        {creationMode === 'easy' && (
-                            <div className="absolute bottom-3 left-3 flex gap-2">
-                                <button className="flex items-center gap-1.5 px-3 py-1.5 bg-[#222] hover:bg-[#333] rounded-lg text-xs font-bold text-[#888] hover:text-white transition-all">
-                                    <FileAudio size={14} /> Attach file
+                        <div className="flex items-center justify-between mb-2">
+                            <span className="text-xs font-bold text-[#888] uppercase tracking-wider">
+                                Idea Musical
+                            </span>
+                            <button
+                                onClick={() => setShowEnrichForm(!showEnrichForm)}
+                                className="flex items-center gap-1.5 text-[10px] font-bold text-[#444] hover:text-orange-500 transition-all uppercase tracking-widest"
+                                title="Enriquecer con IA"
+                            >
+                                <Sparkles size={12} />
+                                {showEnrichForm ? 'Cerrar' : 'IA Magic'}
+                            </button>
+                        </div>
+
+                        {showEnrichForm && (
+                            <div className="mb-4 p-3 bg-orange-600/10 border border-orange-500/20 rounded-xl flex gap-2">
+                                <input
+                                    value={enrichQuery}
+                                    onChange={(e) => setEnrichQuery(e.target.value)}
+                                    placeholder="Artista - Canción"
+                                    className="flex-1 bg-[#050505] border border-[#222] rounded-lg px-3 py-2 text-xs text-white outline-none focus:border-orange-500/50"
+                                    onKeyDown={(e) => e.key === 'Enter' && handleAIEnrich()}
+                                />
+                                <button
+                                    onClick={handleAIEnrich}
+                                    disabled={isEnriching || !enrichQuery}
+                                    className="px-3 bg-orange-600 rounded-lg text-white disabled:opacity-50"
+                                >
+                                    {isEnriching ? <Loader2 size={14} className="animate-spin" /> : <Search size={14} />}
                                 </button>
                             </div>
                         )}
+
+                        <textarea
+                            value={prompt}
+                            onChange={(e) => setPrompt(e.target.value)}
+                            placeholder="Escribe tu idea... ej: Un bolero romántico con requinto de nylon"
+                            className={`${creationMode === 'custom' ? 'h-24' : 'h-32'} w-full bg-[#111] border border-[#222] rounded-xl p-4 text-sm text-silver-light focus:border-orange-500/50 outline-none resize-none transition-all placeholder:text-[#444] custom-scrollbar`}
+                        />
                     </div>
 
-                    {/* Genres Carousel */}
-                    <div className="flex overflow-x-auto custom-scrollbar pb-2 gap-2 mt-[-8px]">
-                        {GENRES.map(genre => (
-                            <button
-                                key={genre}
-                                onClick={() => setSelectedGenre(selectedGenre === genre ? null : genre)}
-                                className={`whitespace-nowrap px-3 py-1.5 border rounded-full text-[10px] font-bold tracking-wider transition-all ${selectedGenre === genre
-                                    ? 'bg-orange-600/20 border-orange-500/60 text-orange-400 shadow-[0_0_8px_rgba(255,107,0,0.3)]'
-                                    : 'bg-[#111] hover:bg-[#222] border-[#222] hover:border-[#333] text-[#888] hover:text-white'
-                                    }`}
-                            >
-                                {genre}
-                            </button>
+                    {/* Categorized Genres Selection */}
+                    <div className="flex flex-col gap-5 mt-2">
+                        {Object.entries(GENRE_CATEGORIES).map(([category, items]) => (
+                            <div key={category} className="flex flex-col gap-2">
+                                <span className="text-[9px] font-black text-[#333] uppercase tracking-[0.2em]">{category}</span>
+                                <div className="flex flex-wrap gap-2">
+                                    {items.map(genre => (
+                                        <button
+                                            key={genre}
+                                            onClick={() => {
+                                                if (selectedGenre === genre) {
+                                                    setSelectedGenre(null);
+                                                } else {
+                                                    setSelectedGenre(genre);
+                                                    if (genre === 'Bolero' || genre === 'Bachata') {
+                                                        const boleroModel = customModels.find(cm => cm.name.toLowerCase().includes('bolero'));
+                                                        if (boleroModel) setSelectedModelId(boleroModel.id);
+                                                    }
+                                                }
+                                            }}
+                                            className={`px-3 py-1.5 border rounded-lg text-[10px] font-bold tracking-wider transition-all ${selectedGenre === genre
+                                                ? 'bg-orange-600/20 border-orange-500/60 text-orange-400 shadow-[0_0_8px_rgba(255,107,0,0.3)]'
+                                                : 'bg-[#080808] border-[#111] hover:border-[#222] text-[#666] hover:text-white'
+                                                }`}
+                                        >
+                                            {genre}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
                         ))}
                     </div>
 
@@ -588,7 +709,29 @@ export default function Crear() {
                     </div>
                     <div className="grid grid-cols-2 gap-2">
                         {['Trap V2', 'Lofi Sad', 'Hard Drill', 'Bolero IA'].map(m => (
-                            <div key={m} className="px-3 py-2 bg-[#111] border border-[#222] rounded-lg text-[10px] text-[#888] hover:text-orange-500 hover:border-orange-500/30 cursor-pointer transition-all">
+                            <div
+                                key={m}
+                                onClick={() => {
+                                    if (m === 'Bolero IA') {
+                                        const boleroModel = customModels.find(cm => cm.name.toLowerCase().includes('bolero'));
+                                        if (boleroModel) {
+                                            setSelectedModelId(boleroModel.id);
+                                            setSelectedGenre('Bachata');
+                                            setPrompt("Bolero romántico con ADN de mi ADN");
+                                        } else {
+                                            setSelectedGenre('Bachata');
+                                            setPrompt("Bolero");
+                                        }
+                                    } else {
+                                        setSelectedGenre(m.split(' ')[0]);
+                                        setPrompt(m);
+                                    }
+                                }}
+                                className={`px-3 py-2 border rounded-lg text-[10px] transition-all cursor-pointer ${(m === 'Bolero IA' && selectedModelId !== 'default') || (prompt.includes(m))
+                                    ? 'bg-orange-600/20 border-orange-500/50 text-orange-500'
+                                    : 'bg-[#111] border-[#222] text-[#888] hover:text-orange-500 hover:border-orange-500/30'
+                                    }`}
+                            >
                                 {m}
                             </div>
                         ))}

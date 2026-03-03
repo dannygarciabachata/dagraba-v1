@@ -1,0 +1,12 @@
+fastapi
+uvicorn
+pydantic
+torch
+torchaudio
+transformers
+python-multipart
+audiocraft
+pydub
+numpy
+soundfile
+librosa

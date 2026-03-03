@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 export const dynamic = "force-dynamic";
 import { SAOClient } from '@/lib/ai/sao-client';
 import { getAuthenticatedUser, unauthorizedResponse } from '@/lib/auth-server';
+import { prisma } from '@/lib/prisma';
+import { JsonDbService } from '@/lib/ai/services/json-db-service';
 
 export async function POST(req: Request) {
     // SECURITY: Strictly for authenticated users
@@ -49,13 +51,23 @@ export async function GET(req: Request) {
     }
 
     try {
+        const jsonDb = new JsonDbService();
+        const models = await jsonDb.getModels();
+
+        // Optional filtering by userId if implemented in JSON later, for now we serve all models
         return NextResponse.json({
-            instruments: [
-                { id: 'bolero-v1', name: 'Bolero Orchestra', tags: ['Bolero', 'Orchestra', 'Acoustic'] },
-                { id: 'trap-v1', name: 'Trap Base', tags: ['Trap', 'Bass', 'Electronic'] }
-            ]
+            instruments: models.map(inst => ({
+                id: inst.id,
+                name: inst.name,
+                description: inst.description,
+                tags: inst.tags || [],
+                baseModel: inst.baseModel || 'google/nano-banana',
+                status: inst.status || 'READY',
+                createdAt: inst.created_at || new Date().toISOString()
+            }))
         });
     } catch (error: any) {
+        console.error('Failed to fetch instruments:', error);
         return NextResponse.json({ error: 'Failed to fetch instruments' }, { status: 500 });
     }
 }

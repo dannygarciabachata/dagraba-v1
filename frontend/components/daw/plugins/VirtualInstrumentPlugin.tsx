@@ -3,6 +3,7 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { Upload, RefreshCw, Brain, Piano as PianoIcon, ChevronDown } from 'lucide-react';
 import { SOUND_BANKS, SoundBank, midiToFreq, type ADSR } from '@/lib/soundBanks';
+import { midiEngine, MidiMessage } from '@/lib/midi/MidiEngine';
 
 interface VirtualInstrumentPluginProps {
     insert: { id: string; settings: any };
@@ -42,8 +43,30 @@ const getAudioCtx = () => {
     return audioCtx;
 };
 
+const activeOscillators = new Map<number, { osc: OscillatorNode; gain: GainNode; filter?: BiquadFilterNode }>();
+
+function stopNote(midi: number, bank: SoundBank) {
+    const active = activeOscillators.get(midi);
+    if (!active) return;
+
+    const { osc, gain } = active;
+    const ctx = getAudioCtx();
+    const now = ctx.currentTime;
+    const { release } = bank.adsr;
+
+    gain.gain.cancelScheduledValues(now);
+    gain.gain.setValueAtTime(gain.gain.value, now);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + release);
+
+    osc.stop(now + release + 0.1);
+    activeOscillators.delete(midi);
+}
+
 function playNote(midi: number, bank: SoundBank) {
     try {
+        // Stop existing note if already playing (monophonic behavior per MIDI note)
+        stopNote(midi, bank);
+
         const ctx = getAudioCtx();
         if (ctx.state === 'suspended') ctx.resume();
 
@@ -54,18 +77,16 @@ function playNote(midi: number, bank: SoundBank) {
         osc.type = bank.oscillator;
         osc.frequency.value = freq;
 
-        // ADSR
+        // ADSR: Attack and Decay
         const now = ctx.currentTime;
-        const { attack, decay, sustain, release } = bank.adsr;
+        const { attack, decay, sustain } = bank.adsr;
         gainNode.gain.setValueAtTime(0, now);
         gainNode.gain.linearRampToValueAtTime(bank.gain, now + attack);
         gainNode.gain.linearRampToValueAtTime(bank.gain * sustain, now + attack + decay);
-        gainNode.gain.setValueAtTime(bank.gain * sustain, now + attack + decay + 0.2);
-        gainNode.gain.linearRampToValueAtTime(0, now + attack + decay + 0.2 + release);
 
-        // Filter
+        let filter: BiquadFilterNode | undefined;
         if (bank.filterFreq > 0) {
-            const filter = ctx.createBiquadFilter();
+            filter = ctx.createBiquadFilter();
             filter.type = 'lowpass';
             filter.frequency.value = bank.filterFreq;
             filter.Q.value = bank.filterQ;
@@ -77,7 +98,7 @@ function playNote(midi: number, bank: SoundBank) {
         gainNode.connect(ctx.destination);
 
         osc.start(now);
-        osc.stop(now + attack + decay + 0.2 + release + 0.1);
+        activeOscillators.set(midi, { osc, gain: gainNode, filter });
     } catch (e) {
         console.error('Audio playback error', e);
     }
@@ -105,24 +126,58 @@ export function VirtualInstrumentPlugin({ insert, onSettingsChange }: VirtualIns
         onSettingsChange({ ...insert.settings, bankId: id });
     };
 
-    const triggerKey = useCallback((midi: number) => {
+    const triggerKey = useCallback((midi: number, isNoteOn: boolean) => {
         const shifted = midi + octaveShift * 12;
-        setActiveKeys(prev => new Set([...prev, shifted]));
-        playNote(shifted, bank);
-        setTimeout(() => setActiveKeys(prev => { const n = new Set(prev); n.delete(shifted); return n; }), 300);
+        if (isNoteOn) {
+            setActiveKeys(prev => new Set([...prev, shifted]));
+            playNote(shifted, bank);
+        } else {
+            setActiveKeys(prev => { const n = new Set(prev); n.delete(shifted); return n; });
+            stopNote(shifted, bank);
+        }
     }, [bank, octaveShift]);
 
     // Keyboard shortcuts: a-s-d-f-g-h-j-k-l = white keys C3..A3
     useEffect(() => {
         const keyMap: Record<string, number> = { a: 48, s: 50, d: 52, f: 53, g: 55, h: 57, j: 59, k: 60, l: 62, w: 49, e: 51, t: 54, y: 56, u: 58 };
-        const onKey = (e: KeyboardEvent) => {
+        const onKeyDown = (e: KeyboardEvent) => {
             if (e.repeat || e.metaKey || e.ctrlKey) return;
             const midi = keyMap[e.key.toLowerCase()];
-            if (midi) triggerKey(midi);
+            if (midi) triggerKey(midi, true);
         };
-        window.addEventListener('keydown', onKey);
-        return () => window.removeEventListener('keydown', onKey);
+        const onKeyUp = (e: KeyboardEvent) => {
+            const midi = keyMap[e.key.toLowerCase()];
+            if (midi) triggerKey(midi, false);
+        };
+        window.addEventListener('keydown', onKeyDown);
+        window.addEventListener('keyup', onKeyUp);
+        return () => {
+            window.removeEventListener('keydown', onKeyDown);
+            window.removeEventListener('keyup', onKeyUp);
+        };
     }, [triggerKey]);
+
+    // MIDI Engine Listener: Connect to hardware and global MIDI messages
+    useEffect(() => {
+        const handleMidi = (msg: MidiMessage) => {
+            if (msg.isNoteOn()) {
+                const midi = msg.getNoteNumber();
+                setActiveKeys(prev => new Set([...prev, midi]));
+                playNote(midi, bank);
+            } else if (msg.isNoteOff()) {
+                const midi = msg.getNoteNumber();
+                setActiveKeys(prev => {
+                    const next = new Set(prev);
+                    next.delete(midi);
+                    return next;
+                });
+                stopNote(midi, bank);
+            }
+        };
+
+        midiEngine.addListener(handleMidi);
+        return () => midiEngine.removeListener(handleMidi);
+    }, [bank]);
 
     const whiteKeys = PIANO_KEYS.filter(k => !k.isBlack);
     const blackKeys = PIANO_KEYS.filter(k => k.isBlack);
@@ -218,7 +273,9 @@ export function VirtualInstrumentPlugin({ insert, onSettingsChange }: VirtualIns
                     {whiteKeys.map(k => (
                         <button
                             key={k.midi}
-                            onPointerDown={() => triggerKey(k.midi)}
+                            onPointerDown={() => triggerKey(k.midi, true)}
+                            onPointerUp={() => triggerKey(k.midi, false)}
+                            onPointerLeave={() => triggerKey(k.midi, false)}
                             className={`absolute bottom-0 border border-[#333] rounded-b-md transition-all duration-75 ${activeKeys.has(k.midi + octaveShift * 12) ? 'bg-yellow-400 border-yellow-300' : 'bg-white hover:bg-gray-100'}`}
                             style={{ left: `${k.position * 32}px`, width: '30px', height: '110px' }}
                         >
@@ -229,7 +286,9 @@ export function VirtualInstrumentPlugin({ insert, onSettingsChange }: VirtualIns
                     {blackKeys.map(k => (
                         <button
                             key={k.midi}
-                            onPointerDown={() => triggerKey(k.midi)}
+                            onPointerDown={() => triggerKey(k.midi, true)}
+                            onPointerUp={() => triggerKey(k.midi, false)}
+                            onPointerLeave={() => triggerKey(k.midi, false)}
                             className={`absolute top-0 z-10 rounded-b-sm transition-all duration-75 ${activeKeys.has(k.midi + octaveShift * 12) ? 'bg-yellow-500' : 'bg-[#111] hover:bg-[#222]'}`}
                             style={{ left: `${k.position * 32 + 21}px`, width: '20px', height: '70px' }}
                         />

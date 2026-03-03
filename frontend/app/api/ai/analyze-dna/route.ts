@@ -18,8 +18,11 @@ export async function POST(req: Request) {
     }
 
     try {
-        const formData = await req.json();
-        const { rawAudio, masteredAudio, profileName, genre } = formData;
+        const formData = await req.formData();
+        const rawAudio = formData.get('rawAudio') as File;
+        const masteredAudio = formData.get('masteredAudio') as File;
+        const profileName = formData.get('profileName') as string;
+        const genre = formData.get('genre') as string;
 
         if (!rawAudio || !masteredAudio || !profileName || !genre) {
             return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -32,9 +35,9 @@ export async function POST(req: Request) {
         const rawPath = path.join(tempDir, `${requestId}_raw.wav`);
         const masteredPath = path.join(tempDir, `${requestId}_mastered.wav`);
 
-        // Helper to save base64 to file
-        const saveAudio = async (base64: string, filePath: string) => {
-            const buffer = Buffer.from(base64.split(',')[1] || base64, 'base64');
+        // Helper to save File to disk
+        const saveAudio = async (file: File, filePath: string) => {
+            const buffer = Buffer.from(await file.arrayBuffer());
             await fs.writeFile(filePath, buffer);
         };
 

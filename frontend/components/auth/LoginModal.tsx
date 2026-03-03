@@ -12,19 +12,29 @@ export function LoginModal() {
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
 
+    React.useEffect(() => {
+        console.log('[DEBUG] LoginModal mounted');
+        return () => console.log('[DEBUG] LoginModal unmounted');
+    }, []);
+
     if (!loginModalOpen) return null;
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
+        console.log('[DEBUG] handleSubmit starting...', { isRegistering, email });
         try {
             if (isRegistering) {
                 await createUserWithEmailAndPassword(auth, email, password);
+                console.log('[DEBUG] createUserWithEmailAndPassword success');
             } else {
                 await signInWithEmailAndPassword(auth, email, password);
+                console.log('[DEBUG] signInWithEmailAndPassword success');
             }
+            console.log('[DEBUG] Closing modal after success');
             setLoginModalOpen(false);
         } catch (err: any) {
+            console.error('[DEBUG] Authentication error:', err);
             setError(err.message || 'Authentication failed');
         }
     };

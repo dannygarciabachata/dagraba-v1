@@ -1,0 +1,90 @@
+{
+    "styles": {
+        "bolero_clasico": {
+            "genre": "Bolero",
+            "moods": [
+                "romantic",
+                "melancholic",
+                "classic"
+            ],
+            "base_prompt": "classic romantic bolero, acoustic guitar, soft piano, passionate",
+            "bpm_range": [
+                70,
+                90
+            ],
+            "key_signatures": [
+                "A minor",
+                "E minor",
+                "D minor",
+                "G major"
+            ],
+            "model_parameters": {
+                "guidance_scale": 3.0,
+                "duration": 15
+            },
+            "voice_model_id": "Bolero_ADN_V1.pth",
+            "generation_tags": [
+                "acoustic",
+                "bolero",
+                "high-fidelity"
+            ]
+        },
+        "reggaeton_futurista": {
+            "genre": "Reggaeton",
+            "moods": [
+                "energetic",
+                "party",
+                "club",
+                "cyber"
+            ],
+            "base_prompt": "reggaeton beat, cyber synthesizer, heavy bass, futuristic, high fidelity",
+            "bpm_range": [
+                85,
+                105
+            ],
+            "key_signatures": [
+                "C minor",
+                "F minor",
+                "G minor"
+            ],
+            "model_parameters": {
+                "guidance_scale": 3.5,
+                "duration": 15
+            },
+            "voice_model_id": "nana_banana_v2.pth",
+            "generation_tags": [
+                "reggaeton",
+                "electronic",
+                "club-ready"
+            ]
+        },
+        "bachata_moderna": {
+            "genre": "Bachata",
+            "moods": [
+                "dancing",
+                "upbeat",
+                "romantic"
+            ],
+            "base_prompt": "modern bachata, clean bongo, syncopated electric guitar, smooth bass, radio ready",
+            "bpm_range": [
+                115,
+                135
+            ],
+            "key_signatures": [
+                "B minor",
+                "A major",
+                "E major"
+            ],
+            "model_parameters": {
+                "guidance_scale": 4.0,
+                "duration": 15
+            },
+            "voice_model_id": "Bachata_ADN_V1.pth",
+            "generation_tags": [
+                "bachata",
+                "dance",
+                "clean-production"
+            ]
+        }
+    }
+}

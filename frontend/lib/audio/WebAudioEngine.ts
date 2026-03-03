@@ -1,3 +1,5 @@
+import { AudioClip } from '../../store/useDAWStore';
+
 export interface TrackChain {
     input: GainNode;
     inserts: AudioNode[];
@@ -38,6 +40,18 @@ class WebAudioEngine {
     private soloedTracks: Set<string> = new Set();
     private dspWorkletReady = false;
     private inputStream: MediaStream | null = null;
+    private clips: AudioClip[] = [];
+    private clipBuffers: Map<string, AudioBuffer> = new Map();
+    private activeSources: Map<string, AudioBufferSourceNode[]> = new Map(); // Multiple sources per track possible
+
+    // Metronome State
+    private isMetronomeEnabled = false;
+    private tempo = 120;
+    private nextNoteTime = 0.0; // when the next note is due.
+    private currentBeat = 0;
+    private timerID: any = null;
+    private lookahead = 25.0; // how frequently to call scheduling function (in milliseconds)
+    private scheduleAheadTime = 0.1; // how far ahead to schedule audio (in seconds)
 
     constructor() {
         // We delay context creation until a user interaction (play)
@@ -162,20 +176,158 @@ class WebAudioEngine {
         this.initContext();
         this.isPlaying = true;
         this.startTime = this.ctx!.currentTime - this.playhead;
+
+        // Schedule all clips starting from the current playhead
+        this.scheduleClips();
+
+        // Start metronome scheduler if context is ready
+        this.nextNoteTime = this.ctx!.currentTime;
+        this.currentBeat = 0;
+        this.scheduler();
+
         console.log(`[WebAudioEngine] Playback started.`);
+    }
+
+    public async syncClips(clips: AudioClip[]) {
+        this.clips = clips;
+        // Pre-load buffers for new clips
+        for (const clip of clips) {
+            if (clip.audioUrl && !this.clipBuffers.has(clip.audioUrl)) {
+                await this.loadClipBuffer(clip.audioUrl);
+            }
+        }
+
+        // If we're already playing, we should resync sources
+        if (this.isPlaying) {
+            this.stopAllClips();
+            this.scheduleClips();
+        }
+    }
+
+    private async loadClipBuffer(url: string): Promise<AudioBuffer | null> {
+        if (this.clipBuffers.has(url)) return this.clipBuffers.get(url)!;
+        this.initContext();
+        try {
+            const response = await fetch(url);
+            const arrayBuffer = await response.arrayBuffer();
+            const audioBuffer = await this.ctx!.decodeAudioData(arrayBuffer);
+            this.clipBuffers.set(url, audioBuffer);
+            return audioBuffer;
+        } catch (e) {
+            console.error(`[WebAudioEngine] Failed to load buffer for ${url}`, e);
+            return null;
+        }
+    }
+
+    private scheduleClips() {
+        if (!this.ctx || !this.isPlaying) return;
+
+        const now = this.ctx.currentTime;
+
+        for (const clip of this.clips) {
+            const buffer = clip.audioUrl ? this.clipBuffers.get(clip.audioUrl) : null;
+            if (!buffer) continue;
+
+            const chain = this.getOrCreateTrack(clip.trackId);
+            const source = this.ctx.createBufferSource();
+            source.buffer = buffer;
+            source.connect(chain.input);
+
+            // Calculate start and offset
+            let offset = 0;
+            let startAt = now;
+
+            if (this.playhead < clip.startTime) {
+                // Scheduled for the future
+                startAt = now + (clip.startTime - this.playhead);
+                offset = 0;
+            } else if (this.playhead < clip.startTime + clip.duration) {
+                // Currently inside the clip
+                startAt = now;
+                offset = this.playhead - clip.startTime;
+            } else {
+                // Already passed
+                continue;
+            }
+
+            const durationLeft = clip.duration - offset;
+            if (durationLeft <= 0) continue;
+
+            source.start(startAt, offset, durationLeft);
+
+            if (!this.activeSources.has(clip.trackId)) {
+                this.activeSources.set(clip.trackId, []);
+            }
+            this.activeSources.get(clip.trackId)!.push(source);
+        }
+    }
+
+    private stopAllClips() {
+        this.activeSources.forEach((sources) => {
+            sources.forEach(s => {
+                try { s.stop(); } catch (e) { }
+            });
+        });
+        this.activeSources.clear();
+    }
+
+    private scheduler() {
+        if (!this.isPlaying || !this.ctx) return;
+
+        // while there are notes that will need to play before the next interval,
+        // schedule them and advance the pointer.
+        while (this.nextNoteTime < this.ctx.currentTime + this.scheduleAheadTime) {
+            this.scheduleMetronomeClick(this.currentBeat, this.nextNoteTime);
+            this.nextNote();
+        }
+        this.timerID = setTimeout(() => this.scheduler(), this.lookahead);
+    }
+
+    private nextNote() {
+        // Advance current note and time by a 16th note...
+        const secondsPerBeat = 60.0 / this.tempo;
+        this.nextNoteTime += 0.25 * secondsPerBeat; // Add quarter of a beat (16th note)
+
+        this.currentBeat++; // Advance the beat number, wrap to zero
+        if (this.currentBeat === 16) {
+            this.currentBeat = 0;
+        }
+    }
+
+    private scheduleMetronomeClick(beatNumber: number, time: number) {
+        if (!this.isMetronomeEnabled || !this.ctx) return;
+        if (beatNumber % 4 !== 0) return; // Only play on quarter notes
+
+        const osc = this.ctx.createOscillator();
+        const envelope = this.ctx.createGain();
+
+        osc.frequency.value = (beatNumber % 16 === 0) ? 1000 : 800; // Accent on beat 1
+        envelope.gain.value = 1;
+        envelope.gain.exponentialRampToValueAtTime(1, time + 0.001);
+        envelope.gain.exponentialRampToValueAtTime(0.001, time + 0.02);
+
+        osc.connect(envelope);
+        envelope.connect(this.masterGain!);
+
+        osc.start(time);
+        osc.stop(time + 0.03);
     }
 
     pause() {
         this.isPlaying = false;
+        if (this.timerID) clearTimeout(this.timerID);
         if (this.ctx) {
             this.playhead = this.ctx.currentTime - this.startTime;
         }
+        this.stopAllClips();
         console.log(`[WebAudioEngine] Playback paused.`);
     }
 
     stop() {
         this.isPlaying = false;
+        if (this.timerID) clearTimeout(this.timerID);
         this.playhead = 0;
+        this.stopAllClips();
         console.log(`[WebAudioEngine] Playback stopped.`);
     }
 
@@ -183,6 +335,8 @@ class WebAudioEngine {
         this.playhead = seconds;
         if (this.isPlaying && this.ctx) {
             this.startTime = this.ctx.currentTime - seconds;
+            this.stopAllClips();
+            this.scheduleClips();
         }
     }
 
@@ -224,6 +378,14 @@ class WebAudioEngine {
         }
 
         this.updateRoutingLevels();
+    }
+
+    setMetronomeEnabled(enabled: boolean) {
+        this.isMetronomeEnabled = enabled;
+    }
+
+    setTempo(bpm: number) {
+        this.tempo = bpm;
     }
 
     private updateRoutingLevels() {

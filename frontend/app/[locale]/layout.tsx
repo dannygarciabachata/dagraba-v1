@@ -1,5 +1,3 @@
-import type { Metadata } from "next";
-import "./globals.css";
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages } from 'next-intl/server';
 import { notFound } from 'next/navigation';
@@ -10,11 +8,6 @@ import { ThemeProvider } from "@/components/ui/ThemeProvider";
 import { AuthProvider } from "@/context/AuthContext";
 import { LoginModal } from "@/components/auth/LoginModal";
 import { ConvexClientProvider } from "@/components/providers/ConvexClientProvider";
-
-export const metadata: Metadata = {
-  title: "DA GRABA STUDIO V1",
-  description: "Immersive Audio Engineering Console",
-};
 
 const locales = ['en', 'es', 'pt', 'fr', 'de', 'it', 'ja'];
 
@@ -34,40 +27,34 @@ export default async function RootLayout({
   const messages = await getMessages();
 
   return (
-    <html lang={locale}>
-      <body className="antialiased h-screen w-screen overflow-hidden flex text-silver-light selection:bg-cyan-glow/30"
-        style={{ background: 'var(--bg-base)', color: 'var(--text-primary)' }}
-      >
-        <NextIntlClientProvider messages={messages}>
-          <ThemeProvider>
-            <AuthProvider>
-              <ConvexClientProvider>
-                {/* Ambient background layer */}
-                <div className="absolute inset-0 pointer-events-none z-0">
-                  <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.08] mix-blend-overlay" />
-                  <div className="absolute top-0 inset-x-0 h-96 bg-gradient-to-b from-cyan-glow/5 to-transparent blur-3xl opacity-40" />
-                </div>
+    <NextIntlClientProvider messages={messages}>
+      <ThemeProvider>
+        <AuthProvider>
+          <ConvexClientProvider>
+            {/* Ambient background layer */}
+            <div className="absolute inset-0 pointer-events-none z-0">
+              <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.08] mix-blend-overlay" />
+              <div className="absolute top-0 inset-x-0 h-96 bg-gradient-to-b from-cyan-glow/5 to-transparent blur-3xl opacity-40" />
+            </div>
 
-                {/* Sidebar Navigation */}
-                <Sidebar />
+            {/* Sidebar Navigation */}
+            <Sidebar />
 
-                {/* Content Area (Main + Footer) */}
-                <div className="flex-1 flex flex-col h-full overflow-hidden relative z-10">
-                  <main className="flex-1 h-full overflow-y-auto overflow-x-hidden relative">
-                    {children}
-                  </main>
+            {/* Content Area (Main + Footer) */}
+            <div className="flex-1 flex flex-col h-full overflow-hidden relative z-10">
+              <main className="flex-1 h-full overflow-y-auto overflow-x-hidden relative">
+                {children}
+              </main>
 
-                  {/* Persistent Audio Player */}
-                  <GlobalFooterPlayer />
-                </div>
+              {/* Persistent Audio Player */}
+              <GlobalFooterPlayer />
+            </div>
 
-                {/* Global Auth Modal */}
-                <LoginModal />
-              </ConvexClientProvider>
-            </AuthProvider>
-          </ThemeProvider>
-        </NextIntlClientProvider>
-      </body>
-    </html>
+            {/* Global Auth Modal */}
+            <LoginModal />
+          </ConvexClientProvider>
+        </AuthProvider>
+      </ThemeProvider>
+    </NextIntlClientProvider>
   );
 }

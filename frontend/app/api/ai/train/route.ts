@@ -11,10 +11,22 @@ export async function POST(req: Request) {
     }
 
     try {
-        const body = await req.json();
-        const service = new DagrabaService();
+        const formData = await req.formData();
+        const data: any = {};
 
-        const trainingId = await service.trainModel(body);
+        for (const [key, value] of formData.entries()) {
+            if (key === 'audioFiles') {
+                if (!data.audioFiles) data.audioFiles = [];
+                data.audioFiles.push(value);
+            } else {
+                data[key] = value;
+            }
+        }
+
+        data.userId = user.uid;
+
+        const service = new DagrabaService();
+        const trainingId = await service.trainModel(data);
 
         return NextResponse.json({ success: true, trainingId }, { status: 200 });
     } catch (error) {

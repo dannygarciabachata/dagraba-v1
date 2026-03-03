@@ -16,6 +16,16 @@ export interface DAWTrack {
     isSoloed?: boolean;
 }
 
+export interface AudioClip {
+    id: string;
+    trackId: string;
+    startTime: number;   // seconds
+    duration: number;    // seconds
+    color: string;
+    name: string;
+    audioUrl?: string;
+}
+
 export interface FXInsert {
     id: string;
     pluginId: 'gate' | 'eq' | 'leveler' | 'compressor' | 'multiband' | 'limiter' | 'reverb' | 'delay' | 'chorus' | 'distortion' | 'saturator' | 'virtual_instrument';
@@ -42,6 +52,7 @@ export type CloudStatus = 'disconnected' | 'connecting' | 'connected';
 interface DAWStore {
     faders: FaderState[];
     tracks: DAWTrack[];
+    clips: AudioClip[];
     isTraining: boolean;
     activeArtistId: string | null;
     activeBottomPanel: BottomPanelState;
@@ -49,6 +60,7 @@ interface DAWStore {
     cloudStatus: CloudStatus;
     systemMessage: string;
     isMetronomeOn: boolean;
+    tempo: number;
     isPlaying: boolean;
     isGlobalRecording: boolean;
     midiInputId: string | null;
@@ -90,7 +102,14 @@ interface DAWStore {
     setTracks: (tracks: DAWTrack[]) => void;
     clearTracks: () => void;
     removeTrack: (id: string) => void;
+
+    // Clip Management
+    addClip: (clip: AudioClip) => void;
+    updateClip: (id: string, updates: Partial<AudioClip>) => void;
+    removeClip: (id: string) => void;
+    setClips: (clips: AudioClip[]) => void;
     toggleMetronome: () => void;
+    setTempo: (tempo: number) => void;
     setIsPlaying: (playing: boolean) => void;
     setMasterLevel: (level: number) => void;
     setPreviewTrack: (track: any | null) => void;
@@ -113,8 +132,9 @@ interface DAWStore {
 export const useDAWStore = create<DAWStore>()(
     persist(
         (set) => ({
-            faders: [], // Faders are created dynamically per track
+            faders: [],
             tracks: [],
+            clips: [],
             isTraining: false,
             activeArtistId: null,
             activeBottomPanel: 'mixer', // Mixer opens by default
@@ -122,6 +142,7 @@ export const useDAWStore = create<DAWStore>()(
             cloudStatus: 'disconnected',
             systemMessage: '',
             isMetronomeOn: false,
+            tempo: 120,
             isPlaying: false,
             isGlobalRecording: false,
             midiInputId: null,
@@ -156,7 +177,20 @@ export const useDAWStore = create<DAWStore>()(
                     isMuted: t.isMuted ?? false,
                     isSoloed: t.isSoloed ?? false
                 }));
-                return { tracks: initializedTracks, faders: newFaders };
+
+                const newClips: AudioClip[] = tracks
+                    .filter(t => t.audioUrl)
+                    .map(t => ({
+                        id: `clip-${t.id}`,
+                        trackId: t.id,
+                        startTime: 0,
+                        duration: 120, // Default duration if unknown
+                        color: t.color,
+                        name: t.name,
+                        audioUrl: t.audioUrl,
+                    }));
+
+                return { tracks: initializedTracks, faders: newFaders, clips: newClips };
             }),
 
             addTrack: (name, color, trackType = 'mono', audioUrl) => set((state) => {
@@ -204,6 +238,7 @@ export const useDAWStore = create<DAWStore>()(
                 return {
                     tracks: state.tracks.filter(t => t.id !== id),
                     faders: state.faders.filter(f => f.id !== id),
+                    clips: state.clips.filter(c => c.trackId !== id),
                     trackHeights: newHeights
                 };
             }),
@@ -211,6 +246,14 @@ export const useDAWStore = create<DAWStore>()(
             toggleMetronome: () => set((state) => ({
                 isMetronomeOn: !state.isMetronomeOn
             })),
+            setTempo: (tempo) => set({ tempo }),
+
+            addClip: (clip) => set((state) => ({ clips: [...state.clips, clip] })),
+            updateClip: (id, updates) => set((state) => ({
+                clips: state.clips.map(c => c.id === id ? { ...c, ...updates } : c)
+            })),
+            removeClip: (id) => set((state) => ({ clips: state.clips.filter(c => c.id !== id) })),
+            setClips: (clips) => set({ clips }),
 
             setActiveBottomPanel: (panel) => set({ activeBottomPanel: panel }),
             setMixerBank: (bank) => set({ mixerBank: bank }),
@@ -338,6 +381,8 @@ export const useDAWStore = create<DAWStore>()(
             partialize: (state) => ({
                 tracks: state.tracks,
                 faders: state.faders,
+                clips: state.clips,
+                tempo: state.tempo,
                 activeBottomPanel: state.activeBottomPanel,
                 mixerBank: state.mixerBank,
                 isFullMixer: state.isFullMixer,

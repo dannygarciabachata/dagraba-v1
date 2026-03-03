@@ -1,12 +1,14 @@
 export interface TrackData {
     id: string;
     audioUrl: string;
+    url?: string;
     streamAudioUrl?: string;
     imageUrl?: string;
     prompt: string;
     title: string;
     tags: string;
     duration: number;
+    lyrics?: string;
     createTime?: string;
 }
 

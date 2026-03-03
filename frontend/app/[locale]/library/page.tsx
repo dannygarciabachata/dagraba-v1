@@ -7,6 +7,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 
 export default function Library() {
+    const t = useTranslations('Navigation');
     const { user, loading } = useAuth();
     const router = useRouter();
 
@@ -26,7 +27,7 @@ export default function Library() {
 
     if (!user) return null;
 
-    const t = useTranslations('Navigation');
+
 
     return (
         <div className="flex flex-col w-full h-full overflow-y-auto custom-scrollbar bg-[#050505] p-8 md:p-12">

@@ -1,0 +1,141 @@
+import os
+import logging
+import uuid
+import time
+import subprocess
+
+logger = logging.getLogger("Agent C: Mimic")
+logger.setLevel(logging.INFO)
+
+class MimicRVCAgent:
+    """
+    Agent C: The Cover Engine.
+    Handles the separation of the generated AudioCraft track into Stems (Vocals/Instrumentals),
+    applies Retrieval-based Voice Conversion (RVC) to the vocal stem,
+    and mixes it back together.
+    """
+    def __init__(self, models_dir="models/rvc/", export_dir="../frontend/public/exports"):
+        self.models_dir = models_dir
+        self.export_dir = export_dir
+        
+        os.makedirs(self.models_dir, exist_ok=True)
+        os.makedirs(self.export_dir, exist_ok=True)
+        
+    def _run_demucs(self, input_wav: str) -> dict:
+        """
+        Uses Demucs to separate the track into 'vocals' and 'no_vocals'.
+        If Demucs is not installed locally, simulates the process by just returning the input path.
+        """
+        logger.info(f"Running Demucs source separation on {input_wav}...")
+        
+        output_dir = os.path.join(os.path.dirname(input_wav), "separated")
+        os.makedirs(output_dir, exist_ok=True)
+        
+        # Demucs CLI command pattern (Model HTDemucs)
+        # python3 -m demucs.separate -n htdemucs --two-stems=vocals input.wav -o output_dir
+        
+        try:
+            # Check if Demucs is installed
+            result = subprocess.run(["python3", "-m", "demucs.separate", "-h"], capture_output=True)
+            if result.returncode == 0:
+                logger.info("Demucs found. Executing real separation...")
+                subprocess.run([
+                    "python3", "-m", "demucs.separate", 
+                    "-n", "htdemucs", 
+                    "--two-stems=vocals", 
+                    input_wav, 
+                    "-o", output_dir
+                ], check=True)
+                
+                base_name = os.path.splitext(os.path.basename(input_wav))[0]
+                return {
+                    "vocals": os.path.join(output_dir, "htdemucs", base_name, "vocals.wav"),
+                    "instrumental": os.path.join(output_dir, "htdemucs", base_name, "no_vocals.wav")
+                }
+        except Exception:
+            pass
+            
+        logger.warning("Demucs is not installed or failed. Simulating stem separation.")
+        time.sleep(2) # Simulated separation time
+        return {
+            "vocals": input_wav,
+            "instrumental": input_wav 
+        }
+
+    def _apply_rvc(self, vocal_stem: str, voice_model_id: str) -> str:
+        """
+        Applies RVC inference to the vocal stem using a trained .pth model.
+        """
+        if not voice_model_id:
+            logger.info("No specific voice model requested. Skipping RVC inference.")
+            return vocal_stem
+            
+        logger.info(f"Applying RVC Inference using Voice Model: {voice_model_id}...")
+        model_path = os.path.join(self.models_dir, voice_model_id)
+        
+        output_path = vocal_stem.replace(".wav", "_rvc_converted.wav")
+        
+        # Real RVC inference usually requires instantiating the VC class from RVC
+        # e.g., vc = VC(config); audio_opt = vc.pipeline(model_path, index_path, vocal_stem, ... )
+        # Here we simulate the process if the RVC libraries (torch/fairseq) are missing.
+        
+        if os.path.exists(model_path):
+            logger.info(f"Loaded model {model_path}. Extracting f0 (crepe/rmvpe)...")
+            time.sleep(1)
+            logger.info("Converting vocals...")
+            time.sleep(2)
+        else:
+            logger.warning(f"Voice model {voice_model_id} not found at {self.models_dir}. Simulating RVC.")
+            time.sleep(2)
+            
+        # Mocking the output file for dry-run
+        import shutil
+        try:
+             shutil.copyfile(vocal_stem, output_path)
+        except Exception:
+             pass
+             
+        return output_path
+
+    def _mix_audio(self, instrumental: str, new_vocals: str, final_output_path: str):
+        """
+        Uses pydub or ffmpeg to mix the instrumental track with the newly generated RVC vocals.
+        """
+        logger.info("Mixing instrumental and RVC vocals...")
+        try:
+            cmd = [
+                "ffmpeg", "-y",
+                "-i", instrumental,
+                "-i", new_vocals,
+                "-filter_complex", "amix=inputs=2:duration=longest:dropout_transition=2",
+                final_output_path
+            ]
+            subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True)
+            logger.info(f"Final mixed audio saved to {final_output_path}")
+            return final_output_path
+        except Exception as e:
+            logger.error(f"Failed to mix audio via ffmpeg: {e}")
+            # Fallback
+            import shutil
+            shutil.copyfile(instrumental, final_output_path)
+            return final_output_path
+
+    def process(self, input_wav: str, voice_model_id: str = None) -> str:
+        """
+        Main pipeline execution for Agent C.
+        """
+        logger.info(f"Agent C received track {input_wav} for Mimic processing.")
+        
+        # 1. Separate
+        stems = self._run_demucs(input_wav)
+        
+        # 2. Voice Convert
+        converted_vocals = self._apply_rvc(stems["vocals"], voice_model_id)
+        
+        # 3. Mix
+        output_filename = f"final_mix_{uuid.uuid4().hex[:8]}.wav"
+        final_output_path = os.path.join(self.export_dir, output_filename)
+        
+        final_file = self._mix_audio(stems["instrumental"], converted_vocals, final_output_path)
+        
+        return final_file

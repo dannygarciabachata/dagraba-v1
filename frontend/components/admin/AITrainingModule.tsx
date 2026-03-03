@@ -22,7 +22,35 @@ export function AITrainingModule() {
     const [epochs, setEpochs] = useState<number>(100);
     const [isTraining, setIsTraining] = useState(false);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
+    const [isDragging, setIsDragging] = useState(false);
     const [logs, setLogs] = useState<string[]>([]);
+    const [uploadProgress, setUploadProgress] = useState<number>(0);
+
+    const handleDragOver = (e: React.DragEvent) => {
+        e.preventDefault();
+        setIsDragging(true);
+    };
+
+    const handleDragLeave = () => {
+        setIsDragging(false);
+    };
+
+    const handleDrop = (e: React.DragEvent, target: 'dataset' | 'raw' | 'mastered' | 'reference') => {
+        e.preventDefault();
+        setIsDragging(false);
+        const files = Array.from(e.dataTransfer.files);
+        if (files.length === 0) return;
+
+        if (target === 'dataset') {
+            setAudioFiles(prev => [...prev, ...files]);
+        } else if (target === 'raw') {
+            setRawAudio(files[0]);
+        } else if (target === 'mastered') {
+            setMasteredAudio(files[0]);
+        } else if (target === 'reference') {
+            setReferenceTrack(files[0]);
+        }
+    };
 
     const handleAnalyzeDNA = async () => {
         if (!rawAudio || !masteredAudio || !dnaProfileName) return;
@@ -39,28 +67,19 @@ export function AITrainingModule() {
                 return;
             }
 
-            const toBase64 = (file: File) => new Promise<string>((resolve, reject) => {
-                const reader = new FileReader();
-                reader.readAsDataURL(file);
-                reader.onload = () => resolve(reader.result as string);
-                reader.onerror = error => reject(error);
-            });
-
-            const rawBase64 = await toBase64(rawAudio);
-            const masteredBase64 = await toBase64(masteredAudio);
+            const formData = new FormData();
+            formData.append('rawAudio', rawAudio);
+            formData.append('masteredAudio', masteredAudio);
+            formData.append('profileName', dnaProfileName);
+            formData.append('genre', dnaGenre);
 
             const response = await fetch('/api/ai/analyze-dna', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
+                    // FormData automatically sets the correct Content-Type with boundary
                 },
-                body: JSON.stringify({
-                    rawAudio: rawBase64,
-                    masteredAudio: masteredBase64,
-                    profileName: dnaProfileName,
-                    genre: dnaGenre
-                })
+                body: formData
             });
 
             const data = await response.json();
@@ -116,29 +135,55 @@ export function AITrainingModule() {
                 const data = await response.json();
                 setLogs((prev: string[]) => [...prev, `[MODAL] Job ID generado: ${data.modelId || 'pending'}`]);
                 setLogs((prev: string[]) => [...prev, `[GPU] Reservando cluster para Stable Audio Open...`]);
-            } else if (trainingType === 'dagraba') {
-                setLogs((prev: string[]) => [...prev, `[INIT] Iniciando Pipeline de Entrenamiento Dagraba (Local)...`]);
-                const response = await fetch('/api/ai/train', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
-                    body: JSON.stringify({
-                        modelName: modelName || 'Custom Admin Model',
-                        filesCount: audioFiles.length,
-                        hasReference: !!referenceTrack,
-                        category: modelCategory
-                    })
-                });
-                const data = await response.json();
-                setLogs((prev: string[]) => [...prev, `[API] Entrenamiento registrado ID: ${data.trainingId}`]);
-                setLogs((prev: string[]) => [...prev, `[WORKER] Analizando ${referenceTrack ? 'Referencia + ' : ''}${audioFiles.length} archivos...`]);
-                setLogs((prev: string[]) => [...prev, `[CATEGORY] Tipo de Modelo: ${modelCategory.toUpperCase()}`]);
             } else {
-                setTimeout(() => {
-                    setLogs((prev: string[]) => [...prev, `[MODAL] Dispatching job: Voice_Cloning_V1`]);
-                }, 1000);
+                // For dagraba and voice, we use XMLHttpRequest for progress tracking
+                const isDagraba = trainingType === 'dagraba';
+                setLogs((prev: string[]) => [...prev, isDagraba ? `[INIT] Iniciando Pipeline de Entrenamiento Dagraba (Local)...` : `[INIT] Iniciando Entrenamiento de Voz: ${selectedArtist}...`]);
+
+                const formData = new FormData();
+                if (isDagraba) {
+                    formData.append('modelName', modelName || 'Custom Admin Model');
+                    formData.append('category', modelCategory);
+                    if (referenceTrack) formData.append('referenceTrack', referenceTrack);
+                    audioFiles.forEach((file) => formData.append(`audioFiles`, file));
+                } else {
+                    formData.append('modelName', selectedArtist);
+                    formData.append('category', 'vocals');
+                    audioFiles.forEach((file) => formData.append('audioFiles', file));
+                }
+
+                await new Promise((resolve, reject) => {
+                    const xhr = new XMLHttpRequest();
+                    xhr.open('POST', '/api/ai/train', true);
+                    xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+
+                    xhr.upload.onprogress = (event) => {
+                        if (event.lengthComputable) {
+                            const percent = Math.round((event.loaded / event.total) * 100);
+                            setUploadProgress(percent);
+                        }
+                    };
+
+                    xhr.onload = () => {
+                        if (xhr.status >= 200 && xhr.status < 300) {
+                            const data = JSON.parse(xhr.responseText);
+                            setLogs((prev: string[]) => [...prev, `[API] ${isDagraba ? 'Entrenamiento' : 'Voz'} registrado ID: ${data.trainingId}`]);
+                            if (isDagraba) {
+                                setLogs((prev: string[]) => [...prev, `[WORKER] Analizando ${referenceTrack ? 'Referencia + ' : ''}${audioFiles.length} archivos...`]);
+                                setLogs((prev: string[]) => [...prev, `[CATEGORY] Tipo de Modelo: ${modelCategory.toUpperCase()}`]);
+                            } else {
+                                setLogs((prev: string[]) => [...prev, `[MODAL] Dispatching job: Voice_Cloning_V1`]);
+                            }
+                            setUploadProgress(100);
+                            resolve(data);
+                        } else {
+                            reject(new Error(`Upload failed with status ${xhr.status}`));
+                        }
+                    };
+
+                    xhr.onerror = () => reject(new Error('Network error during upload'));
+                    xhr.send(formData);
+                });
             }
 
             setTimeout(() => {
@@ -149,10 +194,13 @@ export function AITrainingModule() {
             setTimeout(() => {
                 setLogs((prev: string[]) => [...prev, `[TRAIN] Completado. Guardando pesos del modelo...`]);
                 setIsTraining(false);
+                setUploadProgress(0); // Reset for next time
             }, 6000);
         } catch (error) {
+            console.error("Training error:", error);
             setLogs((prev: string[]) => [...prev, `[ERROR] Fallo en la comunicación con la API de entrenamiento.`]);
             setIsTraining(false);
+            setUploadProgress(0);
         }
     };
 
@@ -197,7 +245,7 @@ export function AITrainingModule() {
                         className={`px-4 py-1.5 rounded-md text-[10px] font-black tracking-widest transition-all flex items-center gap-2 ${trainingType === 'dagraba' ? 'bg-[#FF6B00] text-black shadow-[0_0_10px_rgba(255,107,0,0.3)]' : 'text-[#444] hover:text-[#888]'
                             }`}
                     >
-                        <Bot size={12} /> DAGRABA
+                        <Binary size={12} /> SONIC DNA (Stems)
                     </button>
                 </div>
             </div>
@@ -229,17 +277,23 @@ export function AITrainingModule() {
                                 <label className="text-xs font-bold text-[#888] tracking-widest flex items-center gap-2">
                                     <FileAudio size={14} /> AUDIO DATASET (10 MIN RECOMENDADOS)
                                 </label>
-                                <div className="border-2 border-dashed border-[#333] rounded-md p-6 flex flex-col items-center justify-center gap-3 hover:border-purple-500 hover:bg-[#111] transition-all cursor-pointer relative">
+                                <div
+                                    onDragOver={handleDragOver}
+                                    onDragLeave={handleDragLeave}
+                                    onDrop={(e) => handleDrop(e, 'dataset')}
+                                    className={`border-2 border-dashed rounded-md p-6 flex flex-col items-center justify-center gap-3 transition-all cursor-pointer relative ${isDragging ? 'border-purple-500 bg-purple-500/10 scale-[1.02]' : 'border-[#333] hover:border-purple-500 hover:bg-[#111]'
+                                        }`}
+                                >
                                     <input
                                         type="file"
                                         multiple
                                         accept="audio/*"
                                         onChange={(e) => {
-                                            if (e.target.files) setAudioFiles(Array.from(e.target.files));
+                                            if (e.target.files) setAudioFiles(prev => [...prev, ...Array.from(e.target.files!)]);
                                         }}
-                                        className="absolute inset-0 opacity-0 cursor-pointer"
+                                        className="absolute inset-0 opacity-0 cursor-pointer z-10"
                                     />
-                                    <UploadCloud size={32} className="text-[#666]" />
+                                    <UploadCloud size={32} className={isDragging ? "text-purple-400" : "text-[#666]"} />
                                     <span className="text-sm font-bold text-[#AAA]">Arrastra audios aquí o haz clic</span>
                                     <span className="text-xs text-[#555]">{audioFiles.length} archivos seleccionados</span>
                                 </div>
@@ -305,11 +359,17 @@ export function AITrainingModule() {
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="flex flex-col gap-2">
                                     <label className="text-[10px] font-bold text-[#666] tracking-tighter uppercase">Mixdown (Crudo)</label>
-                                    <div className="border border-[#333] rounded bg-[#111] p-3 flex flex-col items-center gap-2 relative h-24 justify-center">
+                                    <div
+                                        onDragOver={handleDragOver}
+                                        onDragLeave={handleDragLeave}
+                                        onDrop={(e) => handleDrop(e, 'raw')}
+                                        className={`border rounded p-3 flex flex-col items-center gap-2 relative h-24 justify-center transition-all ${isDragging ? 'border-orange-500 bg-orange-500/10' : 'border-[#333] bg-[#111]'
+                                            }`}
+                                    >
                                         <input
                                             type="file"
                                             accept="audio/*"
-                                            className="absolute inset-0 opacity-0 cursor-pointer"
+                                            className="absolute inset-0 opacity-0 cursor-pointer z-10"
                                             onChange={(e) => setRawAudio(e.target.files?.[0] || null)}
                                         />
                                         <FileAudio size={20} className={rawAudio ? "text-orange-500" : "text-[#444]"} />
@@ -318,10 +378,17 @@ export function AITrainingModule() {
                                 </div>
                                 <div className="flex flex-col gap-2">
                                     <label className="text-[10px] font-bold text-[#666] tracking-tighter uppercase">Master (Danny)</label>
-                                    <div className="border border-[#333] rounded bg-[#111] p-3 flex flex-col items-center gap-2 relative h-24 justify-center">
+                                    <div
+                                        onDragOver={handleDragOver}
+                                        onDragLeave={handleDragLeave}
+                                        onDrop={(e) => handleDrop(e, 'mastered')}
+                                        className={`border rounded p-3 flex flex-col items-center gap-2 relative h-24 justify-center transition-all ${isDragging ? 'border-orange-500 bg-orange-500/10' : 'border-[#333] bg-[#111]'
+                                            }`}
+                                    >
                                         <input
+                                            type="file"
                                             accept="audio/*"
-                                            className="absolute inset-0 opacity-0 cursor-pointer"
+                                            className="absolute inset-0 opacity-0 cursor-pointer z-10"
                                             onChange={(e) => setMasteredAudio(e.target.files?.[0] || null)}
                                         />
                                         <Activity size={20} className={masteredAudio ? "text-orange-500" : "text-[#444]"} />
@@ -376,11 +443,16 @@ export function AITrainingModule() {
                                 <label className="text-xs font-bold text-[#888] tracking-widest flex items-center gap-2">
                                     <Scan size={14} /> 1. TEMA DE REFERENCIA (MIX/MASTER)
                                 </label>
-                                <div className="border border-[#333] rounded bg-[#111] p-3 flex flex-col items-center gap-2 relative h-20 justify-center group hover:border-[#FF6B00]/50 transition-colors">
+                                <div
+                                    onDragOver={handleDragOver}
+                                    onDragLeave={handleDragLeave}
+                                    onDrop={(e) => handleDrop(e, 'reference')}
+                                    className={`border rounded bg-[#111] p-3 flex flex-col items-center gap-2 relative h-20 justify-center transition-all ${isDragging ? 'border-[#FF6B00] bg-[#FF6B00]/10' : 'border-[#333] hover:border-[#FF6B00]/50'}`}
+                                >
                                     <input
                                         type="file"
                                         accept="audio/*"
-                                        className="absolute inset-0 opacity-0 cursor-pointer"
+                                        className="absolute inset-0 opacity-0 cursor-pointer z-10"
                                         onChange={(e) => setReferenceTrack(e.target.files?.[0] || null)}
                                     />
                                     <Zap size={20} className={referenceTrack ? "text-[#FF6B00]" : "text-[#444]"} />
@@ -397,23 +469,25 @@ export function AITrainingModule() {
                                 </label>
                                 <div className="flex flex-col gap-2">
                                     <div
-                                        onClick={() => datasetInputRef.current?.click()}
-                                        className="border-2 border-dashed border-[#333] rounded-md p-6 flex flex-col items-center justify-center gap-3 hover:border-[#FF6B00] hover:bg-[#111] transition-all cursor-pointer relative group"
+                                        onDragOver={handleDragOver}
+                                        onDragLeave={handleDragLeave}
+                                        onDrop={(e) => handleDrop(e, 'dataset')}
+                                        className={`border-2 border-dashed rounded-md p-6 flex flex-col items-center justify-center gap-3 transition-all cursor-pointer relative group ${isDragging ? 'border-[#FF6B00] bg-[#FF6B00]/10 scale-[1.02]' : 'border-[#333] hover:border-[#FF6B00] hover:bg-[#111]'
+                                            }`}
                                     >
-                                        <Plus size={24} className="text-[#444] group-hover:text-[#FF6B00] transition-colors" />
-                                        <span className="text-sm font-bold text-[#AAA] tracking-tighter">
-                                            {audioFiles.length > 0 ? `${audioFiles.length} STEMS LISTOS` : 'Subir pistas separadas sincronizadas'}
-                                        </span>
                                         <input
                                             type="file"
-                                            ref={datasetInputRef}
+                                            multiple
+                                            accept=".wav,.mp3,audio/*"
                                             onChange={(e) => {
                                                 if (e.target.files) setAudioFiles(prev => [...prev, ...Array.from(e.target.files!)]);
                                             }}
-                                            className="hidden"
-                                            multiple
-                                            accept=".wav,.mp3,audio/*"
+                                            className="absolute inset-0 opacity-0 cursor-pointer z-10"
                                         />
+                                        <Plus size={24} className={isDragging ? "text-[#FF6B00]" : "text-[#444] group-hover:text-[#FF6B00] transition-colors"} />
+                                        <span className="text-sm font-bold text-[#AAA] tracking-tighter">
+                                            {audioFiles.length > 0 ? `${audioFiles.length} STEMS LISTOS` : 'Subir pistas separadas sincronizadas'}
+                                        </span>
                                     </div>
                                     {audioFiles.length === 0 && (
                                         <button
@@ -451,12 +525,22 @@ export function AITrainingModule() {
                     {/* Execute Button */}
                     <button
                         onClick={handleTrain}
-                        disabled={isTraining || isAnalyzing || (trainingType === 'voice' ? (!selectedArtist || audioFiles.length === 0) : trainingType === 'instrument' ? !modelName : (!dnaProfileName || !rawAudio || !masteredAudio))}
-                        className={`mt-4 py-4 rounded-md flex items-center justify-center gap-3 font-black tracking-widest text-lg transition-all ${isTraining || isAnalyzing || (trainingType === 'voice' ? (!selectedArtist || audioFiles.length === 0) : trainingType === 'instrument' ? !modelName : (!dnaProfileName || !rawAudio || !masteredAudio))
+                        disabled={isTraining || isAnalyzing || (
+                            trainingType === 'voice' ? (!selectedArtist || audioFiles.length === 0) :
+                                trainingType === 'instrument' ? !modelName :
+                                    trainingType === 'dagraba' ? (!modelName || audioFiles.length === 0 || !referenceTrack) :
+                                        (!dnaProfileName || !rawAudio || !masteredAudio)
+                        )}
+                        className={`mt-4 py-4 rounded-md flex items-center justify-center gap-3 font-black tracking-widest text-lg transition-all ${isTraining || isAnalyzing || (
+                            trainingType === 'voice' ? (!selectedArtist || audioFiles.length === 0) :
+                                trainingType === 'instrument' ? !modelName :
+                                    trainingType === 'dagraba' ? (!modelName || audioFiles.length === 0 || !referenceTrack) :
+                                        (!dnaProfileName || !rawAudio || !masteredAudio)
+                        )
                             ? 'bg-[#222] text-[#555] border border-[#333] cursor-not-allowed'
                             : trainingType === 'voice'
                                 ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-[0_0_20px_rgba(168,85,247,0.5)] hover:shadow-[0_0_30px_rgba(168,85,247,0.8)] border border-purple-400'
-                                : trainingType === 'instrument'
+                                : (trainingType === 'instrument' || trainingType === 'dagraba')
                                     ? 'bg-gradient-to-r from-indigo-600 to-blue-600 text-white shadow-[0_0_20px_rgba(79,70,229,0.5)] hover:shadow-[0_0_30px_rgba(79,70,229,0.8)] border border-indigo-400'
                                     : 'bg-gradient-to-r from-orange-600 to-red-600 text-white shadow-[0_0_20px_rgba(234,88,12,0.5)] hover:shadow-[0_0_30px_rgba(234,88,12,0.8)] border border-orange-400'
                             }`}
@@ -485,6 +569,21 @@ export function AITrainingModule() {
                             <span className={`relative inline-flex rounded-full h-2 w-2 ${trainingType === 'voice' ? 'bg-purple-500' : 'bg-indigo-500'}`}></span>
                         </span>}
                     </div>
+
+                    {uploadProgress > 0 && (
+                        <div className="mb-4">
+                            <div className="flex justify-between items-center text-[10px] font-bold text-orange-400 mb-1 uppercase tracking-tighter">
+                                <span>Uploading Dataset...</span>
+                                <span>{uploadProgress}%</span>
+                            </div>
+                            <div className="h-1 w-full bg-[#111] rounded-full overflow-hidden border border-[#222]">
+                                <div
+                                    className="h-full bg-gradient-to-r from-orange-600 to-yellow-500 transition-all duration-300"
+                                    style={{ width: `${uploadProgress}%` }}
+                                />
+                            </div>
+                        </div>
+                    )}
 
                     <div className="flex-1 overflow-y-auto custom-scrollbar flex flex-col gap-1 text-[#AAA]">
                         {logs.length === 0 && (

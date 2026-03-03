@@ -88,10 +88,37 @@ export function DrumPadMidi() {
         return () => window.removeEventListener('keydown', handleKey);
     }, [triggerPad]);
 
-    // Start MIDI scheduler
+    // Start MIDI scheduler and Listen for external MIDI events
     useEffect(() => {
         midiEngine.start();
-        return () => midiEngine.stop();
+
+        const handleMidi = (msg: MidiMessage) => {
+            if (msg.isNoteOn() && msg.channel === MIDI_CHANNEL) {
+                const note = msg.getNoteNumber();
+                // Visual feedback only for incoming notes (sound is triggered elsewhere or by hardware)
+                setActivePads(prev => new Set(prev).add(note));
+                setTimeout(() => {
+                    setActivePads(prev => {
+                        const next = new Set(prev);
+                        next.delete(note);
+                        return next;
+                    });
+                }, 120);
+
+                // Update log
+                setMidiLog(prev => {
+                    const entry = `[IN] ${msg.getTimecodeString()} - ${msg.getDescription()}`;
+                    return [entry, ...prev].slice(0, 30);
+                });
+            }
+        };
+
+        midiEngine.addListener(handleMidi);
+
+        return () => {
+            midiEngine.stop();
+            midiEngine.removeListener(handleMidi);
+        };
     }, []);
 
     return (
