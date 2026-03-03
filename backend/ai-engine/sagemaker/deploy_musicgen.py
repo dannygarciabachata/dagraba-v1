@@ -100,16 +100,40 @@ if success_topic and error_topic:
 
 async_config = AsyncInferenceConfig(**async_kwargs)
 
-# ─── 5. Deploy ──────────────────────────────────────────────────────────────
+# ─── 5. Clean up any previous failed endpoint ───────────────────────────────
+sm_client = boto3.client("sagemaker")
+try:
+    sm_client.describe_endpoint(EndpointName=ENDPOINT_NAME)
+    print(f"⚠️  Found existing endpoint '{ENDPOINT_NAME}', deleting...")
+    sm_client.delete_endpoint(EndpointName=ENDPOINT_NAME)
+    print("   Waiting for endpoint deletion...")
+    import time as t
+    t.sleep(30)
+    # Also clean up endpoint config and model
+    try:
+        sm_client.delete_endpoint_config(EndpointConfigName=ENDPOINT_NAME)
+    except:
+        pass
+    try:
+        sm_client.delete_model(ModelName=ENDPOINT_NAME)
+    except:
+        pass
+    print("   Previous endpoint cleaned up.")
+except sm_client.exceptions.ClientError:
+    print(f"   No previous endpoint found. Deploying fresh.")
+
+# ─── 6. Deploy ──────────────────────────────────────────────────────────────
 print(f"\n🚀 Deploying {MODEL_NAME} to endpoint: {ENDPOINT_NAME}")
 print(f"   Instance: {INSTANCE_TYPE}")
-print(f"   This may take 5-10 minutes...\n")
+print(f"   Container startup timeout: 900s (15 min)")
+print(f"   This may take 10-15 minutes...\n")
 
 async_predictor = huggingface_model.deploy(
     initial_instance_count=1,
     instance_type=INSTANCE_TYPE,
     async_inference_config=async_config,
     endpoint_name=ENDPOINT_NAME,
+    container_startup_health_check_timeout=900,  # 15 min for large model download
 )
 
 print(f"\n✅ Deployment complete!")
