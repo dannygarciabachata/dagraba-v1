@@ -67,30 +67,38 @@ huggingface_model = HuggingFaceModel(
     py_version="py310",
 )
 
-# ─── 3. Create SNS Topics for Success/Failure ───────────────────────────────
-sns_client = boto3.client("sns")
-timestamp = int(time.time())
+# ─── 3. Create SNS Topics (optional — skip if no SNS permissions) ────────────
+success_topic = None
+error_topic = None
 
-success_topic = sns_client.create_topic(
-    Name=f"dagraba-musicgen-success-{timestamp}"
-)["TopicArn"]
-error_topic = sns_client.create_topic(
-    Name=f"dagraba-musicgen-error-{timestamp}"
-)["TopicArn"]
-
-print(f"Success SNS Topic: {success_topic}")
-print(f"Error SNS Topic: {error_topic}")
+try:
+    sns_client = boto3.client("sns")
+    timestamp = int(time.time())
+    success_topic = sns_client.create_topic(
+        Name=f"dagraba-musicgen-success-{timestamp}"
+    )["TopicArn"]
+    error_topic = sns_client.create_topic(
+        Name=f"dagraba-musicgen-error-{timestamp}"
+    )["TopicArn"]
+    print(f"Success SNS Topic: {success_topic}")
+    print(f"Error SNS Topic: {error_topic}")
+except Exception as e:
+    print(f"⚠️  SNS topics skipped (no permissions): {e}")
+    print("   Deployment will continue without notifications.")
 
 # ─── 4. Configure Async Inference ───────────────────────────────────────────
 from sagemaker.async_inference import AsyncInferenceConfig
 
-async_config = AsyncInferenceConfig(
-    output_path=f"s3://{bucket}/dagraba/musicgen/async_inference/output",
-    notification_config={
+async_kwargs = {
+    "output_path": f"s3://{bucket}/dagraba/musicgen/async_inference/output",
+}
+if success_topic and error_topic:
+    async_kwargs["notification_config"] = {
         "SuccessTopic": success_topic,
         "ErrorTopic": error_topic,
-    },
-)
+    }
+
+async_config = AsyncInferenceConfig(**async_kwargs)
 
 # ─── 5. Deploy ──────────────────────────────────────────────────────────────
 print(f"\n🚀 Deploying {MODEL_NAME} to endpoint: {ENDPOINT_NAME}")
