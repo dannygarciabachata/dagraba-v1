@@ -1,0 +1,6 @@
+audiocraft
+transformers>=4.37
+torch>=2.1
+scipy
+numpy
+boto3

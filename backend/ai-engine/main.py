@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import uvicorn
 import logging
+import os
 
 # Configure Logging
 logging.basicConfig(level=logging.INFO)
@@ -26,6 +27,8 @@ app.add_middleware(
 
 # Initialize the Music Generator Engine (lazy loaded)
 engine = None
+sagemaker_client = None
+USE_SAGEMAKER = os.environ.get("USE_SAGEMAKER", "false").lower() == "true"
 
 def get_engine():
     global engine
@@ -36,6 +39,15 @@ def get_engine():
         engine.load_base_model()
         logger.info("Engine loaded successfully.")
     return engine
+
+def get_sagemaker_client():
+    global sagemaker_client
+    if sagemaker_client is None:
+        logger.info("Initializing SageMaker MusicGen client...")
+        from sagemaker.client import SageMakerMusicGenClient
+        sagemaker_client = SageMakerMusicGenClient()
+        logger.info("SageMaker client ready.")
+    return sagemaker_client
 
 # In-memory mock DB for task status polling
 MOCK_DB = {}
@@ -60,7 +72,11 @@ async def startup_event():
 @app.get("/health")
 async def health_check():
     """Simple health check endpoint — responds immediately without loading the engine."""
-    return {"status": "ok", "engine_loaded": engine is not None}
+    return {
+        "status": "ok",
+        "engine_loaded": engine is not None,
+        "use_sagemaker": USE_SAGEMAKER,
+    }
 
 @app.post("/generate", response_model=GenerateResponse)
 async def generate_music(req: GenerateRequest):
@@ -71,27 +87,45 @@ async def generate_music(req: GenerateRequest):
     logger.info(f"Received generation request for DNA: {req.modelId}, genre: {req.genre}")
     
     try:
-        # 1. Execute the inference pass
+        # Route to SageMaker if enabled (production GPU inference)
+        if USE_SAGEMAKER:
+            logger.info("Routing to SageMaker async endpoint...")
+            import uuid
+            task_id = f"ai_gen_{uuid.uuid4().hex[:8]}"
+            
+            result = await get_sagemaker_client().generate(
+                prompt=req.prompt,
+                genre=req.genre,
+                duration=req.duration,
+            )
+            
+            MOCK_DB[task_id] = {
+                "status": result.get("status", "SUCCESS"),
+                "audioUrl": result.get("audioUrl", ""),
+                "imageUrl": "",
+                "lyrics": "",
+                "title": f"AI Generated - {req.genre}",
+                "tags": [req.genre],
+                "prompt": req.prompt,
+                "source": "sagemaker",
+            }
+            
+            return GenerateResponse(
+                success=True,
+                taskId=task_id,
+                message="Generated via SageMaker GPU inference."
+            )
+        
+        # Fallback: local engine (dev mode)
         result = get_engine().generate(
             prompt=req.prompt,
             dna_id=req.modelId,
             genre=req.genre
         )
         
-        # 2. In a real asynchronous system (Celery/Redis), we'd return a task ID immediately
-        # and process the generation in the background. 
-        # For this prototype, we're mimicking the immediate return of a task ID
-        # while storing the mock result in memory or DB so the frontend polling can find it.
-        
         import uuid
         task_id = f"ai_gen_{uuid.uuid4().hex[:8]}"
         
-        # We simulate saving the final generation data somewhere the frontend can access it
-        # (Usually this would be saved to Convex or Prisma. Here we pretend the frontend polling
-        # will just find these 'files' magically, or we simulate by generating a direct success dict
-        # if the frontend is polling Convex).
-        
-        # Save to an in-memory dictionary for status polling
         MOCK_DB[task_id] = {
             "status": "SUCCESS",
             "audioUrl": result["audioUrl"],
