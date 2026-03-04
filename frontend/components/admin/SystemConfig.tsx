@@ -89,26 +89,26 @@ export function SystemConfig() {
                 {/* Toggles & Region */}
                 <div className="flex flex-col gap-6">
                     {/* Maintenance Mode */}
-                    <div className="flex items-center justify-between bg-[#111] border border-[#333] p-4 rounded-md shadow-inner">
-                        <div className="flex items-start gap-3">
-                            <AlertTriangle size={20} className={maintenanceMode ? "text-red-500 animate-pulse" : "text-[#555]"} />
-                            <div className="flex flex-col">
-                                <span className={`text-sm font-bold tracking-widest uppercase ${maintenanceMode ? "text-red-500" : "text-[#E0E0E0]"}`}>
-                                    Modo Mantenimiento
-                                </span>
-                                <span className="text-[10px] text-[#888]">Cierra acceso a todos los usuarios excepto Admin.</span>
-                            </div>
-                        </div>
-                        {/* Custom Toggle Switch */}
-                        <div
-                            className={`w-12 h-6 rounded-full p-1 cursor-pointer transition-colors ${maintenanceMode ? 'bg-red-600' : 'bg-[#333]'}`}
-                            onClick={async () => {
-                                const newVal = !maintenanceMode;
-                                setMaintenanceMode(newVal);
-                                await handleSaveKey('MAINTENANCE_MODE', newVal.toString());
-                            }}
-                        >
-                            <div className={`w-4 h-4 rounded-full bg-white shadow-md transform transition-transform ${maintenanceMode ? 'translate-x-6' : 'translate-x-0'}`} />
+                    <div className="flex flex-col gap-2">
+                        <label className="text-xs font-bold text-[#888] tracking-widest flex items-center gap-2">
+                            <AlertTriangle size={14} className={maintenanceMode ? "text-red-500" : ""} /> MODO MANTENIMIENTO
+                        </label>
+                        <div className="flex gap-2">
+                            <select
+                                className="flex-1 bg-[#111] border border-[#333] rounded-md px-4 py-2 text-sm text-[#E0E0E0] outline-none focus:border-[#00F0FF] transition-colors"
+                                value={maintenanceMode ? "true" : "false"}
+                                onChange={(e) => setMaintenanceMode(e.target.value === "true")}
+                            >
+                                <option value="false">Desactivado (Sitio Público)</option>
+                                <option value="true">Activado (Solo Admin)</option>
+                            </select>
+                            <button
+                                onClick={() => handleSaveKey('MAINTENANCE_MODE', maintenanceMode.toString())}
+                                disabled={isLoading}
+                                className="bg-[#222] hover:bg-[#333] text-white border border-[#444] px-4 py-2 rounded text-xs font-bold tracking-widest transition-colors disabled:opacity-50"
+                            >
+                                {isLoading ? '...' : 'SAVE'}
+                            </button>
                         </div>
                     </div>
 
