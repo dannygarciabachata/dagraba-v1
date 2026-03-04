@@ -85,16 +85,13 @@ export function Sidebar() {
                 {/* Navigation Links */}
                 <nav className="flex flex-col gap-2 w-full px-3">
                     {navItems.filter(item => {
-                        // Restricted items for guest users
-                        if (!user && (item.id === 'dashboard' || item.id === 'library' || item.id === 'notifications')) {
-                            return false;
-                        }
                         // Superadmin only items
                         if ((item.id === 'admin' || item.id === 'settings') && !isSuperAdmin) {
                             return false;
                         }
                         // Auth only items
-                        if (!user && (item.id === 'dashboard' || item.id === 'library' || item.id === 'notifications' || item.id === 'profile')) {
+                        const authRequired = ['dashboard', 'planer', 'crear', 'studio', 'mastering', 'library', 'notifications', 'profile'];
+                        if (!user && authRequired.includes(item.id)) {
                             return false;
                         }
                         return true;
@@ -127,7 +124,7 @@ export function Sidebar() {
 
             {/* Bottom Section: AI Status & Settings & Language */}
             <div className="w-full flex flex-col gap-4 pb-4">
-                <CloudStatusPanel />
+                {isSuperAdmin && <CloudStatusPanel />}
 
                 <div className="flex flex-col gap-1 px-3">
                     {/* Language Switcher */}

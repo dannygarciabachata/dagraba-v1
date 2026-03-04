@@ -26,6 +26,7 @@ export const EQ_BANDS = [
 ];
 
 import { StemExtractModal } from '@/components/daw/StemExtractModal';
+import { useAuth } from '@/context/AuthContext';
 
 export default function Mastering() {
     const plan = useUserStore((state) => state.plan);
@@ -40,6 +41,19 @@ export default function Mastering() {
     const router = useRouter();
     const locale = params.locale as string;
     const loadId = searchParams.get('load');
+
+    const { user, loading, setLoginModalOpen } = useAuth();
+
+    useEffect(() => {
+        if (!loading && !user) {
+            router.push(`/${locale}`);
+            setTimeout(() => setLoginModalOpen(true), 500);
+        }
+    }, [user, loading, router, locale, setLoginModalOpen]);
+
+    if (loading || !user) {
+        return <div className="flex h-full w-full items-center justify-center bg-[#050505]"><Activity className="animate-pulse text-cyan-500 w-8 h-8" /></div>;
+    }
 
     // UI State
     const [isOn, setIsOn] = useState(true);

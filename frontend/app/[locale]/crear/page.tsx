@@ -33,7 +33,19 @@ export default function Crear() {
     const { tracks, activeTrack, setTracks, setActiveTrack, updateTrack, removeTrack, addTrack } = useCreatorStore();
     const [isGenerating, setIsGenerating] = useState(false);
     const { credits, deductCredits } = useUserStore();
-    const { user, setLoginModalOpen } = useAuth();
+    const { user, loading, setLoginModalOpen } = useAuth();
+
+    // Route Protection
+    useEffect(() => {
+        if (!loading && !user) {
+            router.push(`/${locale}`);
+            setTimeout(() => setLoginModalOpen(true), 500);
+        }
+    }, [user, loading, router, locale, setLoginModalOpen]);
+
+    if (loading || !user) {
+        return <div className="flex h-full w-full items-center justify-center bg-[#050505]"><Loader2 className="animate-spin text-orange-500 w-8 h-8" /></div>;
+    }
 
     // Track Menu State
     const [openMenuId, setOpenMenuId] = useState<string | null>(null);

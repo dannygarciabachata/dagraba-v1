@@ -19,9 +19,11 @@ import { useUserStore } from '@/store/useUserStore';
 import { PlanLock } from '@/components/ui/PlanLock';
 import { useState, useEffect } from 'react';
 import { CreativeBrainPanel } from '@/components/studio/CreativeBrainPanel';
+import { useAuth } from '@/context/AuthContext';
 
 export default function Studio() {
     const plan = useUserStore((state) => state.plan);
+    const { user, loading } = useAuth();
     const faders = useDAWStore((state) => state.faders);
     const tracks = useDAWStore((state) => state.tracks);
     const addTrack = useDAWStore((state) => state.addTrack);
@@ -36,11 +38,22 @@ export default function Studio() {
         setHasHydrated(true);
     }, []);
 
+    // Route Protection
+    useEffect(() => {
+        if (!loading && !user) {
+            window.location.href = '/';
+        }
+    }, [user, loading]);
+
     const openPluginIds = useDAWStore((state) => state.openPluginIds);
     const closePlugin = useDAWStore((state) => state.closePlugin);
     const isFullMixer = useDAWStore((state) => state.isFullMixer);
 
     if (!hasHydrated) return null;
+
+    if (loading || !user) {
+        return <div className="flex h-full w-full items-center justify-center bg-[#050505]"><Activity className="animate-pulse text-cyan-500 w-8 h-8" /></div>;
+    }
 
     // PLAN GUARD: Studio requires at least 'pro'
     if (plan === 'free') {

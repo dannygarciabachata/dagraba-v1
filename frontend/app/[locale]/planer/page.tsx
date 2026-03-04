@@ -20,7 +20,18 @@ export default function Planer() {
     ]);
     const [isTyping, setIsTyping] = useState(false);
     const { credits, deductCredits } = useUserStore();
-    const { user, setLoginModalOpen } = useAuth();
+    const { user, loading, setLoginModalOpen } = useAuth();
+
+    useEffect(() => {
+        if (!loading && !user) {
+            router.push('/');
+            setTimeout(() => setLoginModalOpen(true), 500);
+        }
+    }, [user, loading, router, setLoginModalOpen]);
+
+    if (loading || !user) {
+        return <div className="flex h-full w-full items-center justify-center bg-[#0D0D0F]"><Loader2 className="animate-spin text-orange-500 w-8 h-8" /></div>;
+    }
 
     const handleChatSubmit = async () => {
         if (!chatInput.trim() || isTyping) return;
