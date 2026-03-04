@@ -56,6 +56,7 @@ export default function Profile() {
     const [importedLastfm, setImportedLastfm] = useState<Set<string>>(new Set());
     const [playingId, setPlayingId] = useState<string | null>(null);
     const [shareOpen, setShareOpen] = useState<string | null>(null);
+    const [confirmLogout, setConfirmLogout] = useState(false);
 
     // Payment state
     const [defaultPayment, setDefaultPayment] = useState<'stripe' | 'paypal' | 'card'>('stripe');
@@ -124,14 +125,20 @@ export default function Profile() {
                             </button>
                             <button
                                 onClick={() => {
-                                    if (confirm('¿Estás seguro de que quieres cerrar sesión?')) {
+                                    if (!confirmLogout) {
+                                        setConfirmLogout(true);
+                                        setTimeout(() => setConfirmLogout(false), 3000);
+                                    } else {
                                         logout();
                                         router.push('/');
                                     }
                                 }}
-                                className="flex items-center gap-1.5 px-3 py-1.5 bg-red-600/20 hover:bg-red-600/30 border border-red-500/40 rounded-lg text-[10px] font-bold text-red-500 transition-all"
+                                className={`flex items-center gap-1.5 px-3 py-1.5 border rounded-lg text-[10px] font-bold transition-all ${confirmLogout
+                                        ? 'bg-red-600 border-red-500 text-white shadow-[0_0_15px_rgba(220,38,38,0.5)]'
+                                        : 'bg-red-600/20 hover:bg-red-600/30 border-red-500/40 text-red-500'
+                                    }`}
                             >
-                                <LogOut size={11} /> Cerrar Sesión
+                                <LogOut size={11} /> {confirmLogout ? '¿Seguro? Salir' : 'Cerrar Sesión'}
                             </button>
                         </div>
                     </div>
