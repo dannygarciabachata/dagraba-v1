@@ -33,6 +33,14 @@ export function SystemConfig() {
                 if (dataMusicGpt.success && dataMusicGpt.setting) {
                     setMusicGptKey(dataMusicGpt.setting.value);
                 }
+
+                const resMaint = await fetch('/api/admin/settings?key=MAINTENANCE_MODE', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const dataMaint = await resMaint.json();
+                if (dataMaint.success && dataMaint.setting) {
+                    setMaintenanceMode(dataMaint.setting.value === 'true');
+                }
             } catch (error) {
                 console.error('Failed to fetch API Key', error);
             } finally {
