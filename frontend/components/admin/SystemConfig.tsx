@@ -102,7 +102,11 @@ export function SystemConfig() {
                         {/* Custom Toggle Switch */}
                         <div
                             className={`w-12 h-6 rounded-full p-1 cursor-pointer transition-colors ${maintenanceMode ? 'bg-red-600' : 'bg-[#333]'}`}
-                            onClick={() => setMaintenanceMode(!maintenanceMode)}
+                            onClick={async () => {
+                                const newVal = !maintenanceMode;
+                                setMaintenanceMode(newVal);
+                                await handleSaveKey('MAINTENANCE_MODE', newVal.toString());
+                            }}
                         >
                             <div className={`w-4 h-4 rounded-full bg-white shadow-md transform transition-transform ${maintenanceMode ? 'translate-x-6' : 'translate-x-0'}`} />
                         </div>
