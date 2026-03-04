@@ -124,18 +124,18 @@ export default function Profile() {
                                 <Share2 size={11} /> Compartir
                             </button>
                             <button
-                                onClick={() => {
+                                onClick={async () => {
                                     if (!confirmLogout) {
                                         setConfirmLogout(true);
                                         setTimeout(() => setConfirmLogout(false), 3000);
                                     } else {
-                                        logout();
-                                        router.push('/');
+                                        setConfirmLogout(false);
+                                        await logout();
                                     }
                                 }}
                                 className={`flex items-center gap-1.5 px-3 py-1.5 border rounded-lg text-[10px] font-bold transition-all ${confirmLogout
-                                        ? 'bg-red-600 border-red-500 text-white shadow-[0_0_15px_rgba(220,38,38,0.5)]'
-                                        : 'bg-red-600/20 hover:bg-red-600/30 border-red-500/40 text-red-500'
+                                    ? 'bg-red-600 border-red-500 text-white shadow-[0_0_15px_rgba(220,38,38,0.5)]'
+                                    : 'bg-red-600/20 hover:bg-red-600/30 border-red-500/40 text-red-500'
                                     }`}
                             >
                                 <LogOut size={11} /> {confirmLogout ? '¿Seguro? Salir' : 'Cerrar Sesión'}
