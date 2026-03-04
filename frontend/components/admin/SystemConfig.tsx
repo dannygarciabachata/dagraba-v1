@@ -11,6 +11,7 @@ export function SystemConfig() {
     const [apiKey, setApiKey] = useState('');
     const [musicGptKey, setMusicGptKey] = useState('');
     const [isLoading, setIsLoading] = useState(true);
+    const [saveStatus, setSaveStatus] = useState<Record<string, 'idle' | 'saving' | 'success' | 'error'>>({});
 
     React.useEffect(() => {
         const fetchApiKey = async () => {
@@ -53,10 +54,9 @@ export function SystemConfig() {
     const handleSaveKey = async (keyName: string, keyValue: string) => {
         try {
             const token = await getIdToken();
-            if (!token) {
-                alert('No se pudo obtener el token de sesión.');
-                return;
-            }
+            if (!token) return;
+
+            setSaveStatus((prev) => ({ ...prev, [keyName]: 'saving' }));
 
             const res = await fetch('/api/admin/settings', {
                 method: 'POST',
@@ -67,15 +67,40 @@ export function SystemConfig() {
                 body: JSON.stringify({ key: keyName, value: keyValue, category: 'ai_engine' })
             });
             const data = await res.json();
+
             if (data.success) {
-                alert(`API Key ${keyName} actualizada correctamente.`);
+                setSaveStatus((prev) => ({ ...prev, [keyName]: 'success' }));
+                setTimeout(() => {
+                    setSaveStatus((prev) => ({ ...prev, [keyName]: 'idle' }));
+                }, 3000);
             } else {
-                alert(`Hubo un error al guardar la API Key ${keyName}.`);
+                setSaveStatus((prev) => ({ ...prev, [keyName]: 'error' }));
+                setTimeout(() => {
+                    setSaveStatus((prev) => ({ ...prev, [keyName]: 'idle' }));
+                }, 3000);
             }
         } catch (error) {
             console.error(`Error saving key ${keyName}:`, error);
-            alert('Error de conexión.');
+            setSaveStatus((prev) => ({ ...prev, [keyName]: 'error' }));
+            setTimeout(() => {
+                setSaveStatus((prev) => ({ ...prev, [keyName]: 'idle' }));
+            }, 3000);
         }
+    };
+
+    const getButtonText = (keyName: string) => {
+        const status = saveStatus[keyName];
+        if (status === 'saving') return 'GUARDANDO...';
+        if (status === 'success') return 'GUARDADO ✅';
+        if (status === 'error') return 'ERROR ❌';
+        return 'GUARDAR';
+    };
+
+    const getButtonClass = (keyName: string) => {
+        const status = saveStatus[keyName];
+        if (status === 'success') return 'bg-green-600/50 hover:bg-green-600/70 border-green-500 text-white';
+        if (status === 'error') return 'bg-red-600/50 hover:bg-red-600/70 border-red-500 text-white';
+        return 'bg-[#222] hover:bg-[#333] border-[#444] text-white';
     };
 
     return (
@@ -112,10 +137,10 @@ export function SystemConfig() {
                             </select>
                             <button
                                 onClick={() => handleSaveKey('MAINTENANCE_MODE', maintenanceMode.toString())}
-                                disabled={isLoading}
-                                className="bg-[#222] hover:bg-[#333] text-white border border-[#444] px-4 py-2 rounded text-xs font-bold tracking-widest transition-colors disabled:opacity-50"
+                                disabled={isLoading || saveStatus['MAINTENANCE_MODE'] === 'saving'}
+                                className={`border px-4 py-2 rounded text-xs font-bold tracking-widest transition-colors disabled:opacity-50 ${getButtonClass('MAINTENANCE_MODE')}`}
                             >
-                                {isLoading ? '...' : 'SAVE'}
+                                {isLoading ? '...' : getButtonText('MAINTENANCE_MODE')}
                             </button>
                         </div>
                     </div>
@@ -150,15 +175,15 @@ export function SystemConfig() {
                                 value={apiKey}
                                 onChange={(e) => setApiKey(e.target.value)}
                                 placeholder={isLoading ? "Cargando..." : "sk_..."}
-                                disabled={isLoading}
+                                disabled={isLoading || saveStatus['KIE_API_KEY'] === 'saving'}
                                 className="flex-1 bg-[#111] border border-[#333] rounded-md px-4 py-2 text-sm text-white font-mono outline-none focus:border-[#00F0FF] transition-colors"
                             />
                             <button
                                 onClick={() => handleSaveKey('KIE_API_KEY', apiKey)}
-                                disabled={isLoading}
-                                className="bg-[#222] hover:bg-[#333] text-white border border-[#444] px-4 py-2 rounded text-xs font-bold tracking-widest transition-colors disabled:opacity-50"
+                                disabled={isLoading || saveStatus['KIE_API_KEY'] === 'saving'}
+                                className={`border px-4 py-2 rounded text-xs font-bold tracking-widest transition-colors disabled:opacity-50 ${getButtonClass('KIE_API_KEY')}`}
                             >
-                                {isLoading ? '...' : 'SAVE'}
+                                {isLoading ? '...' : getButtonText('KIE_API_KEY')}
                             </button>
                         </div>
                     </div>
@@ -173,15 +198,15 @@ export function SystemConfig() {
                                 value={musicGptKey}
                                 onChange={(e) => setMusicGptKey(e.target.value)}
                                 placeholder={isLoading ? "Cargando..." : "sk_..."}
-                                disabled={isLoading}
+                                disabled={isLoading || saveStatus['MUSICGPT_API_KEY'] === 'saving'}
                                 className="flex-1 bg-[#111] border border-[#333] rounded-md px-4 py-2 text-sm text-white font-mono outline-none focus:border-[#00F0FF] transition-colors"
                             />
                             <button
                                 onClick={() => handleSaveKey('MUSICGPT_API_KEY', musicGptKey)}
-                                disabled={isLoading}
-                                className="bg-[#222] hover:bg-[#333] text-white border border-[#444] px-4 py-2 rounded text-xs font-bold tracking-widest transition-colors disabled:opacity-50"
+                                disabled={isLoading || saveStatus['MUSICGPT_API_KEY'] === 'saving'}
+                                className={`border px-4 py-2 rounded text-xs font-bold tracking-widest transition-colors disabled:opacity-50 ${getButtonClass('MUSICGPT_API_KEY')}`}
                             >
-                                {isLoading ? '...' : 'SAVE'}
+                                {isLoading ? '...' : getButtonText('MUSICGPT_API_KEY')}
                             </button>
                         </div>
                     </div>
